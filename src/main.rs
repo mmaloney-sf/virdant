@@ -195,6 +195,7 @@ fn parse_exprs() {
 //        "0xffw16",
         "x",
         "x.y",
+        "x.y.z",
         "x + y",
         "x - y",
         "x ++ y",

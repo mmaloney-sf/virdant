@@ -133,8 +133,14 @@ ExprLit: Box<Expr> = {
 }
 
 ExprReference: Box<Expr> = {
-    <ll:@L> <mid:Id> "." <id:Id> <rr:@R> => Box::new(Expr::Reference(format!("{mid}.{id}").into())),
-    <ll:@L> <id:Id> <rr:@R> => Box::new(Expr::Reference(id.into())),
+    <id0:Id> <ids:("." Id)+> => {
+        let mut parts = vec![id0];
+        for (_, id) in ids {
+          parts.push(id);
+        }
+        let path: String = parts.join(".").chars().collect();
+        Box::new(Expr::Reference(path.into()))
+    },
 }
 
 WordLit: WordLit = {

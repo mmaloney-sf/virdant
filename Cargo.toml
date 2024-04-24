@@ -1,0 +1,15 @@
+[package]
+name = "virdant"
+version = "0.1.0-rc0"
+edition = "2021"
+license = "MIT"
+description = "Virdant is a modern hardware description language."
+readme = "README.md"
+publish = true
+authors = ["Michael Maloney"]
+
+[[bin]]
+name = "vir"
+path = "src/main.rs"
+
+[dependencies]

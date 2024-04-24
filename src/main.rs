@@ -67,6 +67,7 @@ fn parse_exprs() {
         "(x)",
         "cat(x, y, z)",
         "f(x, y)",
+        "z->f(x, y)",
         "x->real",
         "x[0]",
         "x[8..0]",

@@ -39,7 +39,8 @@ pub enum TypedExpr {
 //    If(Box<TypedExpr>, Box<TypedExpr>, Box<TypedExpr>),
 //    Match(Box<TypedExpr>, Vec<MatchArm>),
 //    Let(Ident, Option<Type>, Box<TypedExpr>, Box<TypedExpr>),
-    Call(Ident, Vec<TypedExpr>),
+    FnCall(Ident, Vec<TypedExpr>),
+    MethodCall(Box<TypedExpr>, Ident, Vec<TypedExpr>),
     Cat(Vec<TypedExpr>),
     IdxField(Box<TypedExpr>, Ident),
     Idx(Box<TypedExpr>, u64),
@@ -115,7 +116,10 @@ pub fn eval(ctx: Context<Path, Value>, expr: &TypedExpr) -> Value {
                 _ => panic!("Unknown binary op {op:?}"),
             }
         },
-        TypedExpr::Call(_name, _es) => {
+        TypedExpr::FnCall(_name, _es) => {
+            todo!()
+        },
+        TypedExpr::MethodCall(_s, _name, _es) => {
             todo!()
         },
         TypedExpr::Cat(_es) => {

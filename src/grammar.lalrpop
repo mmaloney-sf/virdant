@@ -49,7 +49,10 @@ ExprCall: Box<Expr> = {
         Box::new(Expr::Cat(es))
     },
     <ll:@L> <name:Id> "(" <es:ExprList> ")" <rr:@R> => {
-        Box::new(Expr::Call(name, es))
+        Box::new(Expr::FnCall(name, es))
+    },
+    <ll:@L> <s:ExprIdx> "->" <name:Id> "(" <es:ExprList> ")" <rr:@R> => {
+        Box::new(Expr::MethodCall(s, name, es))
     },
     <e:ExprIdx> => e,
 }

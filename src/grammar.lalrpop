@@ -1,0 +1,189 @@
+use super::*;
+
+grammar;
+
+pub Expr: Box<Expr> = {
+//    <e:ExprLet> => e,
+//    <e:ExprIf> => e,
+//    <e:ExprMatch> => e,
+    <e:ExprOr> => e,
+}
+
+ExprOr: Box<Expr> = {
+    <ll:@L> <e1:ExprAnd> "||" <e2:ExprOr> <rr:@R> => Box::new(Expr::BinOp("||".to_string(), e1, e2)),
+    <ll:@L> <e1:ExprAnd> "^" <e2:ExprOr> <rr:@R> => Box::new(Expr::BinOp("^".to_string(), e1, e2)),
+    <e:ExprAnd> => e,
+}
+
+ExprAnd: Box<Expr> = {
+    <ll:@L> <e1:ExprNot> "&&" <e2:ExprAnd> <rr:@R> => Box::new(Expr::BinOp("&&".to_string(), e1, e2)),
+    <e:ExprNot> => e,
+}
+
+ExprNot: Box<Expr> = {
+    <ll:@L> "!" <e:ExprEq> <rr:@R> => Box::new(Expr::UnOp("!".to_string(), e)),
+    <e:ExprEq> => e,
+}
+
+ExprEq: Box<Expr> = {
+    <ll:@L> <e1:ExprAdd> "==" <e2:ExprEq> <rr:@R> => Box::new(Expr::BinOp("==".to_string(),  e1, e2)),
+    <ll:@L> <e1:ExprAdd> "!=" <e2:ExprEq> <rr:@R> => Box::new(Expr::BinOp("!=".to_string(), e1, e2)),
+    <ll:@L> <e1:ExprAdd> "<"  <e2:ExprEq> <rr:@R> => Box::new(Expr::BinOp("<".to_string(), e1, e2)),
+    <ll:@L> <e1:ExprAdd> "<=" <e2:ExprEq> <rr:@R> => Box::new(Expr::BinOp("<=".to_string(), e1, e2)),
+    <ll:@L> <e1:ExprAdd> ">"  <e2:ExprEq> <rr:@R> => Box::new(Expr::BinOp(">".to_string(), e1, e2)),
+    <ll:@L> <e1:ExprAdd> ">=" <e2:ExprEq> <rr:@R> => Box::new(Expr::BinOp(">=".to_string(), e1, e2)),
+    <e:ExprAdd> => e,
+}
+
+ExprAdd: Box<Expr> = {
+    <ll:@L> <e1:ExprCall> "+"  <e2:ExprAdd> <rr:@R> => Box::new(Expr::BinOp("+".to_string(), e1, e2)),
+    <ll:@L> <e1:ExprCall> "++" <e2:ExprAdd> <rr:@R> => Box::new(Expr::BinOp("++".to_string(), e1, e2)),
+    <ll:@L> <e1:ExprCall> "-"  <e2:ExprAdd> <rr:@R> => Box::new(Expr::BinOp("-".to_string(), e1, e2)),
+    <e:ExprCall> => e,
+}
+
+ExprCall: Box<Expr> = {
+//    <ll:@L> <name:Ctor> <rr:@R> =>  Box::new(Expr::Call(name, vec![], vec![])),
+//    <ll:@L> <name:Ctor> "(" <es:ExprList> ")" <rr:@R> =>  Box::new(Expr::Call(name, vec![], es)),
+    "cat" "(" <es:ExprList> ")" => {
+        Box::new(Expr::Cat(es))
+    },
+    <ll:@L> <name:Id> "(" <es:ExprList> ")" <rr:@R> => {
+        Box::new(Expr::Call(name, es))
+    },
+    <e:ExprIdx> => e,
+}
+
+ExprIdx: Box<Expr> = {
+    <ll:@L> <e:ExprIdx> "->" <field:Id> <rr:@R> => Box::new(Expr::IdxField(e, field.clone())),
+    <ll:@L> <e:ExprIdx> "[" <i:Nat> "]" <rr:@R> => Box::new(Expr::Idx(e, i)),
+    <ll:@L> <e:ExprIdx> "[" <j:Nat> ".." <i:Nat> "]" <rr:@R> => Box::new(Expr::IdxRange(e, j, i)),
+    <e:ExprBase> => e,
+}
+
+ExprBase: Box<Expr> = {
+    <e:ExprVec> => e,
+    <e:ExprStruct> => e,
+    <e:ExprWith> => e,
+    <e:ExprLit> => e,
+    <e:ExprReference> => e,
+    "(" <e:Expr> ")" => e,
+}
+
+ExprStruct: Box<Expr> = {
+    <ll:@L> "struct" <name:Id> "{" <fields:FieldExprList> "}" <rr:@R> => {
+        let fields = fields.iter().map(|(name, e)| (name.to_string(), Box::new(e.clone()))).collect();
+        Box::new(Expr::Struct(name, fields))
+    },
+}
+
+FieldExprList: Vec<(String, Expr)> = {
+    <fields:((Id "=" Expr ("," Id "=" Expr)* ","?)?)> => {
+        if let Some((name, _eqsign, expr, fields, _comma)) = fields {
+            let mut results = vec![(name.to_string(), *expr)];
+            for (_comma, name, _eqsign, expr) in fields {
+                results.push((name.to_string(), *expr));
+            }
+            results
+        } else {
+            vec![]
+        }
+    },
+}
+
+ExprWith: Box<Expr> = {
+  "with" <e:Expr> "{"
+    <edits:ExprWidthEdit*>
+  "}" => {
+    Box::new(Expr::With(e, edits))
+  }
+}
+
+ExprWidthEdit: WithEdit = {
+  "this" "[" <n:Nat> "]" "=" <e:Expr> ";" => WithEdit::Idx(n, e),
+  "this" "->" <id:Id> "]" "=" <e:Expr> ";" => WithEdit::Field(id, e),
+}
+
+ExprVec: Box<Expr> = {
+    <ll:@L> "[" <es:ExprList> "]" <rr:@R> => Box::new(Expr::Vec(es)),
+    <ll:@L> "[" <e:Expr> ";" <n:Nat> "]" <rr:@R> => Box::new(Expr::Vec(vec![*e; n as usize])),
+}
+
+ExprList: Vec<Expr> = {
+    <exprs:((Expr ("," Expr)* ","?)?)> => {
+        if let Some((expr, exprs, _comma)) = exprs {
+            let mut results = vec![*expr];
+            for (_comma, expr) in exprs {
+                results.push(*expr);
+            }
+            results
+        } else {
+            vec![]
+        }
+    },
+}
+
+ExprLit: Box<Expr> = {
+    <ll:@L> <lit:WordLit> <rr:@R> => {
+        Box::new(Expr::Word(lit))
+    },
+}
+
+ExprReference: Box<Expr> = {
+    <ll:@L> <mid:Id> "." <id:Id> <rr:@R> => Box::new(Expr::Reference(Reference::Nonlocal(mid, id))),
+    <ll:@L> <id:Id> <rr:@R> => Box::new(Expr::Reference(Reference::Local(id))),
+}
+
+WordLit: WordLit = {
+    <n:Nat> => WordLit(None, n),
+    <lit:r"[0-9][_0-9]*w[0-9]+"> => {
+        let lit_nounders: String = lit.chars().filter(|&c| c != '_').collect();
+        let parts = lit_nounders.split("w").collect::<Vec<_>>();
+        let v = parts[0].parse().unwrap();
+        let width = parts[1].parse().unwrap();
+        WordLit(Some(width), v)
+    },
+    <lit:r"0b[0-1][_0-1]*w[0-9]+"> => {
+        let lit_nounders: String = lit.chars().filter(|&c| c != '_').collect();
+        let parts = lit_nounders.split("w").collect::<Vec<_>>();
+        let v = u64::from_str_radix(&parts[0][2..], 2).unwrap();
+        let width = parts[1].parse().unwrap();
+        WordLit(Some(width), v)
+    },
+    <lit:r"0x[0-9a-fA-F][_0-9a-fA-F]*w[0-9]+"> => {
+        let lit_nounders: String = lit.chars().filter(|&c| c != '_').collect();
+        let parts = lit_nounders.split("w").collect::<Vec<_>>();
+        let v = u64::from_str_radix(&parts[0][2..], 16).unwrap();
+        let width = parts[1].parse().unwrap();
+        WordLit(Some(width), v)
+    },
+}
+
+Nat: u64 = {
+    <lit:r"[0-9][_0-9]*"> => {
+        let lit_nounders: String = lit.chars().filter(|&c| c != '_').collect();
+        lit_nounders.parse().unwrap()
+    },
+    <lit:r"0b[0-9][_0-9]*"> => {
+        let lit_nounders: String = lit.chars().filter(|&c| c != '_').collect();
+        u64::from_str_radix(&lit_nounders[2..], 2).unwrap()
+    },
+    <lit:r"0x[0-9][_0-9]*"> => {
+        let lit_nounders: String = lit.chars().filter(|&c| c != '_').collect();
+        u64::from_str_radix(&lit_nounders[2..], 16).unwrap()
+    },
+}
+
+Id: Ident = {
+    <ll:@L> <id:r"[_A-Za-z][_A-Za-z0-9]*"> <rr:@R> => {
+        id.to_string()
+    },
+}
+
+match {
+    r"//[^\n\r]*[\r\n]" => {},
+    r"[\r\n]*" => {},
+    r"/\*[^*]*\*/" => {},
+    r" " => {},
+    _,
+}

@@ -127,11 +127,14 @@ ExprLit: Box<Expr> = {
     <ll:@L> <lit:WordLit> <rr:@R> => {
         Box::new(Expr::Word(lit))
     },
+
+    "true" => Box::new(Expr::Bool(true)),
+    "false" => Box::new(Expr::Bool(false)),
 }
 
 ExprReference: Box<Expr> = {
-    <ll:@L> <mid:Id> "." <id:Id> <rr:@R> => Box::new(Expr::Reference(Reference::Nonlocal(mid, id))),
-    <ll:@L> <id:Id> <rr:@R> => Box::new(Expr::Reference(Reference::Local(id))),
+    <ll:@L> <mid:Id> "." <id:Id> <rr:@R> => Box::new(Expr::Reference(format!("{mid}.{id}").into())),
+    <ll:@L> <id:Id> <rr:@R> => Box::new(Expr::Reference(id.into())),
 }
 
 WordLit: WordLit = {

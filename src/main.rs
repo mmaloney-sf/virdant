@@ -1,80 +1,42 @@
-use lalrpop_util::lalrpop_mod;
-
+mod ast;
 mod context;
+
 lalrpop_mod!(grammar);
 
+use lalrpop_util::lalrpop_mod;
+use lalrpop_util::ParseError;
 use context::Context;
-
-pub type Ident = String;
-pub type Width = usize;
-pub type UnOp = String;
-pub type BinOp = String;
-pub type Type = String;
-pub type Field = String;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Reference {
-    Local(Ident),
-    Nonlocal(Ident, Ident),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct WordLit(pub Option<Width>, pub u64);
-
-impl WordLit {
-    pub fn width(&self) -> Option<Width> {
-        self.0
-    }
-
-    pub fn val(&self) -> u64 {
-        self.1
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum WithEdit {
-    Idx(u64, Box<Expr>),
-    Field(Field, Box<Expr>),
-}
-
-#[derive(Debug, Clone)]
-pub enum Expr {
-    Reference(Reference),
-    Word(WordLit),
-    Vec(Vec<Expr>),
-    UnOp(UnOp, Box<Expr>),
-    BinOp(BinOp, Box<Expr>, Box<Expr>),
-    Struct(Type, Vec<(Field, Box<Expr>)>),
-//    If(Box<Expr>, Box<Expr>, Box<Expr>),
-//    Match(Box<Expr>, Vec<MatchArm>),
-//    Let(Ident, Option<Type>, Box<Expr>, Box<Expr>),
-    Call(Ident, Vec<Expr>),
-    Cat(Vec<Expr>),
-    IdxField(Box<Expr>, Ident),
-    Idx(Box<Expr>, u64),
-    IdxRange(Box<Expr>, u64, u64),
-    With(Box<Expr>, Vec<WithEdit>),
-}
+use ast::*;
 
 fn main() {
-    println!("Hello, world!");
-//    let expr_text = "with [3w8, 4w8, 3w8 + 4w8] {
-//        this[0] = zero;
-//        this[1] = buffer.out;
-//    }";
-    let expr_text = "struct Complex { real = 0w8, imag = 1w8 }";
-
-    let expr: Box<Expr> = grammar::ExprParser::new().parse(&expr_text).unwrap();
-    let ctx = Context::from(vec![
-        (Reference::Local("zero".to_string()), Value::Word(8, 0)),
-        (Reference::Nonlocal("buffer".to_string(), "out".to_string()), Value::Word(8, 42)),
-    ]);
-    println!("{}", eval(ctx, &expr));
+    loop {
+        let mut input = String::new();
+        print!(">>> ");
+        use std::io::Write;
+        std::io::stdout().flush().unwrap();
+        if let Ok(_) = std::io::stdin().read_line(&mut input) {
+            match grammar::ExprParser::new().parse(&input) {
+                Ok(expr) => {
+                    let ctx = Context::from(vec![
+                        ("x".into(), Value::Word(8, 1)),
+                        ("y".into(), Value::Word(8, 2)),
+                        ("z".into(), Value::Word(8, 4)),
+                        ("zero".into(), Value::Word(8, 0)),
+                        ("buffer.out".into(), Value::Word(8, 42)),
+                    ]);
+                    println!("{}", eval(ctx, &expr));
+                },
+                Err(ParseError::UnrecognizedEof {..}) => break,
+                Err(err) => eprintln!("{err:?}"),
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
     X,
+    Bool(bool),
     Word(Width, u64),
     Vec(Vec<Value>),
     Struct(Type, Vec<(Field, Value)>),
@@ -84,6 +46,7 @@ impl std::fmt::Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
             Value::X => write!(f, "XXX"),
+            Value::Bool(b) => write!(f, "{b}"),
             Value::Word(w, n) => write!(f, "{n}w{w}"),
             Value::Vec(vs) => {
                 write!(f, "[")?;
@@ -128,10 +91,11 @@ impl std::fmt::Display for Value {
     }
 }
 
-pub fn eval(ctx: Context<Reference, Value>, expr: &Expr) -> Value {
+pub fn eval(ctx: Context<Path, Value>, expr: &Expr) -> Value {
     match expr {
         Expr::Reference(r) => ctx.lookup(r).unwrap(),
         Expr::Word(w) => Value::Word(w.width().unwrap(), w.val()),
+        Expr::Bool(b) => Value::Bool(*b),
         Expr::Vec(es) => {
             let vs = es.iter().map(|e| eval(ctx.clone(), e)).collect::<Vec<Value>>();
             Value::Vec(vs)
@@ -145,6 +109,18 @@ pub fn eval(ctx: Context<Reference, Value>, expr: &Expr) -> Value {
             let v0 = eval(ctx.clone(), a0);
             let v1 = eval(ctx.clone(), a1);
             match op.as_str() {
+                "&&" | "||" | "^" => {
+                    if let (Value::Bool(b0), Value::Bool(b1)) = (v0, v1) {
+                        match op.as_str() {
+                            "&&" => Value::Bool(b0 && b1),
+                            "||" => Value::Bool(b0 || b1),
+                            "^" => Value::Bool(b0 ^ b1),
+                            _ => panic!(),
+                        }
+                    } else {
+                         panic!()
+                    }
+                },
                 "+" | "++" | "-" => {
                     if let (Value::Word(w0, x0), Value::Word(w1, x1)) = (v0, v1) {
                         match op.as_str() {
@@ -169,7 +145,20 @@ pub fn eval(ctx: Context<Reference, Value>, expr: &Expr) -> Value {
 //            Value::Word(vs)
             todo!()
         }
-        Expr::IdxField(_s, _f) => todo!(),
+        Expr::IdxField(s, f) => {
+            /*
+            let v = eval(ctx.clone(), s);
+            if let Value::Struct(_structname, flds) = v {
+                for (fname, fe) in &flds {
+
+                }
+                panic!()
+            } else {
+                panic!()
+            }
+            */
+            todo!()
+        },
         Expr::Idx(_s, _i) => todo!(),
         Expr::IdxRange(_s,  _i,  _j) => todo!(),
         Expr::With(s,  edits) => {

@@ -1,4 +1,4 @@
-use super::*;
+use super::ast::*;
 
 grammar;
 
@@ -133,7 +133,7 @@ ExprLit: Box<Expr> = {
 }
 
 ExprReference: Box<Expr> = {
-    <id0:Id> <ids:("." Id)+> => {
+    <id0:Id> <ids:("." Id)*> => {
         let mut parts = vec![id0];
         for (_, id) in ids {
           parts.push(id);

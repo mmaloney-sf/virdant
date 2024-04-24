@@ -2,7 +2,6 @@ pub type Ident = String;
 pub type Width = usize;
 pub type UnOp = String;
 pub type BinOp = String;
-pub type Type = String;
 pub type Field = String;
 
 #[derive(Debug, Clone)]
@@ -13,7 +12,7 @@ pub enum Expr {
     Vec(Vec<Expr>),
     UnOp(UnOp, Box<Expr>),
     BinOp(BinOp, Box<Expr>, Box<Expr>),
-    Struct(Type, Vec<(Field, Box<Expr>)>),
+    Struct(String, Vec<(Field, Box<Expr>)>),
 //    If(Box<Expr>, Box<Expr>, Box<Expr>),
 //    Match(Box<Expr>, Vec<MatchArm>),
 //    Let(Ident, Option<Type>, Box<Expr>, Box<Expr>),

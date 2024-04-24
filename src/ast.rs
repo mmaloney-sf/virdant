@@ -1,5 +1,5 @@
 pub type Ident = String;
-pub type Width = usize;
+pub type Width = u64;
 pub type UnOp = String;
 pub type BinOp = String;
 pub type Field = String;

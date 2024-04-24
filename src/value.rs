@@ -19,6 +19,14 @@ impl Value {
             Value::Struct(typ, _flds) => typ.clone(),
         }
     }
+
+    pub fn unwrap_word(&self) -> u64 {
+        if let Value::Word(_width, value) = self {
+            *value
+        } else {
+            panic!()
+        }
+    }
 }
 
 impl std::fmt::Display for Value {

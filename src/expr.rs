@@ -33,8 +33,6 @@ pub enum TypedExpr {
     Word(Width, u64),
     Bool(bool),
     Vec(Type, Vec<TypedExpr>),
-    UnOp(Type, UnOp, Box<TypedExpr>),
-    BinOp(Type, BinOp, Box<TypedExpr>, Box<TypedExpr>),
     Struct(Type, Vec<(Field, Box<TypedExpr>)>),
 //    If(Box<TypedExpr>, Box<TypedExpr>, Box<TypedExpr>),
 //    Match(Box<TypedExpr>, Vec<MatchArm>),
@@ -55,8 +53,6 @@ impl TypedExpr {
             TypedExpr::Word(width, _value) => Type::Word(*width),
             TypedExpr::Bool(_b) => Type::Bool,
             TypedExpr::Vec(typ, es) => Type::Vec(Box::new(typ.clone()), es.len()),
-            TypedExpr::UnOp(typ, _op, _e0) => typ.clone(),
-            TypedExpr::BinOp(typ, _op, _e0, _e1) => typ.clone(),
             TypedExpr::Struct(typ, _flds) => Type::Other(typ.to_string()),
         //    TypedExpr::If(Box<Expr>, Box<Expr>, Box<Expr>) => todo!(),
         //    TypedExpr::Match(Box<Expr>, Vec<MatchArm>) => todo!(),
@@ -83,38 +79,6 @@ pub fn eval(ctx: Context<Path, Value>, expr: &TypedExpr) -> Value {
         TypedExpr::Struct(typ, fields) => {
             let vs: Vec<(Field, Value)> = fields.iter().map(|(f, fe)| (f.clone(), eval(ctx.clone(), fe))).collect::<Vec<_>>();
             Value::Struct(typ.clone(), vs)
-        },
-        TypedExpr::UnOp(typ, _op, _a0) => todo!(),
-        TypedExpr::BinOp(typ, op, a0, a1) => {
-            let v0 = eval(ctx.clone(), a0);
-            let v1 = eval(ctx.clone(), a1);
-            match op.as_str() {
-                "&&" | "||" | "^" => {
-                    if let (Value::Bool(b0), Value::Bool(b1)) = (v0, v1) {
-                        match op.as_str() {
-                            "&&" => Value::Bool(b0 && b1),
-                            "||" => Value::Bool(b0 || b1),
-                            "^" => Value::Bool(b0 ^ b1),
-                            _ => panic!(),
-                        }
-                    } else {
-                         panic!()
-                    }
-                },
-                "+" | "++" | "-" => {
-                    if let (Value::Word(w0, x0), Value::Word(w1, x1)) = (v0, v1) {
-                        match op.as_str() {
-                            "+" => Value::Word(w0.max(w1), x0 + x1),
-                            "++" => Value::Word(w0.max(w1) + 1, x0 + x1),
-                            "-" => Value::Word(w0.max(w1), x0 - x1),
-                            _ => panic!(),
-                        }
-                    } else {
-                        panic!("Numeric binop had a problem");
-                    }
-                },
-                _ => panic!("Unknown binary op {op:?}"),
-            }
         },
         TypedExpr::FnCall(_name, _es) => {
             todo!()

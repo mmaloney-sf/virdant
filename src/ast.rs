@@ -10,8 +10,6 @@ pub enum Expr {
     Word(WordLit),
     Bool(bool),
     Vec(Vec<Expr>),
-    UnOp(UnOp, Box<Expr>),
-    BinOp(BinOp, Box<Expr>, Box<Expr>),
     Struct(String, Vec<(Field, Box<Expr>)>),
 //    If(Box<Expr>, Box<Expr>, Box<Expr>),
 //    Match(Box<Expr>, Vec<MatchArm>),

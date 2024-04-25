@@ -80,11 +80,18 @@ impl Sim {
             Event::CellUpdated(cell_id) => format!("updated cell: {}", self.cell_name(*cell_id)),
             Event::Clock => "clock".to_string(),
         }
-
     }
 
     fn cell_name(&self, cell_id: CellId) -> String {
-        format!("Cell ID {cell_id}")
+        for node in &self.nodes {
+            match node {
+                Node::Simple { .. } if cell_id == node.target_cell_id() => return format!("Cell ID {}", node.path()),
+                Node::Reg { set_cell_id, .. } if cell_id == *set_cell_id => return format!("Cell ID {}$set", node.path()),
+                Node::Reg { val_cell_id, .. } if cell_id == *val_cell_id => return format!("Cell ID {}$val", node.path()),
+                _ => (),
+            }
+        }
+        panic!()
     }
 
     fn nodes_sensitive_to(&self, event: &Event) -> Vec<Node> {

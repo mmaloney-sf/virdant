@@ -31,9 +31,15 @@ pub enum Expr {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Path(String);
 
-impl<S> From<S> for Path where S: ToString {
+impl std::fmt::Display for Path {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl<S> From<S> for Path where S: Into<String> {
     fn from(s: S) -> Path {
-        Path(s.to_string())
+        Path(s.into())
     }
 }
 

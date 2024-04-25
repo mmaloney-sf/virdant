@@ -31,12 +31,6 @@ pub enum Expr {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Path(String);
 
-impl Path {
-    pub fn join(&self, other: &Path) -> Path {
-        format!("{}.{}", self.0, other.0).into()
-    }
-}
-
 impl<S> From<S> for Path where S: ToString {
     fn from(s: S) -> Path {
         Path(s.to_string())
@@ -44,6 +38,15 @@ impl<S> From<S> for Path where S: ToString {
 }
 
 impl Path {
+    pub fn join(&self, other: &Path) -> Path {
+        format!("{}.{}", self.0, other.0).into()
+    }
+
+    pub fn parent(&self) -> Path {
+        let parts = self.parts();
+        parts[0..parts.len()-1].join(".").into()
+    }
+
     pub fn parts(&self) -> Vec<&str> {
         self.0.split('.').collect()
     }
@@ -59,6 +62,13 @@ impl Path {
     pub fn is_remote(&self) -> bool {
         self.parts().len() > 2
     }
+}
+
+#[test]
+fn path_tests() {
+    let p1: Path = "top.foo".into();
+    let p2: Path = "top.foo.bar".into();
+    assert_eq!(p2.parent(), p1);
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]

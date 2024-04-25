@@ -12,9 +12,10 @@ use sim::*;
 
 fn main() {
     let mut sim = Sim::new();
-    dbg!(&sim);
+    //dbg!(&sim);
+    println!("################################################################################");
     sim.clock();
-    dbg!(&sim);
+    //dbg!(&sim);
     return;
     loop {
         let mut input = String::new();

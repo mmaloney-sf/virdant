@@ -3,7 +3,6 @@ use super::*;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
     X(Type),
-    Clock(bool),
     Bool(bool),
     Word(Width, u64),
     Vec(Type, Vec<Value>),
@@ -14,7 +13,6 @@ impl Value {
     pub fn type_of(&self) -> Type {
         match self {
             Value::X(typ) => typ.clone(),
-            Value::Clock(_b) => Type::Clock,
             Value::Bool(_b) => Type::Bool,
             Value::Word(width, _value) => Type::Word(*width),
             Value::Vec(typ, vs) => Type::Vec(Box::new(typ.clone()), vs.len()),
@@ -29,21 +27,12 @@ impl Value {
             panic!()
         }
     }
-
-    pub fn tick_clock(&mut self) {
-        if let Value::Clock(clock) = self {
-            *clock = !*clock;
-        } else {
-            panic!();
-        }
-    }
 }
 
 impl std::fmt::Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
             Value::X(_typ) => write!(f, "XXX"),
-            Value::Clock(_typ) => write!(f, "(clock)"),
             Value::Bool(b) => write!(f, "{b}"),
             Value::Word(w, n) => write!(f, "{n}w{w}"),
             Value::Vec(_typ, vs) => {

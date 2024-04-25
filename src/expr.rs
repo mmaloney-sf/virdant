@@ -1,9 +1,12 @@
+use std::collections::HashSet;
+
 use crate::context::Context;
 use crate::value::Value;
 use crate::ast::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
+    Clock,
     Bool,
     Word(Width),
     Vec(Box<Type>, usize),
@@ -13,6 +16,7 @@ pub enum Type {
 impl std::fmt::Display for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
+            Type::Clock => write!(f, "Clock"),
             Type::Bool => write!(f, "Bool"),
             Type::Word(width) => write!(f, "Word<{width}>"),
             Type::Vec(typ, n) => write!(f, "Vec<{typ}, {n}>"),
@@ -58,6 +62,39 @@ impl TypedExpr {
         //    TypedExpr::Match(Box<Expr>, Vec<MatchArm>) => todo!(),
         //    TypedExpr::Let(Ident, Option<Type>, Box<Expr>, Box<Expr>) => todo!(),
 //            TypedExpr::Call(Ident, Vec<Expr>) => todo!(),
+//            TypedExpr::Cat(Vec<Expr>) => todo!(),
+//            TypedExpr::IdxField(Box<Expr>, Ident) => todo!(),
+//            TypedExpr::Idx(Box<Expr>, u64) => todo!(),
+//            TypedExpr::IdxRange(Box<Expr>, u64, u64) => todo!(),
+//            TypedExpr::With(Box<Expr>, Vec<WithEdit>) => todo!(),
+            _ => todo!()
+        }
+    }
+
+    pub fn free_refs(&self) -> HashSet<Path> {
+        match self {
+            TypedExpr::Reference(_typ, path) => vec![path.clone()].into_iter().collect(),
+            TypedExpr::Word(_width, _value) => HashSet::new(),
+            TypedExpr::Bool(_b) => HashSet::new(),
+            TypedExpr::Vec(_typ, es) => {
+                let mut result = HashSet::new();
+                for e in es {
+                    result.extend(e.free_refs());
+                }
+                result
+            },
+            TypedExpr::MethodCall(_typ, subject, _fun, args) => {
+                let mut result = HashSet::new();
+                result.extend(subject.free_refs());
+                for e in args {
+                    result.extend(e.free_refs());
+                }
+                result
+            },
+            //TypedExpr::Struct(typ, _flds) => Type::Other(typ.to_string()),
+        //    TypedExpr::If(Box<Expr>, Box<Expr>, Box<Expr>) => todo!(),
+        //    TypedExpr::Match(Box<Expr>, Vec<MatchArm>) => todo!(),
+        //    TypedExpr::Let(Ident, Option<Type>, Box<Expr>, Box<Expr>) => todo!(),
 //            TypedExpr::Cat(Vec<Expr>) => todo!(),
 //            TypedExpr::IdxField(Box<Expr>, Ident) => todo!(),
 //            TypedExpr::Idx(Box<Expr>, u64) => todo!(),
@@ -177,8 +214,6 @@ pub fn typecheck(ctx: Context<Path, Type>, expr: &Expr, typ: Type) -> TypedExpr 
             let typ = typed_es.first().unwrap().type_of();
             TypedExpr::Vec(typ, typed_es)
         },
-//        Expr::UnOp(typ, UnOp, Box<TypedExpr>),
-//        Expr::BinOp(typ, BinOp, Box<TypedExpr>, Box<TypedExpr>),
 //        Expr::Struct(typ, Vec<(Field, Box<TypedExpr>)>),
     //    If(Box<Expr>, Box<TypedExpr>, Box<TypedExpr>),
     //    Match(Box<Expr>, Vec<MatchArm>),
@@ -212,8 +247,6 @@ pub fn typeinfer(ctx: Context<Path, Type>, expr: &Expr) -> TypedExpr {
             let typ = typed_es.first().unwrap().type_of();
             TypedExpr::Vec(typ, typed_es)
         },
-//        Expr::UnOp(typ, UnOp, Box<TypedExpr>),
-//        Expr::BinOp(typ, BinOp, Box<TypedExpr>, Box<TypedExpr>),
 //        Expr::Struct(typ, Vec<(Field, Box<TypedExpr>)>),
     //    If(Box<Expr>, Box<TypedExpr>, Box<TypedExpr>),
     //    Match(Box<Expr>, Vec<MatchArm>),

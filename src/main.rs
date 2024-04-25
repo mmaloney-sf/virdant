@@ -2,23 +2,27 @@ pub mod ast;
 pub mod context;
 pub mod expr;
 pub mod value;
+pub mod sim;
 
-lalrpop_mod!(grammar);
-
-use lalrpop_util::lalrpop_mod;
 use context::Context;
 use ast::*;
 use value::*;
 use expr::*;
+use sim::*;
 
 fn main() {
+    let mut sim = Sim::new();
+    dbg!(&sim);
+    sim.clock();
+    dbg!(&sim);
+    return;
     loop {
         let mut input = String::new();
         print!(">>> ");
         use std::io::Write;
         std::io::stdout().flush().unwrap();
         if let Ok(_) = std::io::stdin().read_line(&mut input) {
-            match grammar::ExprParser::new().parse(&input) {
+            match parse_expr(&input) {
                 Ok(expr) => {
                     let ctx = Context::from(vec![
                         ("x".into(), Value::Word(8, 1)),
@@ -28,7 +32,7 @@ fn main() {
                         ("buffer.out".into(), Value::Word(8, 42)),
                     ]);
                     let type_ctx = value_context_to_type_context(ctx.clone());
-                    let typed_expr = typeinfer(type_ctx, &*expr);
+                    let typed_expr = typeinfer(type_ctx, &expr);
                     println!("{}", eval(ctx, &typed_expr));
                 },
                 Err(err) => eprintln!("{err:?}"),
@@ -75,6 +79,6 @@ fn parse_exprs() {
     ];
     for expr_str in expr_strs {
         eprintln!("Testing {expr_str:?}");
-        let _expr: Box<Expr> = grammar::ExprParser::new().parse(expr_str).unwrap();
+        let _expr: Expr = parse_expr(expr_str).unwrap();
     }
 }

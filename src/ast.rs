@@ -1,3 +1,8 @@
+use lalrpop_util::lalrpop_mod;
+lalrpop_mod!(grammar);
+use lalrpop_util::ParseError;
+use lalrpop_util::lexer::Token;
+
 pub type Ident = String;
 pub type Width = u64;
 pub type UnOp = String;
@@ -23,8 +28,14 @@ pub enum Expr {
     With(Box<Expr>, Vec<WithEdit>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Path(String);
+
+impl Path {
+    pub fn join(&self, other: &Path) -> Path {
+        format!("{}.{}", self.0, other.0).into()
+    }
+}
 
 impl<S> From<S> for Path where S: ToString {
     fn from(s: S) -> Path {
@@ -67,4 +78,8 @@ impl WordLit {
 pub enum WithEdit {
     Idx(u64, Box<Expr>),
     Field(Field, Box<Expr>),
+}
+
+pub fn parse_expr(expr_text: &str) -> Result<Expr, ParseError<usize, Token<'_>, &'static str>> {
+    grammar::ExprParser::new().parse(expr_text).map(|expr| *expr)
 }

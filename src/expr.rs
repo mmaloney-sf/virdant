@@ -104,6 +104,7 @@ impl TypedExpr {
         }
     }
 }
+
 pub fn eval(ctx: Context<Path, Value>, expr: &TypedExpr) -> Value {
     match expr {
         TypedExpr::Reference(typ, r) => ctx.lookup(r).unwrap(),

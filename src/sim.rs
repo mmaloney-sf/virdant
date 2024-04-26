@@ -19,6 +19,7 @@ pub struct SimBuilder {
 impl SimBuilder {
     pub fn build(mut self) -> Sim {
         self.patch_sensitivity_lists();
+        self.initialize_constants();
         self.sim.flow();
         self.sim
     }
@@ -77,7 +78,8 @@ impl SimBuilder {
 
         for node in &mut self.sim.nodes {
             let update = node.update_mut();
-            let mut sensitivities: Vec<CellId> = update.expr
+            let sensitivities: Vec<CellId> = update
+                .expr
                 .references()
                 .iter()
                 .map(|path| {
@@ -85,7 +87,19 @@ impl SimBuilder {
                     path_read_cell_ids[&full_path]
                 })
                 .collect();
-            std::mem::swap(&mut update.sensitivities, &mut sensitivities);
+            update.sensitivities = sensitivities;
+        }
+    }
+
+    fn initialize_constants(&mut self) {
+        for i in 0..self.sim.nodes.len() {
+            let node = &self.sim.nodes[i];
+            let update = node.update().clone();
+            if update.is_constant() {
+                let value = self.sim.eval(&update);
+                let cell_id = node.target_cell_id();
+                self.sim.update_cell(cell_id, value);
+            }
         }
     }
 }
@@ -95,7 +109,7 @@ impl Sim {
         let sim = Sim {
             nodes: vec![],
             cells: vec![],
-            events: vec![Event::Initialize],
+            events: vec![],
         };
         SimBuilder {
             sim,
@@ -106,42 +120,17 @@ impl Sim {
         while let Some(event) = self.events.pop() {
             for node in &self.nodes.clone() {
                 match (event, node) {
-                    (Event::Initialize, Node::Simple { cell_id, typ, update, .. }) => {
-                        if update.is_constant() {
-                            let value = self.eval(update);
-                            self.cells[*cell_id] = value;
-                            self.events.push(Event::CellUpdated(*cell_id));
-                        } else {
-                            self.cells[*cell_id] = Value::X(typ.clone());
-                        }
-                    },
-                    (Event::Initialize, Node::Reg { set_cell_id, val_cell_id, update, typ, .. }) => {
-                        if update.is_constant() {
-                            let value = self.eval(update);
-                            self.cells[*set_cell_id] = value;
-                            self.events.push(Event::CellUpdated(*set_cell_id));
-                        } else {
-                            self.cells[*set_cell_id] = Value::X(typ.clone());
-                        }
-                        self.cells[*val_cell_id] = Value::X(typ.clone());
-                    },
-                    (Event::CellUpdated(updated_cell_id), Node::Simple { cell_id, update, .. }) => {
+                    (Event::CellUpdated(updated_cell_id), _) => {
+                        let update = node.update();
                         if update.is_sensitive_to(updated_cell_id) {
                             let value = self.eval(update);
-                            self.cells[*cell_id] = value;
-                            self.events.push(Event::CellUpdated(*cell_id));
-                        }
-                    },
-                    (Event::CellUpdated(updated_cell_id), Node::Reg { set_cell_id, update, .. }) => {
-                        if update.is_sensitive_to(updated_cell_id) {
-                            let value = self.eval(update);
-                            self.cells[*set_cell_id] = value;
-                            self.events.push(Event::CellUpdated(*set_cell_id));
+                            let cell_id = node.target_cell_id();
+                            self.update_cell(cell_id, value);
                         }
                     },
                     (Event::Clock, Node::Reg { set_cell_id, val_cell_id, .. }) => {
-                        self.cells[*val_cell_id] = self.cells[*set_cell_id].clone();
-                        self.events.push(Event::CellUpdated(*val_cell_id));
+                        let value = self.get_cell(*set_cell_id).clone();
+                        self.update_cell(*val_cell_id, value);
                     },
                     _ => (),
 
@@ -150,9 +139,13 @@ impl Sim {
         }
     }
 
+    fn update_cell(&mut self, cell_id: CellId, value: Value) {
+        self.cells[cell_id] = value;
+        self.events.push(Event::CellUpdated(cell_id));
+    }
+
     fn event_name(&self, event: &Event) -> String {
         match event {
-            Event::Initialize => "initialize".to_string(),
             Event::CellUpdated(cell_id) => format!("updated cell: {}", self.cell_name(*cell_id)),
             Event::Clock => "clock".to_string(),
         }
@@ -213,7 +206,6 @@ impl Sim {
         self.events.push(Event::Clock);
         self.flow();
     }
-
 }
 
 impl std::fmt::Display for Sim {
@@ -319,7 +311,6 @@ impl Comb {
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 enum Event {
-    Initialize,
     CellUpdated(CellId),
     Clock,
 }

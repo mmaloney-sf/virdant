@@ -11,22 +11,39 @@ use expr::*;
 use sim::*;
 
 fn main() {
-    let r_expr = typeinfer(
-        Context::from(vec![
-            ("r".into(), Type::Word(8)),
-        ]),
-        &parse_expr("r->add(1w8)").unwrap()
-    );
+    let ctx = Context::from(vec![
+        ("r".into(), Type::Word(8)),
+        ("in".into(), Type::Word(8)),
+        ("out".into(), Type::Word(8)),
+    ]);
+
+    let out_expr = typeinfer(ctx.clone(), &parse_expr("r").unwrap());
+    let r_expr = typeinfer(ctx, &parse_expr("r->add(in)").unwrap());
+
     let mut sim = Sim::new()
-        .add_simple_node("top.a".into(), Type::Word(8), TypedExpr::Word(8, 0))
+        .add_simple_node("top.out".into(), Type::Word(8), out_expr)
+        .add_simple_node("top.in".into(), Type::Word(8), TypedExpr::Word(8, 1))
         .add_reg_node("top.r".into(), Type::Word(8), r_expr)
         .build();
-    loop {
-        println!("################################################################################");
-        println!("{sim}");
-        std::thread::sleep(std::time::Duration::from_millis(100));
-        sim.clock();
-    }
+
+    println!("################################################################################");
+    println!("{sim}");
+    sim.clock();
+
+    println!("################################################################################");
+    println!("{sim}");
+    sim.clock();
+
+    println!("################################################################################");
+    println!("{sim}");
+    sim.poke("top.in".into(), Value::Word(8, 10));
+
+    println!("################################################################################");
+    println!("{sim}");
+
+    sim.clock();
+    println!("################################################################################");
+    println!("{sim}");
 }
 
 fn repl() {

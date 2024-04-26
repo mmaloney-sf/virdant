@@ -74,6 +74,33 @@ impl Sim {
         sim
     }
 
+    pub fn add_simple_node(&mut self, path: Path, typ: Type, expr: TypedExpr) {
+        let cell_id = self.cells.len();
+
+        let sensitivities: Vec<CellId> = expr
+            .references()
+            .iter()
+            .map(|path| todo!())
+            .collect();
+
+        let update = Comb {
+            rel: path.parent(),
+            expr,
+            sensitivities,
+        };
+
+        let node = Node::Simple {
+            cell_id,
+            path: path.clone(),
+            typ: typ.clone(),
+            update,
+        };
+
+        self.nodes.push(node);
+        self.cells.push(Value::X(typ.clone()));
+
+    }
+
     fn flow(&mut self) {
         while let Some(event) = self.events.pop() {
             for node in &self.nodes.clone() {
@@ -145,7 +172,7 @@ impl Sim {
     fn eval(&self, comb: &Comb) -> Value {
         // TODO associate values with free variables
         let mut ctx: Context<Path, Value> = Context::empty();
-        for reference in comb.expr.free_refs() {
+        for reference in comb.expr.references() {
             let full_path: Path = comb.rel.join(&reference);
             let cell_id = self.get_node(&full_path).read_cell_id();
             let value = self.get_cell(cell_id).clone();

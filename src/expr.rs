@@ -71,7 +71,7 @@ impl TypedExpr {
         }
     }
 
-    pub fn free_refs(&self) -> HashSet<Path> {
+    pub fn references(&self) -> HashSet<Path> {
         match self {
             TypedExpr::Reference(_typ, path) => vec![path.clone()].into_iter().collect(),
             TypedExpr::Word(_width, _value) => HashSet::new(),
@@ -79,15 +79,15 @@ impl TypedExpr {
             TypedExpr::Vec(_typ, es) => {
                 let mut result = HashSet::new();
                 for e in es {
-                    result.extend(e.free_refs());
+                    result.extend(e.references());
                 }
                 result
             },
             TypedExpr::MethodCall(_typ, subject, _fun, args) => {
                 let mut result = HashSet::new();
-                result.extend(subject.free_refs());
+                result.extend(subject.references());
                 for e in args {
-                    result.extend(e.free_refs());
+                    result.extend(e.references());
                 }
                 result
             },

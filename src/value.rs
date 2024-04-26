@@ -24,7 +24,8 @@ impl Value {
         if let Value::Word(_width, value) = self {
             *value
         } else {
-            panic!()
+            0
+//            panic!() // TODO
         }
     }
 }

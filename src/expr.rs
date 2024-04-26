@@ -131,7 +131,7 @@ pub fn eval(ctx: Context<Path, Value>, expr: &TypedExpr) -> Value {
                 (Type::Word(n), "add") => {
                     let a = subject_value.unwrap_word();
                     let b = arg_values.first().unwrap().unwrap_word();
-                    Value::Word(n, a.wrapping_add(b) % n)
+                    Value::Word(n, a.wrapping_add(b) % (1 << n))
                 },
                 _ => panic!(),
             }

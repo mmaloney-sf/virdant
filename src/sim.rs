@@ -2,6 +2,7 @@
 use super::*;
 
 type CellId = usize;
+type ClockId = usize;
 
 #[derive(Debug, Clone)]
 pub struct Sim {
@@ -16,24 +17,27 @@ impl Sim {
             nodes: vec![
                 Node::Simple {
                     path: "top.out".into(),
+                    typ: Type::Word(8),
                     cell_id: 0,
                     update: Comb {
                         rel: "top".into(),
                         expr: TypedExpr::Reference(Type::Word(8), "a".into()),
-                        sensitivities: vec![Event::CellUpdated(1)],
+                        sensitivities: vec![1],
                     },
                 },
                 Node::Simple {
                     path: "top.a".into(),
+                    typ: Type::Word(8),
                     cell_id: 1,
                     update: Comb {
                         rel: "top".into(),
                         expr: TypedExpr::Word(8, 4),
-                        sensitivities: vec![Event::Initialize],
+                        sensitivities: vec![],
                     },
                 },
                 Node::Reg {
                     path: "top.r".into(),
+                    typ: Type::Word(8),
                     val_cell_id: 2,
                     set_cell_id: 3,
                     reset: None,
@@ -43,7 +47,7 @@ impl Sim {
                             Context::from(vec![("r".into(), Type::Word(8))]),
                             &parse_expr("r->add(1w8)").unwrap()
                         ),
-                        sensitivities: vec![Event::CellUpdated(1)],
+                        sensitivities: vec![2],
                     },
                     clock: Comb {
                         rel: "top".into(),
@@ -51,7 +55,7 @@ impl Sim {
                             Context::from(vec![("r".into(), Type::Word(8))]),
                             &parse_expr("r").unwrap()
                         ),
-                        sensitivities: vec![Event::Clock],
+                        sensitivities: vec![1],
                     },
                 },
             ].into_iter().collect(),
@@ -70,7 +74,37 @@ impl Sim {
     fn flow(&mut self) {
         while let Some(event) = self.events.pop() {
             println!("FLOW: {}", self.event_name(&event));
-            self.flow_event(&event);
+            for node in &self.nodes.clone() {
+                match (event, node) {
+                    (Event::Initialize, Node::Simple { cell_id, typ, .. }) => {
+                        self.cells[*cell_id] = Value::X(typ.clone());
+                    },
+                    (Event::Initialize, Node::Reg { set_cell_id, val_cell_id, typ, .. }) => {
+                        self.cells[*set_cell_id] = Value::Word(8, 0);
+                        self.cells[*val_cell_id] = Value::Word(8, 0);
+                    },
+                    (Event::CellUpdated(updated_cell_id), Node::Simple { cell_id, update, .. }) => {
+                        if update.is_sensitive_to(updated_cell_id) {
+                            let value = self.eval(update);
+                            self.cells[*cell_id] = value;
+                            self.events.push(Event::CellUpdated(*cell_id));
+                        }
+                    },
+                    (Event::CellUpdated(updated_cell_id), Node::Reg { set_cell_id, update, .. }) => {
+                        if update.is_sensitive_to(updated_cell_id) {
+                            let value = self.eval(update);
+                            self.cells[*set_cell_id] = value;
+                            self.events.push(Event::CellUpdated(*set_cell_id));
+                        }
+                    },
+                    (Event::Clock, Node::Reg { set_cell_id, val_cell_id, .. }) => {
+                        self.cells[*val_cell_id] = self.cells[*set_cell_id].clone();
+                        self.events.push(Event::CellUpdated(*val_cell_id));
+                    },
+                    _ => (),
+
+                }
+            }
         }
     }
 
@@ -94,31 +128,6 @@ impl Sim {
         panic!()
     }
 
-    fn nodes_sensitive_to(&self, event: &Event) -> Vec<Node> {
-        let mut result = Vec::new();
-        for node in &self.nodes {
-            if node.sensitive_to(event) {
-                result.push(node.clone());
-            }
-        }
-        result
-    }
-
-    fn flow_event(&mut self, event: &Event) {
-        for node in &self.nodes_sensitive_to(event) {
-            self.flow_event_to_node(event, node);
-        }
-    }
-
-    fn flow_event_to_node(&mut self, event: &Event, node: &Node) {
-        let comb = node.update();
-        let value = self.eval(&comb);
-        let target_cell_id = node.target_cell_id();
-        let cell = self.get_cell_mut(target_cell_id);
-        *cell = value;
-        self.events.push(Event::CellUpdated(target_cell_id));
-    }
-
     fn eval(&self, comb: &Comb) -> Value {
         // TODO associate values with free variables
         let mut ctx: Context<Path, Value> = Context::empty();
@@ -129,12 +138,6 @@ impl Sim {
             ctx = ctx.extend(reference, value);
         }
         eval(ctx, &comb.expr)
-    }
-
-    pub fn clock(&mut self) {
-        println!("TICK - - - - - - - - - - - - - - - - - - - - - - - - - - - - ");
-        self.events.push(Event::Clock);
-        self.flow();
     }
 
     fn get_node(&self, path: &Path) -> &Node {
@@ -153,17 +156,59 @@ impl Sim {
     fn get_cell_mut(&mut self, cell_id: CellId) -> &mut Value {
         &mut self.cells[cell_id]
     }
+
+    pub fn poke(&mut self, path: Path, value: Value) {
+        println!("TICK {path} {value}");
+        let node = self.get_node(&path);
+        let cell_id = node.target_cell_id();
+        let cell = self.get_cell_mut(cell_id);
+        *cell = value;
+
+        self.events.push(Event::CellUpdated(cell_id));
+        self.flow();
+    }
+
+    pub fn clock(&mut self) {
+        println!("TICK");
+        self.events.push(Event::Clock);
+        self.flow();
+    }
+
+}
+
+impl std::fmt::Display for Sim {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        for node in &self.nodes {
+            match node {
+                Node::Simple { cell_id, .. } => {
+                    write!(f, "{} : {} = ", node.path(), node.type_of())?;
+                    writeln!(f, "{}", *self.get_cell(*cell_id))?;
+                },
+                Node::Reg { set_cell_id, val_cell_id, .. } => {
+                    write!(f, "{} : {} = ", node.path(), node.type_of())?;
+                    writeln!(f, "{} / {}", *self.get_cell(*set_cell_id), *self.get_cell(*val_cell_id))?;
+                },
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone)]
 enum Node {
+//    Clockgen {
+//        clock_id: ClockId,
+//    },
     Simple {
         path: Path,
+        typ: Type,
         cell_id: CellId,
         update: Comb,
     },
     Reg {
         path: Path,
+        typ: Type,
         val_cell_id: CellId,
         set_cell_id: CellId,
         update: Comb,
@@ -173,6 +218,13 @@ enum Node {
 }
 
 impl Node {
+    pub fn type_of(&self) -> Type {
+        match self {
+            Node::Simple { typ, .. } => typ.clone(),
+            Node::Reg { typ, .. } => typ.clone(),
+        }
+    }
+
     pub fn read_cell_id(&self) -> CellId {
         match self {
             Node::Simple { cell_id, .. } => *cell_id,
@@ -194,13 +246,6 @@ impl Node {
         }
     }
 
-    fn sensitive_to(&self, event: &Event) -> bool {
-        match self {
-            Node::Simple { update, .. } => update.sensitivities.contains(event),
-            Node::Reg { update, clock, .. } => update.sensitivities.contains(event) || clock.sensitivities.contains(event),
-        }
-    }
-
     fn path(&self) -> &Path {
         match self {
             Node::Simple { path, .. } => path,
@@ -213,10 +258,16 @@ impl Node {
 struct Comb {
     rel: Path,
     expr: TypedExpr,
-    sensitivities: Vec<Event>,
+    sensitivities: Vec<CellId>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+impl Comb {
+    fn is_sensitive_to(&self, cell_id: CellId) -> bool {
+        self.sensitivities.contains(&cell_id)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 enum Event {
     Initialize,
     CellUpdated(CellId),

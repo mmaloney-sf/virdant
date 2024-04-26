@@ -12,12 +12,16 @@ use sim::*;
 
 fn main() {
     let mut sim = Sim::new();
-    //dbg!(&sim);
-    println!("################################################################################");
-    sim.clock();
-    //dbg!(&sim);
-    return;
+    println!("{sim}");
     loop {
+        println!("################################################################################");
+        sim.clock();
+        println!("{sim}");
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+
+    loop {
+        break;
         let mut input = String::new();
         print!(">>> ");
         use std::io::Write;

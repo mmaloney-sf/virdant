@@ -1,0 +1,81 @@
+// vim: ft=bitsy
+pub mod Top {
+  input clk : Clock;
+  output out : UInt<8>;
+  input in : UInt<8>;
+
+  mod buffer of Buffer;
+  buffer.clk $= clk;
+  buffer.in := in;
+
+  out := buffer.out->add(1);
+}
+
+mod Buffer {
+  input clk : Clock;
+  output out : UInt<8>;
+  input in : UInt<8>;
+
+  reg r : UInt<8> on clk;
+  r <= in;
+  out := r;
+}
+
+/*
+
+virdant.module @Top {
+  %clk = virdant.input : virdant.clock
+
+  %in = virdant.input : virdant.uint<8>
+
+  %out = virdant.output : virdant.uint<8> {
+    virdant.connect(%r)
+  }
+
+  %buffer = virdant.submodule(@Buffer)  {
+  }
+
+  %buffer_clk = virdant.submodule_input_port(...) {
+    virdant.connect(%result)
+  }
+
+  %buffer_in = virdant.submodule_input_port(...) {
+    virdant.connect(%result)
+  }
+}
+
+virdant.module @Buffer(%clk : virdant.clock, %in :virdant.uint<8>)  {
+  %out = virdant.output @out : virdant.uint<8> {
+    virdant.connect(%r)
+  }
+
+  %r = virdant.reg(%clock) {
+    virdant.connect(%in)
+  }
+}
+
+
+Ops Summary:
+
+  virdant.module
+    declares a module.
+    Inside is a list of all the components.
+    the inside is a graph region.
+
+  virdant.input
+    declares an input port
+
+  virdant.output
+    declares an output port
+    has an SSA region that represents the right-hand side of the := statement.
+
+  virdant.reg
+    declares a reg
+
+  virdant.wire
+    declares a wire
+
+  virdant.connect
+    a terminator for the SSA blocks for virdant.output, virdant.reg, virdant.wire
+*/
+

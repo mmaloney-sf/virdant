@@ -1,6 +1,16 @@
-use super::*;
+use crate::*;
 
 grammar;
+
+/*
+pub Sim: SimScript = {
+    <ss:SimCommand+> => SimScript(ss),
+}
+
+SimCommand: SimCommand = {
+  "clock" => SimCommand::Clock(),
+}
+*/
 
 pub Expr: Box<Expr> = {
 //    <e:ExprLet> => e,
@@ -103,13 +113,18 @@ ExprLit: Box<Expr> = {
 }
 
 ExprReference: Box<Expr> = {
+  <path: Path> => Box::new(Expr::Reference(path))
+}
+
+
+Path: Path = {
     <id0:Id> <ids:("." Id)*> => {
         let mut parts = vec![id0];
         for (_, id) in ids {
           parts.push(id);
         }
         let path: String = parts.join(".").chars().collect();
-        Box::new(Expr::Reference(path.into()))
+        path.into()
     },
 }
 

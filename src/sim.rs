@@ -76,7 +76,6 @@ impl Sim {
 
     fn flow(&mut self) {
         while let Some(event) = self.events.pop() {
-            println!("FLOW: {}", self.event_name(&event));
             for node in &self.nodes.clone() {
                 match (event, node) {
                     (Event::Initialize, Node::Simple { cell_id, typ, update, .. }) => {
@@ -173,7 +172,6 @@ impl Sim {
     }
 
     pub fn poke(&mut self, path: Path, value: Value) {
-        println!("TICK {path} {value}");
         let node = self.get_node(&path);
         let cell_id = node.target_cell_id();
         let cell = self.get_cell_mut(cell_id);
@@ -184,7 +182,6 @@ impl Sim {
     }
 
     pub fn clock(&mut self) {
-        println!("TICK");
         self.events.push(Event::Clock);
         self.flow();
     }
@@ -201,7 +198,7 @@ impl std::fmt::Display for Sim {
                 },
                 Node::Reg { set_cell_id, val_cell_id, .. } => {
                     write!(f, "{} : {} = ", node.path(), node.type_of())?;
-                    writeln!(f, "{} / {}", *self.get_cell(*set_cell_id), *self.get_cell(*val_cell_id))?;
+                    writeln!(f, "{} <= {}", *self.get_cell(*val_cell_id), *self.get_cell(*set_cell_id))?;
                 },
             }
         }

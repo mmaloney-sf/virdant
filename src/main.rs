@@ -12,12 +12,11 @@ use sim::*;
 
 fn main() {
     let mut sim = Sim::new();
-    println!("{sim}");
     loop {
         println!("################################################################################");
-        sim.clock();
         println!("{sim}");
         std::thread::sleep(std::time::Duration::from_millis(100));
+        sim.clock();
     }
 
     loop {
@@ -87,3 +86,11 @@ fn parse_exprs() {
         let _expr: Expr = parse_expr(expr_str).unwrap();
     }
 }
+
+/*
+pub enum SimCommand {
+    Clock(),
+}
+
+pub struct SimScript(Vec<SimCommand>);
+*/

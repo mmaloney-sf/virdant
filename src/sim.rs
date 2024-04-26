@@ -44,10 +44,13 @@ impl Sim {
                     update: Comb {
                         rel: "top".into(),
                         expr: typeinfer(
-                            Context::from(vec![("r".into(), Type::Word(8))]),
-                            &parse_expr("r->add(1w8)").unwrap()
+                            Context::from(vec![
+                                ("r".into(), Type::Word(8)),
+                                ("a".into(), Type::Word(8))
+                            ]),
+                            &parse_expr("r->add(a)").unwrap()
                         ),
-                        sensitivities: vec![2],
+                        sensitivities: vec![1, 2],
                     },
                     clock: Comb {
                         rel: "top".into(),
@@ -76,12 +79,24 @@ impl Sim {
             println!("FLOW: {}", self.event_name(&event));
             for node in &self.nodes.clone() {
                 match (event, node) {
-                    (Event::Initialize, Node::Simple { cell_id, typ, .. }) => {
-                        self.cells[*cell_id] = Value::X(typ.clone());
+                    (Event::Initialize, Node::Simple { cell_id, typ, update, .. }) => {
+                        if update.is_constant() {
+                            let value = self.eval(update);
+                            self.cells[*cell_id] = value;
+                            self.events.push(Event::CellUpdated(*cell_id));
+                        } else {
+                            self.cells[*cell_id] = Value::X(typ.clone());
+                        }
                     },
-                    (Event::Initialize, Node::Reg { set_cell_id, val_cell_id, typ, .. }) => {
-                        self.cells[*set_cell_id] = Value::Word(8, 0);
-                        self.cells[*val_cell_id] = Value::Word(8, 0);
+                    (Event::Initialize, Node::Reg { set_cell_id, val_cell_id, update, typ, .. }) => {
+                        if update.is_constant() {
+                            let value = self.eval(update);
+                            self.cells[*set_cell_id] = value;
+                            self.events.push(Event::CellUpdated(*set_cell_id));
+                        } else {
+                            self.cells[*set_cell_id] = Value::X(typ.clone());
+                        }
+                        self.cells[*val_cell_id] = Value::X(typ.clone());
                     },
                     (Event::CellUpdated(updated_cell_id), Node::Simple { cell_id, update, .. }) => {
                         if update.is_sensitive_to(updated_cell_id) {
@@ -264,6 +279,10 @@ struct Comb {
 impl Comb {
     fn is_sensitive_to(&self, cell_id: CellId) -> bool {
         self.sensitivities.contains(&cell_id)
+    }
+
+    fn is_constant(&self) -> bool {
+        self.sensitivities.is_empty()
     }
 }
 

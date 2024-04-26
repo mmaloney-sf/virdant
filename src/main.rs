@@ -11,16 +11,26 @@ use expr::*;
 use sim::*;
 
 fn main() {
-    let mut sim = Sim::new();
+    let r_expr = typeinfer(
+        Context::from(vec![
+            ("r".into(), Type::Word(8)),
+        ]),
+        &parse_expr("r->add(1w8)").unwrap()
+    );
+    let mut sim = Sim::new()
+        .add_simple_node("top.a".into(), Type::Word(8), TypedExpr::Word(8, 0))
+        .add_reg_node("top.r".into(), Type::Word(8), r_expr)
+        .build();
     loop {
         println!("################################################################################");
         println!("{sim}");
         std::thread::sleep(std::time::Duration::from_millis(100));
         sim.clock();
     }
+}
 
+fn repl() {
     loop {
-        break;
         let mut input = String::new();
         print!(">>> ");
         use std::io::Write;

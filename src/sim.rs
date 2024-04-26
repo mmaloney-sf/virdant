@@ -1,4 +1,4 @@
-//use std::collections::HashMap;
+use std::collections::HashMap;
 use super::*;
 
 type CellId = usize;
@@ -11,82 +11,25 @@ pub struct Sim {
     events: Vec<Event>,
 }
 
-impl Sim {
-    pub fn new() -> Sim {
-        let mut sim = Sim {
-            nodes: vec![
-                Node::Simple {
-                    path: "top.out".into(),
-                    typ: Type::Word(8),
-                    cell_id: 0,
-                    update: Comb {
-                        rel: "top".into(),
-                        expr: TypedExpr::Reference(Type::Word(8), "a".into()),
-                        sensitivities: vec![1],
-                    },
-                },
-                Node::Simple {
-                    path: "top.a".into(),
-                    typ: Type::Word(8),
-                    cell_id: 1,
-                    update: Comb {
-                        rel: "top".into(),
-                        expr: TypedExpr::Word(8, 4),
-                        sensitivities: vec![],
-                    },
-                },
-                Node::Reg {
-                    path: "top.r".into(),
-                    typ: Type::Word(8),
-                    val_cell_id: 2,
-                    set_cell_id: 3,
-                    reset: None,
-                    update: Comb {
-                        rel: "top".into(),
-                        expr: typeinfer(
-                            Context::from(vec![
-                                ("r".into(), Type::Word(8)),
-                                ("a".into(), Type::Word(8))
-                            ]),
-                            &parse_expr("r->add(a)").unwrap()
-                        ),
-                        sensitivities: vec![1, 2],
-                    },
-                    clock: Comb {
-                        rel: "top".into(),
-                        expr: typeinfer(
-                            Context::from(vec![("r".into(), Type::Word(8))]),
-                            &parse_expr("r").unwrap()
-                        ),
-                        sensitivities: vec![1],
-                    },
-                },
-            ].into_iter().collect(),
-            cells: vec![
-                Value::Word(8, 0),
-                Value::Word(8, 0),
-                Value::Word(8, 0),
-                Value::Word(8, 0),
-            ],
-            events: vec![Event::Initialize],
-        };
-        sim.flow();
-        sim
+#[derive(Debug, Clone)]
+pub struct SimBuilder {
+    sim: Sim,
+}
+
+impl SimBuilder {
+    pub fn build(mut self) -> Sim {
+        self.patch_sensitivity_lists();
+        self.sim.flow();
+        self.sim
     }
 
-    pub fn add_simple_node(&mut self, path: Path, typ: Type, expr: TypedExpr) {
-        let cell_id = self.cells.len();
-
-        let sensitivities: Vec<CellId> = expr
-            .references()
-            .iter()
-            .map(|path| todo!())
-            .collect();
+    pub fn add_simple_node(mut self, path: Path, typ: Type, expr: TypedExpr) -> Self {
+        let cell_id = self.sim.cells.len();
 
         let update = Comb {
             rel: path.parent(),
             expr,
-            sensitivities,
+            sensitivities: vec![],
         };
 
         let node = Node::Simple {
@@ -96,9 +39,67 @@ impl Sim {
             update,
         };
 
-        self.nodes.push(node);
-        self.cells.push(Value::X(typ.clone()));
+        self.sim.nodes.push(node);
+        self.sim.cells.push(Value::X(typ.clone()));
+        self
+    }
 
+    pub fn add_reg_node(mut self, path: Path, typ: Type, expr: TypedExpr) -> Self {
+        let set_cell_id = self.sim.cells.len();
+        let val_cell_id = self.sim.cells.len() + 1;
+
+        let update = Comb {
+            rel: path.parent(),
+            expr,
+            sensitivities: vec![],
+        };
+
+        let node = Node::Reg {
+            set_cell_id,
+            val_cell_id,
+            path: path.clone(),
+            typ: typ.clone(),
+            update,
+            reset: None, // TODO
+        };
+
+        self.sim.nodes.push(node);
+        self.sim.cells.push(Value::X(typ.clone()));
+        self.sim.cells.push(Value::X(typ.clone()));
+        self
+    }
+
+    fn patch_sensitivity_lists(&mut self) {
+        let mut path_read_cell_ids = HashMap::new();
+        for node in &self.sim.nodes {
+            path_read_cell_ids.insert(node.path().clone(), node.read_cell_id());
+        }
+
+        for node in &mut self.sim.nodes {
+            let update = node.update_mut();
+            let mut sensitivities: Vec<CellId> = update.expr
+                .references()
+                .iter()
+                .map(|path| {
+                    let full_path = update.rel.join(path);
+                    path_read_cell_ids[&full_path]
+                })
+                .collect();
+            std::mem::swap(&mut update.sensitivities, &mut sensitivities);
+        }
+    }
+}
+
+impl Sim {
+    pub fn new() -> SimBuilder {
+        let sim = Sim {
+            nodes: vec![],
+            cells: vec![],
+            events: vec![Event::Initialize],
+        };
+        SimBuilder {
+            sim,
+        }
     }
 
     fn flow(&mut self) {
@@ -251,7 +252,6 @@ enum Node {
         val_cell_id: CellId,
         set_cell_id: CellId,
         update: Comb,
-        clock: Comb,
         reset: Option<Value>,
     },
 }
@@ -279,6 +279,13 @@ impl Node {
     }
 
     pub fn update(&self) -> &Comb {
+        match self {
+            Node::Simple { update, .. } => update,
+            Node::Reg { update, .. } => update,
+        }
+    }
+
+    fn update_mut(&mut self) -> &mut Comb {
         match self {
             Node::Simple { update, .. } => update,
             Node::Reg { update, .. } => update,

@@ -168,6 +168,18 @@ impl Connect {
 }
 
 impl ModDef {
+    pub fn name(&self) -> &Ident {
+        &self.name
+    }
+
+    pub fn components(&self) -> &[Component] {
+        &self.components
+    }
+
+    pub fn submodules(&self) -> &[Submodule] {
+        &self.submodules
+    }
+
     /// given a name, get either the component or submodule with that name, or None if none exists
     /// (panic if there is more than one)
     pub fn get(&self, name: &str) -> Option<&NamedItem> {
@@ -198,5 +210,41 @@ impl ModDef {
 
         panic!()
         */
+    }
+}
+
+impl Package {
+    pub fn items(&self) -> &[Item] {
+        &self.0
+    }
+}
+
+impl Component {
+    pub fn name(&self) -> &Ident {
+        match self {
+            Component::Incoming(name, _typ) => &name,
+            Component::Outgoing(name, _typ, e) => &name,
+            Component::Wire(name, _typ, e) => &name,
+            Component::Reg(name, _typ, clock, reset, e) => &name,
+        }
+    }
+
+    pub fn type_of(&self) -> &Type {
+        match self {
+            Component::Incoming(name, typ) => &typ,
+            Component::Outgoing(name, typ, e) => &typ,
+            Component::Wire(name, typ, e) => &typ,
+            Component::Reg(name, typ, clock, reset, e) => &typ,
+        }
+    }
+}
+
+impl Submodule {
+    pub fn name(&self) -> &Ident {
+        &self.0
+    }
+
+    pub fn moddef(&self) -> &Ident {
+        &self.1
     }
 }

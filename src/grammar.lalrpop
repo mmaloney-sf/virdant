@@ -78,7 +78,7 @@ Connect: Connect = {
 }
 
 Submodule: Submodule = {
-    "submodule" <name:Id> "of" <moddef:Id> => Submodule(moddef, name),
+    "submodule" <name:Id> "of" <moddef:Id> => Submodule(name, moddef),
 }
 
 Type: Box<Type> = {

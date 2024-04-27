@@ -4,9 +4,10 @@ pub mod expr;
 pub mod context;
 pub mod eval;
 pub mod value;
-pub mod sim;
 pub mod types;
 pub mod typecheck;
+pub mod sim;
+pub mod mlir;
 
 use context::Context;
 use ast::*;
@@ -14,12 +15,39 @@ use check::*;
 use expr::*;
 use value::*;
 use eval::*;
-use sim::*;
 use types::*;
 use typecheck::*;
+use sim::*;
+use mlir::*;
 
 fn main() {
-    parse();
+    mlir();
+}
+
+pub fn mlir() {
+    let package = parse_package("
+
+        public module Top {
+            incoming clk : Clock;
+            incoming in : Word[8];
+            outgoing out : Word[8];
+
+            submodule buf of Buffer;
+            buf.in := in;
+
+            out := buf.out->add(in);
+        }
+
+        module Buffer {
+            incoming clk : Clock;
+            incoming in : Word[8];
+            outgoing out : Word[8] := in;
+            reg buf : Word[8] on clk <= in;
+        }
+
+    ").unwrap();
+    let mut stdout = std::io::stdout();
+    package.mlir(&mut stdout).unwrap();
 }
 
 pub fn parse() {

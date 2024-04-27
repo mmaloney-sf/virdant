@@ -23,7 +23,7 @@ fn main() {
 pub fn parse() {
     let package = parse_package("
 
-        module Top {
+        public module Top {
             input clk;
             input in;
             output out;

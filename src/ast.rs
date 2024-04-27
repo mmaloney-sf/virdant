@@ -26,6 +26,12 @@ pub struct ModDef {
     pub submodules: Vec<Submodule>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Visibility {
+    Public,
+    Private,
+}
+
 #[derive(Debug, Clone)]
 pub enum Decl {
     Component(Component),

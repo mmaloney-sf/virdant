@@ -11,8 +11,18 @@ Def: Def = {
     <m:ModDef> => Def::ModDef(m),
 }
 
+Visibility: Visibility = {
+  <v:"public"?> => {
+    if v.is_none() {
+      Visibility::Private
+    } else {
+      Visibility::Public
+    }
+  }
+}
+
 ModDef: ModDef = {
-    "module" <name:Id> "{"
+    <v:Visibility> "module" <name:Id> "{"
         <decls:(Decl ";")*>
     "}" => {
         let mut components = vec![];

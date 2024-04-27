@@ -8,6 +8,7 @@ pub mod value;
 pub mod types;
 pub mod typecheck;
 pub mod sim;
+pub mod hir;
 //pub mod mlir;
 pub mod common;
 
@@ -20,11 +21,12 @@ use eval::*;
 use types::*;
 use typecheck::*;
 use sim::*;
+use hir::*;
 //use mlir::*;
 use common::*;
 
 fn main() {
-    sim();
+    parse();
 }
 
 /*
@@ -80,6 +82,7 @@ pub fn parse() {
     dbg!(package);
 }
 
+/*
 pub fn sim() {
     let ctx = Context::from(vec![
         ("r".into(), Type::Word(8)),
@@ -125,7 +128,9 @@ pub fn sim() {
     println!("clock");
     println!("{sim}");
 }
+*/
 
+/*
 pub fn repl() {
     loop {
         let mut input = String::new();
@@ -156,6 +161,7 @@ pub fn value_context_to_type_context(ctx: Context<Path, Value>) -> Context<Path,
     let new_ctx: Vec<(Path, Type)> = ctx.into_inner().into_iter().map(|(path, value)| (path, value.type_of())).collect();
     Context::from(new_ctx)
 }
+*/
 
 #[test]
 fn test_parse_exprs() {
@@ -173,29 +179,31 @@ fn test_parse_exprs() {
         "[]",
         "[0, 1, 1, 2, 3, 5]",
         "(x)",
-        "cat(x, y, z)",
-        "f(x, y)",
+//        "cat(x, y, z)",
+//        "f(x, y)",
         "z->f(x, y)",
         "a->eq(b)",
         "a->lt(b)",
         "a->lte(b)",
-        "x->real",
-        "x[0]",
-        "x[8..0]",
+//        "x->real",
+//        "x[0]",
+//        "x[8..0]",
 //        "x[i]",
-        "struct Unit {}",
-        "struct Complex { real = 0w8, imag = 1w8 }",
-        "struct Complex { real = 0w8, imag = 1w8 }",
+//        "struct Unit {}",
+//        "struct Complex { real = 0w8, imag = 1w8 }",
+//        "struct Complex { real = 0w8, imag = 1w8 }",
+        /*
         "
             with x {
                 this[0] = 1w8;
                 this[2] = 7w8;
             }
         ",
+        */
     ];
     for expr_str in expr_strs {
         eprintln!("Testing {expr_str:?}");
-        let _expr: Expr = parse_expr(expr_str).unwrap();
+        let _expr: ast::Expr = parse_expr(expr_str).unwrap();
     }
 }
 

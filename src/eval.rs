@@ -61,23 +61,25 @@ pub fn eval(ctx: Context<Path, Value>, expr: &Expr) -> Value {
         Expr::Idx(_s, _i) => todo!(),
         Expr::IdxRange(_s,  _i,  _j) => todo!(),
         Expr::With(s,  edits) => {
-            let v = eval(ctx.clone(), s);
-            match v {
-                Value::Vec(typ, vs) => {
-                    let mut rs = vs.clone();
-                    for edit in edits {
-                        if let WithEdit::Idx(i, e_i) = edit {
-                            rs[*i as usize] = eval(ctx.clone(), e_i);
-                        } else {
-                            panic!("Invalid with edit")
-                        }
-                    }
-                    Value::Vec(typ, rs)
-                },
-//                Value::Struct(vs) => {
-//                },
-              _ => panic!("Invalid value for with expression."),
-            }
+            todo!()
         },
+//            let v = eval(ctx.clone(), s);
+//            match v {
+//                Value::Vec(typ, vs) => {
+//                    let mut rs = vs.clone();
+//                    for edit in edits {
+//                        if let WithEdit::Idx(i, e_i) = edit {
+//                            rs[*i as usize] = eval(ctx.clone(), e_i);
+//                        } else {
+//                            panic!("Invalid with edit")
+//                        }
+//                    }
+//                    Value::Vec(typ, rs)
+//                },
+////                Value::Struct(vs) => {
+////                },
+//              _ => panic!("Invalid value for with expression."),
+//            }
+//        },
     }
 }

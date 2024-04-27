@@ -4,7 +4,6 @@ use lalrpop_util::ParseError;
 use lalrpop_util::lexer::Token;
 
 use crate::ast::{Expr, Package};
-use crate::common::*;
 
 pub fn parse_expr(expr_text: &str) -> Result<Expr, ParseError<usize, Token<'_>, &'static str>> {
     grammar::ExprParser::new().parse(expr_text).map(|expr| *expr)

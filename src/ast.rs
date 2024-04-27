@@ -1,4 +1,3 @@
-pub use crate::expr::Expr;
 use crate::types::Type;
 use crate::common::*;
 
@@ -12,15 +11,16 @@ pub enum Item {
     ModDef(ModDef),
 }
 
-#[derive(Debug, Clone)]
-pub struct ModDef {
-    pub decls: Vec<Decl>,
-}
-
 #[derive(Debug, Clone, Copy)]
 pub enum Visibility {
     Public,
     Private,
+}
+
+#[derive(Debug, Clone)]
+pub struct ModDef {
+    pub name: Ident,
+    pub decls: Vec<Decl>,
 }
 
 #[derive(Debug, Clone)]
@@ -31,11 +31,30 @@ pub enum Decl {
 }
 
 #[derive(Debug, Clone)]
-pub enum Component {
-    Incoming(Ident, Type),
-    Outgoing(Ident, Type, Option<InlineConnect>),
-    Wire(Ident, Type, Option<InlineConnect>),
-    Reg(Ident, Type, Expr, Option<Expr>, Option<InlineConnect>), // Reg(name, clk, rst, set)
+pub struct Component {
+    pub name: Ident,
+    pub kind: ComponentKind,
+    pub typ: Type,
+    pub connect: Option<InlineConnect>,
+    pub clock: Option<Expr>,
+    pub reset: Option<Expr>,
+}
+
+#[derive(Debug, Clone)]
+pub enum ComponentKind {
+    Incoming,
+    Outgoing,
+    Wire,
+    Reg,
+}
+
+#[derive(Debug, Clone)]
+pub enum Expr {
+    Reference(Path),
+    Word(WordLit),
+    Vec(Vec<Expr>),
+    Struct(Ident, Vec<(Field, Box<Expr>)>),
+    MethodCall(Box<Expr>, Ident, Vec<Expr>),
 }
 
 #[derive(Debug, Clone)]

@@ -77,13 +77,13 @@ pub fn typeinfer(ctx: Context<Path, Type>, expr: &Expr) -> Expr {
                 (Type::Word(n), "eq") => {
                     assert_eq!(args.len(), 1);
                     let typed_arg = typecheck(ctx.clone(), &args.first().unwrap(),  Type::Word(n));
-                    Expr::MethodCall(Type::Bool, Box::new(typed_subject), "eq".to_string(), vec![typed_arg])
+                    Expr::MethodCall(Type::Bool, Box::new(typed_subject), "eq".into(), vec![typed_arg])
                 },
                 // 1w8->add(2)
                 (Type::Word(n), "add") => {
                     assert_eq!(args.len(), 1);
                     let typed_arg = typecheck(ctx.clone(), &args.first().unwrap(),  Type::Word(n));
-                    Expr::MethodCall(Type::Word(n), Box::new(typed_subject), "add".to_string(), vec![typed_arg])
+                    Expr::MethodCall(Type::Word(n), Box::new(typed_subject), "add".into(), vec![typed_arg])
                 },
                 _ => panic!(),
             }
@@ -104,4 +104,3 @@ fn fits_in(value: u64, width: Width) -> bool {
         value < (1 << width)
     }
 }
-

@@ -10,6 +10,46 @@ pub type UnOp = String;
 pub type BinOp = String;
 pub type Field = String;
 
+#[derive(Debug, Clone)]
+pub struct Package(Vec<Def>);
+
+#[derive(Debug, Clone)]
+pub enum Def {
+    ModDef(ModDef),
+}
+
+#[derive(Debug, Clone)]
+pub struct ModDef {
+    pub name: Ident,
+    pub components: Vec<Component>,
+    pub connect: Vec<Connect>,
+}
+
+#[derive(Debug, Clone)]
+pub enum Decl {
+    Component(Component),
+    Submodule(),
+    Connect(Connect),
+}
+
+#[derive(Debug, Clone)]
+pub enum Component {
+    Input,
+    Output,
+    Node,
+    Reg,
+}
+
+#[derive(Debug, Clone)]
+pub struct Connect(Path, ConnectType, Expr);
+
+#[derive(Debug, Clone)]
+pub enum ConnectType {
+    Direct,
+    Latched,
+    Signal,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Path(String);
 

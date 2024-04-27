@@ -138,11 +138,3 @@ fn parse_exprs() {
         let _expr: Expr = parse_expr(expr_str).unwrap();
     }
 }
-
-/*
-pub enum SimCommand {
-    Clock(),
-}
-
-pub struct SimScript(Vec<SimCommand>);
-*/

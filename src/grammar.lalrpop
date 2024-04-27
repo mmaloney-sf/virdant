@@ -1,16 +1,56 @@
 use crate::*;
+use crate::ast::*;
 
 grammar;
 
-/*
-pub Sim: SimScript = {
-    <ss:SimCommand+> => SimScript(ss),
+pub Package: Package = {
+    <defs: Def*> => Package(defs),
 }
 
-SimCommand: SimCommand = {
-  "clock" => SimCommand::Clock(),
+Def: Def = {
+    <m:ModDef> => Def::ModDef(m),
 }
-*/
+
+ModDef: ModDef = {
+    "module" <name:Id> "{"
+        <decls:(Decl ";")*>
+    "}" => {
+        let mut components = vec![];
+        let mut connect = vec![];
+
+        for (decl, _semi) in decls {
+          match decl {
+            Decl::Component(c) => components.push(c),
+            Decl::Connect(c) => connect.push(c),
+            Decl::Submodule() => todo!(),
+          }
+        }
+
+        ModDef {
+            name,
+            components,
+            connect,
+        }
+    }
+}
+
+Decl: Decl = {
+    <c:Component> => Decl::Component(c),
+    <c:Connect> => Decl::Connect(c),
+}
+
+Component: Component = {
+    "input" <id:Id> => Component::Input,
+    "output" <id:Id> => Component::Output,
+    "node" <id:Id> => Component::Node,
+    "reg" <id:Id> => Component::Node,
+}
+
+Connect: Connect = {
+    <target:Path> ":=" <e:Expr> => Connect(target, ConnectType::Direct, *e),
+    <target:Path> "<=" <e:Expr> => Connect(target, ConnectType::Latched, *e),
+    <target:Path> "$=" <e:Expr> => Connect(target, ConnectType::Signal, *e),
+  }
 
 pub Expr: Box<Expr> = {
 //    <e:ExprLet> => e,

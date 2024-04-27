@@ -123,7 +123,7 @@ pub fn value_context_to_type_context(ctx: Context<Path, Value>) -> Context<Path,
 }
 
 #[test]
-fn parse_exprs() {
+fn test_parse_exprs() {
     let expr_strs = vec![
         "0",
         "1_000",
@@ -162,4 +162,11 @@ fn parse_exprs() {
         eprintln!("Testing {expr_str:?}");
         let _expr: Expr = parse_expr(expr_str).unwrap();
     }
+}
+
+#[test]
+fn test_parse_package() {
+    let package_text = std::fs::read_to_string("examples/hello.vir").unwrap();
+    let package = parse_package(&package_text).unwrap();
+    dbg!(package);
 }

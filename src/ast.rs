@@ -53,9 +53,9 @@ pub struct Connect(Path, ConnectType, Expr);
 
 #[derive(Debug, Clone)]
 pub enum ConnectType {
-    Direct,
+    Continuous,
     Latched,
-    Signal,
+    Control,
 }
 
 #[derive(Debug, Clone)]

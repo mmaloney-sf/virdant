@@ -72,9 +72,9 @@ Component: Component = {
 }
 
 Connect: Connect = {
-    <target:Path> ":=" <e:Expr> => Connect(target, ConnectType::Direct, *e),
+    <target:Path> ":=" <e:Expr> => Connect(target, ConnectType::Continuous, *e),
     <target:Path> "<=" <e:Expr> => Connect(target, ConnectType::Latched, *e),
-    <target:Path> "$=" <e:Expr> => Connect(target, ConnectType::Signal, *e),
+    <target:Path> "$=" <e:Expr> => Connect(target, ConnectType::Control, *e),
 }
 
 Submodule: Submodule = {

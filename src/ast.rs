@@ -136,3 +136,26 @@ pub fn parse_expr(expr_text: &str) -> Result<Expr, ParseError<usize, Token<'_>, 
 pub fn parse_package(package_text: &str) -> Result<Package, ParseError<usize, Token<'_>, &'static str>> {
     grammar::PackageParser::new().parse(package_text)
 }
+
+impl Package {
+    pub fn moddefs(&self) -> Vec<&ModDef> {
+        let mut result = Vec::new();
+        for def in &self.0 {
+            match def {
+                Item::ModDef(moddef) => result.push(moddef),
+            }
+        }
+        result
+    }
+}
+
+pub enum NamedItem<'a> {
+    Component(&'a Component),
+    Submodule(&'a Submodule),
+}
+
+impl ModDef {
+    pub fn get(&self, name: &str) -> Option<&NamedItem> {
+        todo!()
+    }
+}

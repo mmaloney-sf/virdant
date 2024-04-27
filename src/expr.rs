@@ -6,6 +6,7 @@ use crate::ast::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
+    Unknown,
     Clock,
     Bool,
     Word(Width),
@@ -16,6 +17,7 @@ pub enum Type {
 impl std::fmt::Display for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
+            Type::Unknown => write!(f, "UNKNOWN"),
             Type::Clock => write!(f, "Clock"),
             Type::Bool => write!(f, "Bool"),
             Type::Word(width) => write!(f, "Word<{width}>"),
@@ -25,65 +27,40 @@ impl std::fmt::Display for Type {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum TypedWithEdit {
-    Idx(u64, Box<TypedExpr>),
-    Field(Field, Box<TypedExpr>),
-}
-
-#[derive(Debug, Clone)]
-pub enum TypedExpr {
-    Reference(Type, Path),
-    Word(Width, u64),
-    Bool(bool),
-    Vec(Type, Vec<TypedExpr>),
-    Struct(Type, Vec<(Field, Box<TypedExpr>)>),
-//    If(Box<TypedExpr>, Box<TypedExpr>, Box<TypedExpr>),
-//    Match(Box<TypedExpr>, Vec<MatchArm>),
-//    Let(Ident, Option<Type>, Box<TypedExpr>, Box<TypedExpr>),
-    FnCall(Ident, Vec<TypedExpr>),
-    MethodCall(Type, Box<TypedExpr>, Ident, Vec<TypedExpr>),
-    Cat(Vec<TypedExpr>),
-    IdxField(Box<TypedExpr>, Ident),
-    Idx(Box<TypedExpr>, u64),
-    IdxRange(Box<TypedExpr>, u64, u64),
-    With(Box<TypedExpr>, Vec<TypedWithEdit>),
-}
-
-impl TypedExpr {
+impl Expr {
     pub fn type_of(&self) -> Type {
         match self {
-            TypedExpr::Reference(typ, _path) => typ.clone(),
-            TypedExpr::Word(width, _value) => Type::Word(*width),
-            TypedExpr::Bool(_b) => Type::Bool,
-            TypedExpr::Vec(typ, es) => Type::Vec(Box::new(typ.clone()), es.len()),
-            TypedExpr::Struct(typ, _flds) => Type::Other(typ.to_string()),
-        //    TypedExpr::If(Box<Expr>, Box<Expr>, Box<Expr>) => todo!(),
-        //    TypedExpr::Match(Box<Expr>, Vec<MatchArm>) => todo!(),
-        //    TypedExpr::Let(Ident, Option<Type>, Box<Expr>, Box<Expr>) => todo!(),
-//            TypedExpr::Call(Ident, Vec<Expr>) => todo!(),
-//            TypedExpr::Cat(Vec<Expr>) => todo!(),
-//            TypedExpr::IdxField(Box<Expr>, Ident) => todo!(),
-//            TypedExpr::Idx(Box<Expr>, u64) => todo!(),
-//            TypedExpr::IdxRange(Box<Expr>, u64, u64) => todo!(),
-//            TypedExpr::With(Box<Expr>, Vec<WithEdit>) => todo!(),
+            Expr::Reference(typ, _path) => typ.clone(),
+            Expr::Word(width, _value) => Type::Word(width.unwrap()),
+            Expr::Bool(_b) => Type::Bool,
+            Expr::Vec(typ, es) => Type::Vec(Box::new(typ.clone()), es.len()),
+            Expr::Struct(typ, _flds) => Type::Other(typ.to_string()),
+        //    Expr::If(Box<Expr>, Box<Expr>, Box<Expr>) => todo!(),
+        //    Expr::Match(Box<Expr>, Vec<MatchArm>) => todo!(),
+        //    Expr::Let(Ident, Option<Type>, Box<Expr>, Box<Expr>) => todo!(),
+//            Expr::Call(Ident, Vec<Expr>) => todo!(),
+//            Expr::Cat(Vec<Expr>) => todo!(),
+//            Expr::IdxField(Box<Expr>, Ident) => todo!(),
+//            Expr::Idx(Box<Expr>, u64) => todo!(),
+//            Expr::IdxRange(Box<Expr>, u64, u64) => todo!(),
+//            Expr::With(Box<Expr>, Vec<WithEdit>) => todo!(),
             _ => todo!()
         }
     }
 
     pub fn references(&self) -> HashSet<Path> {
         match self {
-            TypedExpr::Reference(_typ, path) => vec![path.clone()].into_iter().collect(),
-            TypedExpr::Word(_width, _value) => HashSet::new(),
-            TypedExpr::Bool(_b) => HashSet::new(),
-            TypedExpr::Vec(_typ, es) => {
+            Expr::Reference(_typ, path) => vec![path.clone()].into_iter().collect(),
+            Expr::Word(_width, _value) => HashSet::new(),
+            Expr::Bool(_b) => HashSet::new(),
+            Expr::Vec(_typ, es) => {
                 let mut result = HashSet::new();
                 for e in es {
                     result.extend(e.references());
                 }
                 result
             },
-            TypedExpr::MethodCall(_typ, subject, _fun, args) => {
+            Expr::MethodCall(_typ, subject, _fun, args) => {
                 let mut result = HashSet::new();
                 result.extend(subject.references());
                 for e in args {
@@ -91,38 +68,38 @@ impl TypedExpr {
                 }
                 result
             },
-            //TypedExpr::Struct(typ, _flds) => Type::Other(typ.to_string()),
-        //    TypedExpr::If(Box<Expr>, Box<Expr>, Box<Expr>) => todo!(),
-        //    TypedExpr::Match(Box<Expr>, Vec<MatchArm>) => todo!(),
-        //    TypedExpr::Let(Ident, Option<Type>, Box<Expr>, Box<Expr>) => todo!(),
-//            TypedExpr::Cat(Vec<Expr>) => todo!(),
-//            TypedExpr::IdxField(Box<Expr>, Ident) => todo!(),
-//            TypedExpr::Idx(Box<Expr>, u64) => todo!(),
-//            TypedExpr::IdxRange(Box<Expr>, u64, u64) => todo!(),
-//            TypedExpr::With(Box<Expr>, Vec<WithEdit>) => todo!(),
+            //Expr::Struct(typ, _flds) => Type::Other(typ.to_string()),
+        //    Expr::If(Box<Expr>, Box<Expr>, Box<Expr>) => todo!(),
+        //    Expr::Match(Box<Expr>, Vec<MatchArm>) => todo!(),
+        //    Expr::Let(Ident, Option<Type>, Box<Expr>, Box<Expr>) => todo!(),
+//            Expr::Cat(Vec<Expr>) => todo!(),
+//            Expr::IdxField(Box<Expr>, Ident) => todo!(),
+//            Expr::Idx(Box<Expr>, u64) => todo!(),
+//            Expr::IdxRange(Box<Expr>, u64, u64) => todo!(),
+//            Expr::With(Box<Expr>, Vec<WithEdit>) => todo!(),
             _ => todo!()
         }
     }
 }
 
-pub fn eval(ctx: Context<Path, Value>, expr: &TypedExpr) -> Value {
+pub fn eval(ctx: Context<Path, Value>, expr: &Expr) -> Value {
     match expr {
-        TypedExpr::Reference(typ, r) => ctx.lookup(r).unwrap(),
-        TypedExpr::Word(width, value) => Value::Word(*width, *value),
-        TypedExpr::Bool(b) => Value::Bool(*b),
-        TypedExpr::Vec(typ, es) => {
+        Expr::Reference(typ, r) => ctx.lookup(r).unwrap(),
+        Expr::Word(width, value) => Value::Word(width.unwrap(), *value),
+        Expr::Bool(b) => Value::Bool(*b),
+        Expr::Vec(typ, es) => {
             let vs = es.iter().map(|e| eval(ctx.clone(), e)).collect::<Vec<Value>>();
             Value::Vec(typ.clone(), vs)
         },
-        TypedExpr::Struct(typ, fields) => {
+        Expr::Struct(typ, fields) => {
             let vs: Vec<(Field, Value)> = fields.iter().map(|(f, fe)| (f.clone(), eval(ctx.clone(), fe))).collect::<Vec<_>>();
             Value::Struct(typ.clone(), vs)
         },
-        TypedExpr::FnCall(_name, _es) => {
+        Expr::FnCall(_name, _es) => {
             todo!()
         },
         // a->foo(x)
-        TypedExpr::MethodCall(_typ, subject, name, args) => {
+        Expr::MethodCall(_typ, subject, name, args) => {
             let subject_value: Value = eval(ctx.clone(), subject);
             let arg_values: Vec<Value> = args.iter().map(|arg| eval(ctx.clone(), arg)).collect();
 
@@ -138,13 +115,13 @@ pub fn eval(ctx: Context<Path, Value>, expr: &TypedExpr) -> Value {
                 _ => panic!(),
             }
         },
-        TypedExpr::Cat(_es) => {
+        Expr::Cat(_es) => {
 //            let vs = es.iter().map(|e| eval(ctx.clone(), e)).collect::<Vec<Value>>();
 //            let mut w = 0;
 //            Value::Word(vs)
             todo!()
         }
-        TypedExpr::IdxField(s, f) => {
+        Expr::IdxField(s, f) => {
             /*
             let v = eval(ctx.clone(), s);
             if let Value::Struct(_structname, flds) = v {
@@ -158,15 +135,15 @@ pub fn eval(ctx: Context<Path, Value>, expr: &TypedExpr) -> Value {
             */
             todo!()
         },
-        TypedExpr::Idx(_s, _i) => todo!(),
-        TypedExpr::IdxRange(_s,  _i,  _j) => todo!(),
-        TypedExpr::With(s,  edits) => {
+        Expr::Idx(_s, _i) => todo!(),
+        Expr::IdxRange(_s,  _i,  _j) => todo!(),
+        Expr::With(s,  edits) => {
             let v = eval(ctx.clone(), s);
             match v {
                 Value::Vec(typ, vs) => {
                     let mut rs = vs.clone();
                     for edit in edits {
-                        if let TypedWithEdit::Idx(i, e_i) = edit {
+                        if let WithEdit::Idx(i, e_i) = edit {
                             rs[*i as usize] = eval(ctx.clone(), e_i);
                         } else {
                             panic!("Invalid with edit")
@@ -187,21 +164,21 @@ pub fn value_context_to_type_context(ctx: Context<Path, Value>) -> Context<Path,
     Context::from(new_ctx)
 }
 
-pub fn typecheck(ctx: Context<Path, Type>, expr: &Expr, typ: Type) -> TypedExpr {
+pub fn typecheck(ctx: Context<Path, Type>, expr: &Expr, typ: Type) -> Expr {
     let result = match expr {
-        Expr::Reference(path) => {
+        Expr::Reference(_typ, path) => {
             let type_actual = ctx.lookup(path).unwrap();
             assert_eq!(type_actual, typ);
-            TypedExpr::Reference(type_actual, path.clone())
+            Expr::Reference(type_actual, path.clone())
         },
-        Expr::Word(WordLit(width, value)) => {
+        Expr::Word(width, value) => {
             if let Type::Word(n) = typ {
                 if let Some(width) = width {
                     assert_eq!(*width, n);
                     typeinfer(ctx.clone(), expr)
                 } else {
                     if fits_in(*value, n) {
-                        TypedExpr::Word(n, *value)
+                        Expr::Word(Some(n), *value)
                     } else {
                         panic!()
                     }
@@ -211,23 +188,23 @@ pub fn typecheck(ctx: Context<Path, Type>, expr: &Expr, typ: Type) -> TypedExpr 
             }
         }
         Expr::Bool(_b) => typeinfer(ctx.clone(), expr),
-        Expr::Vec(es) => {
-            let typed_es: Vec<TypedExpr> = es.iter().map(|e| typeinfer(ctx.clone(), e)).collect();
+        Expr::Vec(_typ, es) => {
+            let typed_es: Vec<Expr> = es.iter().map(|e| typeinfer(ctx.clone(), e)).collect();
             let typ = typed_es.first().unwrap().type_of();
-            TypedExpr::Vec(typ, typed_es)
+            Expr::Vec(typ, typed_es)
         },
-//        Expr::Struct(typ, Vec<(Field, Box<TypedExpr>)>),
-    //    If(Box<Expr>, Box<TypedExpr>, Box<TypedExpr>),
+//        Expr::Struct(typ, Vec<(Field, Box<Expr>)>),
+    //    If(Box<Expr>, Box<Expr>, Box<Expr>),
     //    Match(Box<Expr>, Vec<MatchArm>),
-    //    Let(Ident, Option<Type>, Box<Expr>, Box<TypedExpr>),
-//        Expr::FnCall(Ident, Vec<TypedExpr>),
+    //    Let(Ident, Option<Type>, Box<Expr>, Box<Expr>),
+//        Expr::FnCall(Ident, Vec<Expr>),
 //        a->foo(b)
-        Expr::MethodCall(_subject, _method, _args) => typeinfer(ctx.clone(), expr),
-//        Expr::Cat(Vec<TypedExpr>),
-//        Expr::IdxField(Box<TypedExpr>, Ident),
-//        Expr::Idx(Box<TypedExpr>, u64),
-//        Expr::IdxRange(Box<TypedExpr>, u64, u64),
-//        Expr::With(Box<TypedExpr>, Vec<TypedWithEdit>),
+        Expr::MethodCall(_typ, _subject, _method, _args) => typeinfer(ctx.clone(), expr),
+//        Expr::Cat(Vec<Expr>),
+//        Expr::IdxField(Box<Expr>, Ident),
+//        Expr::Idx(Box<Expr>, u64),
+//        Expr::IdxRange(Box<Expr>, u64, u64),
+//        Expr::With(Box<Expr>, Vec<WithEdit>),
         _ => {
             dbg!(expr, typ);
             todo!()
@@ -237,48 +214,48 @@ pub fn typecheck(ctx: Context<Path, Type>, expr: &Expr, typ: Type) -> TypedExpr 
     result
 }
 
-pub fn typeinfer(ctx: Context<Path, Type>, expr: &Expr) -> TypedExpr {
+pub fn typeinfer(ctx: Context<Path, Type>, expr: &Expr) -> Expr {
     match expr {
-        Expr::Reference(path) => {
+        Expr::Reference(_typ, path) => {
             let typ = ctx.lookup(path).unwrap();
-            TypedExpr::Reference(typ, path.clone())
+            Expr::Reference(typ, path.clone())
         },
-        Expr::Word(WordLit(width, value)) => TypedExpr::Word(width.unwrap(), *value),
-        Expr::Bool(b) => TypedExpr::Bool(*b),
-        Expr::Vec(es) => {
-            let typed_es: Vec<TypedExpr> = es.iter().map(|e| typeinfer(ctx.clone(), e)).collect();
+        Expr::Word(width, value) => Expr::Word(Some(width.unwrap()), *value),
+        Expr::Bool(b) => Expr::Bool(*b),
+        Expr::Vec(_typ, es) => {
+            let typed_es: Vec<Expr> = es.iter().map(|e| typeinfer(ctx.clone(), e)).collect();
             let typ = typed_es.first().unwrap().type_of();
-            TypedExpr::Vec(typ, typed_es)
+            Expr::Vec(typ, typed_es)
         },
-//        Expr::Struct(typ, Vec<(Field, Box<TypedExpr>)>),
-    //    If(Box<Expr>, Box<TypedExpr>, Box<TypedExpr>),
+//        Expr::Struct(typ, Vec<(Field, Box<Expr>)>),
+    //    If(Box<Expr>, Box<Expr>, Box<Expr>),
     //    Match(Box<Expr>, Vec<MatchArm>),
-    //    Let(Ident, Option<Type>, Box<Expr>, Box<TypedExpr>),
-//        Expr::FnCall(Ident, Vec<TypedExpr>),
+    //    Let(Ident, Option<Type>, Box<Expr>, Box<Expr>),
+//        Expr::FnCall(Ident, Vec<Expr>),
 //        a->foo(b)
-        Expr::MethodCall(subject, method, args) => {
-            let typed_subject: TypedExpr = typeinfer(ctx.clone(), subject);
+        Expr::MethodCall(_typ, subject, method, args) => {
+            let typed_subject: Expr = typeinfer(ctx.clone(), subject);
             let subject_type: Type = typed_subject.type_of();
             match (subject_type, method.as_str()) {
                 (Type::Word(n), "eq") => {
                     assert_eq!(args.len(), 1);
                     let typed_arg = typecheck(ctx.clone(), &args.first().unwrap(),  Type::Word(n));
-                    TypedExpr::MethodCall(Type::Bool, Box::new(typed_subject), "eq".to_string(), vec![typed_arg])
+                    Expr::MethodCall(Type::Bool, Box::new(typed_subject), "eq".to_string(), vec![typed_arg])
                 },
                 // 1w8->add(2)
                 (Type::Word(n), "add") => {
                     assert_eq!(args.len(), 1);
                     let typed_arg = typecheck(ctx.clone(), &args.first().unwrap(),  Type::Word(n));
-                    TypedExpr::MethodCall(Type::Word(n), Box::new(typed_subject), "add".to_string(), vec![typed_arg])
+                    Expr::MethodCall(Type::Word(n), Box::new(typed_subject), "add".to_string(), vec![typed_arg])
                 },
                 _ => panic!(),
             }
         },
-//        Expr::Cat(Vec<TypedExpr>),
-//        Expr::IdxField(Box<TypedExpr>, Ident),
-//        Expr::Idx(Box<TypedExpr>, u64),
-//        Expr::IdxRange(Box<TypedExpr>, u64, u64),
-//        Expr::With(Box<TypedExpr>, Vec<TypedWithEdit>),
+//        Expr::Cat(Vec<Expr>),
+//        Expr::IdxField(Box<Expr>, Ident),
+//        Expr::Idx(Box<Expr>, u64),
+//        Expr::IdxRange(Box<Expr>, u64, u64),
+//        Expr::With(Box<Expr>, Vec<WithEdit>),
         _ => todo!()
     }
 }

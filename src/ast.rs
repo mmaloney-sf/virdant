@@ -2,6 +2,7 @@ use lalrpop_util::lalrpop_mod;
 lalrpop_mod!(grammar);
 use lalrpop_util::ParseError;
 use lalrpop_util::lexer::Token;
+use crate::expr::Type;
 
 pub type Ident = String;
 pub type Width = u64;
@@ -11,16 +12,16 @@ pub type Field = String;
 
 #[derive(Debug, Clone)]
 pub enum Expr {
-    Reference(Path),
-    Word(WordLit),
+    Reference(Type, Path),
+    Word(Option<Width>, u64),
     Bool(bool),
-    Vec(Vec<Expr>),
-    Struct(String, Vec<(Field, Box<Expr>)>),
+    Vec(Type, Vec<Expr>),
+    Struct(Type, Vec<(Field, Box<Expr>)>),
 //    If(Box<Expr>, Box<Expr>, Box<Expr>),
 //    Match(Box<Expr>, Vec<MatchArm>),
 //    Let(Ident, Option<Type>, Box<Expr>, Box<Expr>),
     FnCall(Ident, Vec<Expr>),
-    MethodCall(Box<Expr>, Ident, Vec<Expr>),
+    MethodCall(Type, Box<Expr>, Ident, Vec<Expr>),
     Cat(Vec<Expr>),
     IdxField(Box<Expr>, Ident),
     Idx(Box<Expr>, u64),

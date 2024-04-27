@@ -29,7 +29,7 @@ ExprCall: Box<Expr> = {
         Box::new(Expr::FnCall(name, es))
     },
     <ll:@L> <s:ExprIdx> "->" <name:Id> "(" <es:ExprList> ")" <rr:@R> => {
-        Box::new(Expr::MethodCall(s, name, es))
+        Box::new(Expr::MethodCall(Type::Unknown, s, name, es))
     },
     <e:ExprIdx> => e,
 }
@@ -54,7 +54,7 @@ ExprBase: Box<Expr> = {
 ExprStruct: Box<Expr> = {
     <ll:@L> "struct" <name:Id> "{" <fields:FieldExprList> "}" <rr:@R> => {
         let fields = fields.iter().map(|(name, e)| (name.to_string(), Box::new(e.clone()))).collect();
-        Box::new(Expr::Struct(name, fields))
+        Box::new(Expr::Struct(Type::Unknown, fields))
     },
 }
 
@@ -92,8 +92,8 @@ ExprWidthEdit: WithEdit = {
 }
 
 ExprVec: Box<Expr> = {
-    <ll:@L> "[" <es:ExprList> "]" <rr:@R> => Box::new(Expr::Vec(es)),
-    <ll:@L> "[" <e:Expr> ";" <n:Nat> "]" <rr:@R> => Box::new(Expr::Vec(vec![*e; n as usize])),
+    <ll:@L> "[" <es:ExprList> "]" <rr:@R> => Box::new(Expr::Vec(Type::Unknown, es)),
+    <ll:@L> "[" <e:Expr> ";" <n:Nat> "]" <rr:@R> => Box::new(Expr::Vec(Type::Unknown, vec![*e; n as usize])),
 }
 
 ExprList: Vec<Expr> = {
@@ -112,7 +112,7 @@ ExprList: Vec<Expr> = {
 
 ExprLit: Box<Expr> = {
     <ll:@L> <lit:WordLit> <rr:@R> => {
-        Box::new(Expr::Word(lit))
+        Box::new(Expr::Word(lit.width(), lit.val()))
     },
 
     "true" => Box::new(Expr::Bool(true)),
@@ -120,7 +120,7 @@ ExprLit: Box<Expr> = {
 }
 
 ExprReference: Box<Expr> = {
-  <path: Path> => Box::new(Expr::Reference(path))
+  <path: Path> => Box::new(Expr::Reference(Type::Unknown, path))
 }
 
 

@@ -11,7 +11,7 @@ use expr::*;
 use sim::*;
 
 fn main() {
-    repl();
+    sim();
 }
 
 fn sim() {
@@ -26,7 +26,7 @@ fn sim() {
 
     let mut sim = Sim::new()
         .add_simple_node("top.out".into(), Type::Word(8), out_expr)
-        .add_simple_node("top.in".into(), Type::Word(8), TypedExpr::Word(8, 1))
+        .add_simple_node("top.in".into(), Type::Word(8), Expr::Word(Some(8), 1))
         .add_reg_node("top.r".into(), Type::Word(8), r_expr)
         .build();
 

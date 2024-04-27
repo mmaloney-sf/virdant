@@ -20,7 +20,7 @@ fn main() {
     sim();
 }
 
-fn sim() {
+pub fn sim() {
     let ctx = Context::from(vec![
         ("r".into(), Type::Word(8)),
         ("in".into(), Type::Word(8)),
@@ -56,7 +56,7 @@ fn sim() {
     println!("{sim}");
 }
 
-fn repl() {
+pub fn repl() {
     loop {
         let mut input = String::new();
         print!(">>> ");

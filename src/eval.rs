@@ -6,7 +6,7 @@ use crate::expr::*;
 
 pub fn eval(ctx: Context<Path, Value>, expr: &Expr) -> Value {
     match expr {
-        Expr::Reference(typ, r) => ctx.lookup(r).unwrap(),
+        Expr::Reference(_typ, r) => ctx.lookup(r).unwrap(),
         Expr::Word(width, value) => Value::Word(width.unwrap(), *value),
         Expr::Bool(b) => Value::Bool(*b),
         Expr::Vec(typ, es) => {
@@ -43,7 +43,7 @@ pub fn eval(ctx: Context<Path, Value>, expr: &Expr) -> Value {
 //            Value::Word(vs)
             todo!()
         }
-        Expr::IdxField(s, f) => {
+        Expr::IdxField(_s, _f) => {
             /*
             let v = eval(ctx.clone(), s);
             if let Value::Struct(_structname, flds) = v {

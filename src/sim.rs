@@ -3,6 +3,7 @@ use super::*;
 
 type CellId = usize;
 type ClockId = usize;
+type ResetId = usize;
 
 #[derive(Debug, Clone)]
 pub struct Sim {
@@ -128,7 +129,7 @@ impl Sim {
                             self.update_cell(cell_id, value);
                         }
                     },
-                    (Event::Clock, Node::Reg { set_cell_id, val_cell_id, .. }) => {
+                    (Event::Clock(_clock_id), Node::Reg { set_cell_id, val_cell_id, .. }) => {
                         let value = self.get_cell(*set_cell_id).clone();
                         self.update_cell(*val_cell_id, value);
                     },
@@ -144,10 +145,13 @@ impl Sim {
         self.events.push(Event::CellUpdated(cell_id));
     }
 
+    // keep around for debugging
+    #[allow(dead_code)]
     fn event_name(&self, event: &Event) -> String {
         match event {
-            Event::CellUpdated(cell_id) => format!("updated cell: {}", self.cell_name(*cell_id)),
-            Event::Clock => "clock".to_string(),
+            Event::CellUpdated(cell_id) => format!("updated #{}", self.cell_name(*cell_id)),
+            Event::Clock(clock_id) => format!("clock #{clock_id}"),
+            Event::Reset(reset_id) => format!("reset #{reset_id}"),
         }
     }
 
@@ -203,7 +207,8 @@ impl Sim {
     }
 
     pub fn clock(&mut self) {
-        self.events.push(Event::Clock);
+        let clock_id = 1; // TODO
+        self.events.push(Event::Clock(clock_id));
         self.flow();
     }
 }
@@ -312,5 +317,6 @@ impl Comb {
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 enum Event {
     CellUpdated(CellId),
-    Clock,
+    Clock(ClockId),
+    Reset(ResetId),
 }

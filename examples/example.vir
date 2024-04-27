@@ -21,53 +21,62 @@ mod Buffer {
   out := r;
 }
 
+mod ShiftReg {
+  input clk : Clock;
+  input in : Valid<Word<8>>;
+  output out: Bit;
+
+  reg r : Vec<Bit, 4> on clk;
+  r <= match in {
+    Valid(in_value) => in_valid;
+    Invalid() => r[3..1]->prepend(0);
+  };
+  out := r[0];
+}
+
 /*
 
 virdant.module @Top {
-  %clk = virdant.input : virdant.clock
+  %clk = virdant.input : !virdant.clock
+  %in = virdant.input : !virdant.word<8>
 
-  %in = virdant.input : virdant.uint<8>
-
-  %out = virdant.output : virdant.uint<8> {
-    virdant.connect(%r)
+  %out = virdant.output : !virdant.word<8> {
+    %buffer_out = virdant.outport(%buffer) { port = "out" }
+    virdant.connect(%buffer_out)
   }
 
   %buffer = virdant.submodule(@Buffer)  {
-  }
-
-  %buffer_clk = virdant.submodule_input_port(...) {
-    virdant.connect(%result)
-  }
-
-  %buffer_in = virdant.submodule_input_port(...) {
-    virdant.connect(%result)
+    virdant.inport(%clk) { name = "clk" }
+    virdant.inport(%in) { name = "in" }
   }
 }
 
-virdant.module @Buffer(%clk : virdant.clock, %in :virdant.uint<8>)  {
-  %out = virdant.output @out : virdant.uint<8> {
-    virdant.connect(%r)
-  }
+virdant.module @Buffer()  {
+  %clk = virdant.input @clk : !virdant.clock
+  %in = virdant.input @in : !virdant.word<8>
+  %out = virdant.output @out(%r) : !virdant.word<8>
 
-  %r = virdant.reg(%clock) {
-    virdant.connect(%in)
-  }
+  %r = virdant.reg(%clock, %in)
 }
 
 
 Ops Summary:
+  virdant.methodcall(...)
 
   virdant.module
     declares a module.
     Inside is a list of all the components.
     the inside is a graph region.
+    has a attribute to preserve the name
 
   virdant.input
     declares an input port
+    has a attribute to preserve the name
 
   virdant.output
     declares an output port
     has an SSA region that represents the right-hand side of the := statement.
+    has a attribute to preserve the name
 
   virdant.reg
     declares a reg
@@ -77,5 +86,14 @@ Ops Summary:
 
   virdant.connect
     a terminator for the SSA blocks for virdant.output, virdant.reg, virdant.wire
-*/
+    only valid within virdant.output, virdant.reg, virdant.wire, virdant.port
 
+  virdant.submodule { def = @Buffer }
+    instantiate a submodule instance
+    Takes a (symbol) argument
+
+  virdant.port { name = "clk" }
+    opens a region for connecting to the named input port
+    only valid inside a virdant.submodule
+
+*/

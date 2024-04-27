@@ -14,19 +14,14 @@ pub mod Top {
 /*
 
 virdant.module @Top {
-  %clk = virdant.input : virdant.clock
+  %clk = virdant.input : !virdant.clock
+  %in = virdant.input : !virdant.word<8>
+  virdant.output(%r)
 
-  %in = virdant.input : virdant.uint<8>
+  %r = virdant.reg(%clock, %result) : !virdant.word<8>
 
-  %out = virdant.output : virdant.uint<8> {
-    virdant.connect(%r)
-  }
-
-  %r = virdant.reg(%clock) {
-    %const_1 = virdant.const 1 : UInt<8>
-    %result = virdant.add(%in, %const_1)
-    virdant.connect(%result)
-  }
+  %const_1 = virdant.const 1 : UInt<8>
+  %result = virdant.add(%in, %const_1)
 }
 
 
@@ -43,14 +38,31 @@ Ops Summary:
   virdant.output
     declares an output port
     has an SSA region that represents the right-hand side of the := statement.
+    No return value
 
   virdant.reg
     declares a reg
+    takes a clock and an assignment
 
   virdant.wire
     declares a wire
+    takes an assignment
 
+  virdant.submodule { def = @Buffer }
+    instantiate a submodule instance
+    Takes a (symbol) argument
+
+  virdant.inport { name = "clk" }
+    opens a region for connecting to the named input port
+    only valid inside a virdant.submodule
+
+  virdant.outport { name = "clk" }
+    opens a region for connecting to the named output port
+    only valid inside a virdant.submodule
+
+  @deprecated
   virdant.connect
     a terminator for the SSA blocks for virdant.output, virdant.reg, virdant.wire
+    removed because ordering and SSACFG form is not useful *unless* we're trying to write a software simulator.
 
 */

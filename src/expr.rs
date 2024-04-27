@@ -121,6 +121,7 @@ pub fn eval(ctx: Context<Path, Value>, expr: &TypedExpr) -> Value {
         TypedExpr::FnCall(_name, _es) => {
             todo!()
         },
+        // a->foo(x)
         TypedExpr::MethodCall(_typ, subject, name, args) => {
             let subject_value: Value = eval(ctx.clone(), subject);
             let arg_values: Vec<Value> = args.iter().map(|arg| eval(ctx.clone(), arg)).collect();
@@ -220,6 +221,7 @@ pub fn typecheck(ctx: Context<Path, Type>, expr: &Expr, typ: Type) -> TypedExpr 
     //    Match(Box<Expr>, Vec<MatchArm>),
     //    Let(Ident, Option<Type>, Box<Expr>, Box<TypedExpr>),
 //        Expr::FnCall(Ident, Vec<TypedExpr>),
+//        a->foo(b)
         Expr::MethodCall(_subject, _method, _args) => typeinfer(ctx.clone(), expr),
 //        Expr::Cat(Vec<TypedExpr>),
 //        Expr::IdxField(Box<TypedExpr>, Ident),
@@ -253,6 +255,7 @@ pub fn typeinfer(ctx: Context<Path, Type>, expr: &Expr) -> TypedExpr {
     //    Match(Box<Expr>, Vec<MatchArm>),
     //    Let(Ident, Option<Type>, Box<Expr>, Box<TypedExpr>),
 //        Expr::FnCall(Ident, Vec<TypedExpr>),
+//        a->foo(b)
         Expr::MethodCall(subject, method, args) => {
             let typed_subject: TypedExpr = typeinfer(ctx.clone(), subject);
             let subject_type: Type = typed_subject.type_of();
@@ -262,6 +265,7 @@ pub fn typeinfer(ctx: Context<Path, Type>, expr: &Expr) -> TypedExpr {
                     let typed_arg = typecheck(ctx.clone(), &args.first().unwrap(),  Type::Word(n));
                     TypedExpr::MethodCall(Type::Bool, Box::new(typed_subject), "eq".to_string(), vec![typed_arg])
                 },
+                // 1w8->add(2)
                 (Type::Word(n), "add") => {
                     assert_eq!(args.len(), 1);
                     let typed_arg = typecheck(ctx.clone(), &args.first().unwrap(),  Type::Word(n));

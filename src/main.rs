@@ -11,6 +11,10 @@ use expr::*;
 use sim::*;
 
 fn main() {
+    repl();
+}
+
+fn sim() {
     let ctx = Context::from(vec![
         ("r".into(), Type::Word(8)),
         ("in".into(), Type::Word(8)),

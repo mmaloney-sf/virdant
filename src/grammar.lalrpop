@@ -45,6 +45,7 @@ ExprBase: Box<Expr> = {
     <e:ExprVec> => e,
     <e:ExprStruct> => e,
     <e:ExprWith> => e,
+//    <e:ExprAs> => e,
     <e:ExprLit> => e,
     <e:ExprReference> => e,
     "(" <e:Expr> ")" => e,
@@ -70,6 +71,12 @@ FieldExprList: Vec<(String, Expr)> = {
         }
     },
 }
+
+/*
+ExprAs: Box<Expr> = {
+  "as" <t:Type> "("
+}
+*/
 
 ExprWith: Box<Expr> = {
   "with" <e:Expr> "{"

@@ -2,7 +2,7 @@ use crate::common::*;
 use super::*;
 
 #[derive(Debug, Clone)]
-pub struct ExprReference(pub Option<Arc<Type>>, pub Path);
+pub struct ExprReference(pub TypeCell, pub Path);
 
 impl ExprReference {
     pub fn path(&self) -> &Path {
@@ -15,7 +15,7 @@ impl IsExpr for ExprReference {
         vec![]
     }
 
-    fn type_of(&self) -> Option<Arc<Type>> {
+    fn typecell(&self) -> TypeCell {
         self.0.clone()
     }
 
@@ -23,7 +23,11 @@ impl IsExpr for ExprReference {
         vec![self.path().clone()].into_iter().collect()
     }
 
-    fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Option<Arc<Type>> {
-        ctx.lookup(self.path())
+    fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Result<Arc<Type>, TypeError> {
+        if let Some(type_actual) = ctx.lookup(self.path()) {
+            Ok(type_actual.clone())
+        } else {
+            Err(TypeError::CantInfer)
+        }
     }
 }

@@ -3,7 +3,7 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub enum ExprLiteral {
-    Word(Option<Arc<Type>>, WordLit),
+    Word(TypeCell, WordLit),
 }
 
 
@@ -12,7 +12,7 @@ impl IsExpr for ExprLiteral {
         vec![]
     }
 
-    fn type_of(&self) -> Option<Arc<Type>> {
+    fn typecell(&self) -> TypeCell {
         match self {
             ExprLiteral::Word(typ, _lit) => typ.clone(),
         }

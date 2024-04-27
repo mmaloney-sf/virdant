@@ -8,7 +8,7 @@ use literal::*;
 use vec::*;
 use methodcall::*;
 
-use std::sync::Arc;
+use std::sync::RwLock;
 use std::collections::HashSet;
 
 use crate::ast;
@@ -36,6 +36,7 @@ impl Expr {
         }
     }
 }
+
 pub trait IsExpr {
     fn subexprs(&self) -> Vec<Arc<Expr>>;
 
@@ -47,14 +48,18 @@ pub trait IsExpr {
         result
     }
 
-    fn type_of(&self) -> Option<Arc<Type>>;
+    fn type_of(&self) -> Arc<Type> {
+        self.typecell().get().clone()
+    }
 
-    fn typeinfer(&self, _ctx: Context<Path, Arc<Type>>) -> Option<Arc<Type>> {
-        None
+    fn typecell(&self) -> TypeCell;
+
+    fn typeinfer(&self, _ctx: Context<Path, Arc<Type>>) -> Result<Arc<Type>, TypeError> {
+        Err(TypeError::CantInfer)
     }
 
     fn typecheck(&self, ctx: Context<Path, Arc<Type>>, type_expected: Arc<Type>) -> Result<(), TypeError> {
-        if let Some(type_actual) = self.typeinfer(ctx) {
+        if let Ok(type_actual) = self.typeinfer(ctx) {
             if type_actual == type_expected {
                 Ok(())
             } else {
@@ -72,22 +77,22 @@ pub trait IsExpr {
 
 impl IsExpr for Expr {
     fn subexprs(&self) -> Vec<Arc<Expr>> { self.to_class().subexprs() }
-    fn type_of(&self) -> Option<Arc<Type>> { self.to_class().type_of() }
-    fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Option<Arc<Type>> { self.to_class().typeinfer(ctx) }
+    fn typecell(&self) -> TypeCell { self.to_class().typecell() }
+    fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Result<Arc<Type>, TypeError> { self.to_class().typeinfer(ctx) }
     fn typecheck(&self, ctx: Context<Path, Arc<Type>>, type_expected: Arc<Type>) -> Result<(), TypeError> { self.to_class().typecheck(ctx, type_expected) }
 }
 
 impl Expr {
     pub fn to_hir(expr: &ast::Expr) -> Result<Arc<Expr>, VirdantError> {
         match expr {
-            ast::Expr::Reference(path) => Ok(Expr::Reference(ExprReference(None, path.clone())).into()),
-            ast::Expr::Word(lit) => Ok(Expr::Literal(ExprLiteral::Word(None, lit.clone())).into()),
+            ast::Expr::Reference(path) => Ok(Expr::Reference(ExprReference(TypeCell::unknown(), path.clone())).into()),
+            ast::Expr::Word(lit) => Ok(Expr::Literal(ExprLiteral::Word(TypeCell::unknown(), lit.clone())).into()),
             ast::Expr::Vec(es) => {
                 let mut es_hir = vec![];
                 for e in es {
                     es_hir.push(Expr::to_hir(e)?);
                 }
-                Ok(Expr::Vec(ExprVec(None, es_hir)).into())
+                Ok(Expr::Vec(ExprVec(TypeCell::unknown(), es_hir)).into())
             },
             ast::Expr::MethodCall(subject, method, args) => {
                 let subject_hir = Expr::to_hir(subject)?;
@@ -95,10 +100,30 @@ impl Expr {
                 for arg in args {
                     args_hir.push(Expr::to_hir(arg)?);
                 }
-                Ok(Expr::MethodCall(ExprMethodCall(None, subject_hir, method.clone(), args_hir)).into())
+                Ok(Expr::MethodCall(ExprMethodCall(TypeCell::unknown(), subject_hir, method.clone(), args_hir)).into())
             },
             _ => todo!(),
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TypeCell(Arc<RwLock<Option<Arc<Type>>>>);
+
+impl TypeCell {
+    fn unknown() -> TypeCell {
+        TypeCell(Arc::new(RwLock::new(None)))
+    }
+
+    fn get(&self) -> Arc<Type> {
+        let lock = self.0.read().unwrap();
+        lock.clone().unwrap()
+    }
+
+    fn set(&self, typ: Arc<Type>) {
+        let mut lock = self.0.write().unwrap();
+        assert!(lock.is_none(), "TypeCell is already set");
+        *lock = Some(typ);
     }
 }
 

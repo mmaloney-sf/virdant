@@ -30,7 +30,6 @@ impl ModDef {
     // asserts that all connections have the correct connect type
     // eg, if r is a reg, then you have to use <=
     // but if w is a wire, you have to use :=
-    // TODO but wait, control signals are weird...
     pub fn check_connectiontypes_correct(&self) {
         todo!()
     }

@@ -1,4 +1,5 @@
 use super::*;
+use ast::{Package, ModDef};
 
 impl Package {
     pub fn check(&self) {

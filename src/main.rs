@@ -10,7 +10,7 @@ pub mod sim;
 pub mod mlir;
 
 use context::Context;
-use ast::*;
+use ast::{parse_package, parse_expr, Path};
 use check::*;
 use expr::*;
 use value::*;

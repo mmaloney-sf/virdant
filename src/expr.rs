@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use crate::*;
+use crate::ast::{Ident, Field, Width, WithEdit};
 
 #[derive(Debug, Clone)]
 pub enum Expr {

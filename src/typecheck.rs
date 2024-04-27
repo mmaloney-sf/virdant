@@ -1,4 +1,5 @@
 use crate::*;
+use crate::ast::Width;
 
 pub fn typecheck(ctx: Context<Path, Type>, expr: &Expr, typ: Type) -> Expr {
     let result = match expr {

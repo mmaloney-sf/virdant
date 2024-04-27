@@ -24,9 +24,9 @@ pub fn parse() {
     let package = parse_package("
 
         public module Top {
-            input clk : Clock;
-            input in : Word[8];
-            output out : Word[8];
+            incoming clk : Clock;
+            incoming in : Word[8];
+            outgoing out : Word[8];
 
             Buffer buf;
             buf.in := in;
@@ -35,9 +35,9 @@ pub fn parse() {
         }
 
         module Buffer {
-            input clk : Clock;
-            input in : Word[8];
-            output out : Word[8] := in;
+            incoming clk : Clock;
+            incoming in : Word[8];
+            outgoing out : Word[8] := in;
             reg buf : Word[8] on clk <= in;
         }
 

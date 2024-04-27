@@ -42,8 +42,8 @@ pub enum Decl {
 
 #[derive(Debug, Clone)]
 pub enum Component {
-    Input(Ident, Type, ),
-    Output(Ident, Type, Option<Expr>),
+    Incoming(Ident, Type, ),
+    Outgoing(Ident, Type, Option<Expr>),
     Wire(Ident, Type, Option<Expr>),
     Reg(Ident, Type, Expr, Option<Expr>, Option<Expr>), // Reg(name, clk, rst, set)
 }

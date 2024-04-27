@@ -53,12 +53,12 @@ Decl: Decl = {
 }
 
 Component: Component = {
-    "input" <id:Id> ":" <typ:Type> => {
-        Component::Input(id, *typ)
+    "incoming" <id:Id> ":" <typ:Type> => {
+        Component::Incoming(id, *typ)
     },
-    "output" <id:Id> ":" <typ:Type><connect:(":=" Expr)?> => {
+    "outgoing" <id:Id> ":" <typ:Type><connect:(":=" Expr)?> => {
         let val = connect.map(|s| *s.1); // .1 ignores the ":=" token
-        Component::Output(id, *typ, val)
+        Component::Outgoing(id, *typ, val)
     },
     "wire" <id:Id> ":" <typ:Type><connect:(":=" Expr)?> => {
         let val = connect.map(|s| *s.1); // .1 ignores the ":=" token

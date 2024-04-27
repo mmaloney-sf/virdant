@@ -4,6 +4,7 @@ pub mod expr;
 pub mod value;
 pub mod sim;
 pub mod types;
+pub mod typecheck;
 
 use context::Context;
 use ast::*;
@@ -11,6 +12,7 @@ use value::*;
 use expr::*;
 use sim::*;
 use types::*;
+use typecheck::*;
 
 fn main() {
     sim();
@@ -76,6 +78,11 @@ fn repl() {
             }
         }
     }
+}
+
+pub fn value_context_to_type_context(ctx: Context<Path, Value>) -> Context<Path, Type> {
+    let new_ctx: Vec<(Path, Type)> = ctx.into_inner().into_iter().map(|(path, value)| (path, value.type_of())).collect();
+    Context::from(new_ctx)
 }
 
 #[test]

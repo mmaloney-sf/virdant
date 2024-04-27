@@ -23,12 +23,13 @@ pub struct ModDef {
     pub name: Ident,
     pub components: Vec<Component>,
     pub connect: Vec<Connect>,
+    pub submodules: Vec<Submodule>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Decl {
     Component(Component),
-    Submodule(),
+    Submodule(Submodule),
     Connect(Connect),
 }
 
@@ -49,6 +50,9 @@ pub enum ConnectType {
     Latched,
     Signal,
 }
+
+#[derive(Debug, Clone)]
+pub struct Submodule(Ident, Ident);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Path(String);

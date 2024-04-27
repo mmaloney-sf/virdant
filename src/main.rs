@@ -27,12 +27,18 @@ pub fn parse() {
             input clk;
             input in;
             output out;
-            reg buf
-                on clk
-                reset 0
-                <= buf->add(in);
 
-            out := buf;
+            Buffer buf;
+            buf.in := in;
+
+            out := buf.out->add(in);
+        }
+
+        module Buffer {
+            input clk;
+            input in;
+            output out := in;
+            reg buf on clk <= in;
         }
 
     ").unwrap();

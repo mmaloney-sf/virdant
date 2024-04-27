@@ -17,12 +17,13 @@ ModDef: ModDef = {
     "}" => {
         let mut components = vec![];
         let mut connect = vec![];
+        let mut submodules = vec![];
 
         for (decl, _semi) in decls {
           match decl {
             Decl::Component(c) => components.push(c),
             Decl::Connect(c) => connect.push(c),
-            Decl::Submodule() => todo!(),
+            Decl::Submodule(m) => submodules.push(m),
           }
         }
 
@@ -30,6 +31,7 @@ ModDef: ModDef = {
             name,
             components,
             connect,
+            submodules,
         }
     }
 }
@@ -37,6 +39,7 @@ ModDef: ModDef = {
 Decl: Decl = {
     <c:Component> => Decl::Component(c),
     <c:Connect> => Decl::Connect(c),
+    <m:Submodule> => Decl::Submodule(m),
 }
 
 Component: Component = {
@@ -60,6 +63,10 @@ Connect: Connect = {
     <target:Path> ":=" <e:Expr> => Connect(target, ConnectType::Direct, *e),
     <target:Path> "<=" <e:Expr> => Connect(target, ConnectType::Latched, *e),
     <target:Path> "$=" <e:Expr> => Connect(target, ConnectType::Signal, *e),
+}
+
+Submodule: Submodule = {
+    <moddef:Id> <name:Id> => Submodule(moddef, name),
 }
 
 pub Expr: Box<Expr> = {

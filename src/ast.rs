@@ -33,13 +33,16 @@ pub enum Decl {
 #[derive(Debug, Clone)]
 pub enum Component {
     Incoming(Ident, Type),
-    Outgoing(Ident, Type, Option<Expr>),
-    Wire(Ident, Type, Option<Expr>),
-    Reg(Ident, Type, Expr, Option<Expr>, Option<Expr>), // Reg(name, clk, rst, set)
+    Outgoing(Ident, Type, Option<InlineConnect>),
+    Wire(Ident, Type, Option<InlineConnect>),
+    Reg(Ident, Type, Expr, Option<Expr>, Option<InlineConnect>), // Reg(name, clk, rst, set)
 }
 
 #[derive(Debug, Clone)]
 pub struct Connect(pub Path, pub ConnectType, pub Expr);
+
+#[derive(Debug, Clone)]
+pub struct InlineConnect(pub ConnectType, pub Expr);
 
 #[derive(Debug, Clone, Copy)]
 pub enum ConnectType {

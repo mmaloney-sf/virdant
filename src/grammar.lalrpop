@@ -45,25 +45,26 @@ Component: Component = {
     "incoming" <id:Id> ":" <typ:Type> => {
         Component::Incoming(id, *typ)
     },
-    "outgoing" <id:Id> ":" <typ:Type><connect:(":=" Expr)?> => {
-        let val = connect.map(|s| *s.1); // .1 ignores the ":=" token
-        Component::Outgoing(id, *typ, val)
+    "outgoing" <id:Id> ":" <typ:Type> <connect:InlineConnect?> => {
+        Component::Outgoing(id, *typ, connect)
     },
-    "wire" <id:Id> ":" <typ:Type><connect:(":=" Expr)?> => {
-        let val = connect.map(|s| *s.1); // .1 ignores the ":=" token
-        Component::Wire(id, *typ, val)
+    "wire" <id:Id> ":" <typ:Type> <connect:InlineConnect?> => {
+        Component::Wire(id, *typ, connect)
     },
-    "reg" <id:Id> ":" <typ:Type> "on" <clk:Expr> <reset:("reset" Expr)?> <connect:("<=" Expr)?> => {
+    "reg" <id:Id> ":" <typ:Type> "on" <clk:Expr> <reset:("reset" Expr)?> <connect:InlineConnect?> => {
         let rst = reset.map(|s| *s.1); // .1 ignores the "reset" keyword
-        let set = connect.map(|s| *s.1); // .1 ignores the "<=" token
-        Component::Reg(id, *typ, *clk, rst, set)
+        Component::Reg(id, *typ, *clk, rst, connect)
     },
 }
 
 Connect: Connect = {
     <target:Path> ":=" <e:Expr> => Connect(target, ConnectType::Continuous, *e),
     <target:Path> "<=" <e:Expr> => Connect(target, ConnectType::Latched, *e),
-//    <target:Path> "$=" <e:Expr> => Connect(target, ConnectType::Control, *e),
+}
+
+InlineConnect: InlineConnect = {
+    ":=" <e:Expr> => InlineConnect(ConnectType::Continuous, *e),
+    "<=" <e:Expr> => InlineConnect(ConnectType::Latched, *e),
 }
 
 Submodule: Submodule = {

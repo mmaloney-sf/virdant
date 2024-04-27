@@ -40,17 +40,27 @@ Decl: Decl = {
 }
 
 Component: Component = {
-    "input" <id:Id> => Component::Input,
-    "output" <id:Id> => Component::Output,
-    "node" <id:Id> => Component::Node,
-    "reg" <id:Id> => Component::Node,
+    "input" <id:Id> => Component::Input(id),
+    "output" <id:Id> <connect:(":=" Expr)?> => {
+        let val = connect.map(|s| *s.1); // .1 ignores the ":=" token
+        Component::Output(id, val)
+    },
+    "node" <id:Id> <connect:(":=" Expr)?> => {
+        let val = connect.map(|s| *s.1); // .1 ignores the ":=" token
+        Component::Node(id, val)
+    },
+    "reg" <id:Id> "on" <clk:Expr> <reset:("reset" Expr)?> <connect:("<=" Expr)?> => {
+        let rst = reset.map(|s| *s.1); // .1 ignores the "reset" keyword
+        let set = connect.map(|s| *s.1); // .1 ignores the "<=" token
+        Component::Reg(id, *clk, rst, set)
+    },
 }
 
 Connect: Connect = {
     <target:Path> ":=" <e:Expr> => Connect(target, ConnectType::Direct, *e),
     <target:Path> "<=" <e:Expr> => Connect(target, ConnectType::Latched, *e),
     <target:Path> "$=" <e:Expr> => Connect(target, ConnectType::Signal, *e),
-  }
+}
 
 pub Expr: Box<Expr> = {
 //    <e:ExprLet> => e,

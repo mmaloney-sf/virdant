@@ -17,7 +17,26 @@ use types::*;
 use typecheck::*;
 
 fn main() {
-    sim();
+    parse();
+}
+
+pub fn parse() {
+    let package = parse_package("
+
+        module Top {
+            input clk;
+            input in;
+            output out;
+            reg buf
+                on clk
+                reset 0
+                <= buf->add(in);
+
+            out := buf;
+        }
+
+    ").unwrap();
+    dbg!(package);
 }
 
 pub fn sim() {

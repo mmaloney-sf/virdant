@@ -34,10 +34,10 @@ pub enum Decl {
 
 #[derive(Debug, Clone)]
 pub enum Component {
-    Input,
-    Output,
-    Node,
-    Reg,
+    Input(Ident),
+    Output(Ident, Option<Expr>),
+    Node(Ident, Option<Expr>),
+    Reg(Ident, Expr, Option<Expr>, Option<Expr>), // Reg(name, clk, rst, set)
 }
 
 #[derive(Debug, Clone)]
@@ -120,4 +120,8 @@ pub enum WithEdit {
 
 pub fn parse_expr(expr_text: &str) -> Result<Expr, ParseError<usize, Token<'_>, &'static str>> {
     grammar::ExprParser::new().parse(expr_text).map(|expr| *expr)
+}
+
+pub fn parse_package(package_text: &str) -> Result<Package, ParseError<usize, Token<'_>, &'static str>> {
+    grammar::PackageParser::new().parse(package_text)
 }

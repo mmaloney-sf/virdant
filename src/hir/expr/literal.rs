@@ -12,3 +12,11 @@ impl IsExpr for ExprLiteral {
         vec![]
     }
 }
+
+fn fits_in(value: u64, width: Width) -> bool {
+    if width > 63 {
+        false
+    } else {
+        value < (1 << width)
+    }
+}

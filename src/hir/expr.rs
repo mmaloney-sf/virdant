@@ -12,6 +12,7 @@ use std::sync::Arc;
 use std::collections::HashSet;
 
 use crate::ast;
+use crate::value::Value;
 use crate::common::*;
 use crate::types::Type;
 use crate::context::Context;
@@ -60,6 +61,10 @@ pub trait IsExpr {
         } else {
             Err(TypeError::CantInfer)
         }
+    }
+
+    fn eval(&self, ctx: Context<Path, Value>) -> Value {
+        todo!()
     }
 }
 

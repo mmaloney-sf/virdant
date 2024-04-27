@@ -1,5 +1,9 @@
 use std::collections::HashMap;
-use super::*;
+use crate::common::*;
+use crate::hir::*;
+use crate::types::Type;
+use crate::value::Value;
+use crate::context::*;
 
 type CellId = usize;
 type ClockId = usize;
@@ -181,7 +185,7 @@ impl Sim {
             let value = self.get_cell(cell_id).clone();
             ctx = ctx.extend(reference, value);
         }
-        eval(ctx, &comb.expr)
+        comb.expr.eval(ctx)
     }
 
     fn get_node(&self, path: &Path) -> &Node {

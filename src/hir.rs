@@ -7,7 +7,9 @@ use crate::ast;
 use crate::types::Type;
 use crate::value::Value;
 use crate::ast::InlineConnect;
-use expr::Expr;
+
+pub use expr::Expr;
+pub use expr::IsExpr;
 
 pub struct Package {
     items: HashMap<Ident, Arc<Item>>,

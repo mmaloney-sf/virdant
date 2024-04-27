@@ -53,19 +53,21 @@ Decl: Decl = {
 }
 
 Component: Component = {
-    "input" <id:Id> => Component::Input(id),
-    "output" <id:Id> <connect:(":=" Expr)?> => {
-        let val = connect.map(|s| *s.1); // .1 ignores the ":=" token
-        Component::Output(id, val)
+    "input" <id:Id> ":" <typ:Type> => {
+        Component::Input(id, *typ)
     },
-    "node" <id:Id> <connect:(":=" Expr)?> => {
+    "output" <id:Id> ":" <typ:Type><connect:(":=" Expr)?> => {
         let val = connect.map(|s| *s.1); // .1 ignores the ":=" token
-        Component::Node(id, val)
+        Component::Output(id, *typ, val)
     },
-    "reg" <id:Id> "on" <clk:Expr> <reset:("reset" Expr)?> <connect:("<=" Expr)?> => {
+    "wire" <id:Id> ":" <typ:Type><connect:(":=" Expr)?> => {
+        let val = connect.map(|s| *s.1); // .1 ignores the ":=" token
+        Component::Wire(id, *typ, val)
+    },
+    "reg" <id:Id> ":" <typ:Type> "on" <clk:Expr> <reset:("reset" Expr)?> <connect:("<=" Expr)?> => {
         let rst = reset.map(|s| *s.1); // .1 ignores the "reset" keyword
         let set = connect.map(|s| *s.1); // .1 ignores the "<=" token
-        Component::Reg(id, *clk, rst, set)
+        Component::Reg(id, *typ, *clk, rst, set)
     },
 }
 
@@ -77,6 +79,11 @@ Connect: Connect = {
 
 Submodule: Submodule = {
     <moddef:Id> <name:Id> => Submodule(moddef, name),
+}
+
+Type: Box<Type> = {
+  "Clock" => Box::new(Type::Clock),
+  "Word" "[" <w:Nat> "]" => Box::new(Type::Word(w)),
 }
 
 pub Expr: Box<Expr> = {

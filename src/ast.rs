@@ -3,6 +3,7 @@ lalrpop_mod!(grammar);
 use lalrpop_util::ParseError;
 use lalrpop_util::lexer::Token;
 use crate::expr::Expr;
+use crate::types::Type;
 
 pub type Ident = String;
 pub type Width = u64;
@@ -41,10 +42,10 @@ pub enum Decl {
 
 #[derive(Debug, Clone)]
 pub enum Component {
-    Input(Ident),
-    Output(Ident, Option<Expr>),
-    Node(Ident, Option<Expr>),
-    Reg(Ident, Expr, Option<Expr>, Option<Expr>), // Reg(name, clk, rst, set)
+    Input(Ident, Type, ),
+    Output(Ident, Type, Option<Expr>),
+    Wire(Ident, Type, Option<Expr>),
+    Reg(Ident, Type, Expr, Option<Expr>, Option<Expr>), // Reg(name, clk, rst, set)
 }
 
 #[derive(Debug, Clone)]

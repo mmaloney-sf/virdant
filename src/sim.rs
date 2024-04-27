@@ -46,7 +46,7 @@ impl SimBuilder {
         self
     }
 
-    pub fn add_reg_node(mut self, path: Path, typ: Type, expr: Expr) -> Self {
+    pub fn add_reg_node(mut self, path: Path, typ: Type, reset: Option<Value>, expr: Expr) -> Self {
         let set_cell_id = self.sim.cells.len();
         let val_cell_id = self.sim.cells.len() + 1;
 
@@ -62,7 +62,7 @@ impl SimBuilder {
             path: path.clone(),
             typ: typ.clone(),
             update,
-            reset: None, // TODO
+            reset,
         };
 
         self.sim.nodes.push(node);
@@ -132,6 +132,11 @@ impl Sim {
                     (Event::Clock(_clock_id), Node::Reg { set_cell_id, val_cell_id, .. }) => {
                         let value = self.get_cell(*set_cell_id).clone();
                         self.update_cell(*val_cell_id, value);
+                    },
+                    (Event::Reset(_reset_id), Node::Reg { val_cell_id, reset, .. }) => {
+                        if let Some(value) =  reset {
+                            self.update_cell(*val_cell_id, value.clone());
+                        }
                     },
                     _ => (),
 
@@ -207,8 +212,14 @@ impl Sim {
     }
 
     pub fn clock(&mut self) {
-        let clock_id = 1; // TODO
+        let clock_id = 0; // TODO
         self.events.push(Event::Clock(clock_id));
+        self.flow();
+    }
+
+    pub fn reset(&mut self) {
+        let reset_id = 0; // TODO
+        self.events.push(Event::Reset(reset_id));
         self.flow();
     }
 }

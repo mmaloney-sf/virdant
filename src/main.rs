@@ -33,26 +33,36 @@ pub fn sim() {
     let mut sim = Sim::new()
         .add_simple_node("top.out".into(), Type::Word(8), out_expr)
         .add_simple_node("top.in".into(), Type::Word(8), Expr::Word(Some(8), 1))
-        .add_reg_node("top.r".into(), Type::Word(8), r_expr)
+        .add_reg_node("top.r".into(), Type::Word(8), Some(Value::Word(8, 100)), r_expr)
         .build();
 
     println!("################################################################################");
+    println!("Initial");
     println!("{sim}");
-    sim.clock();
 
+    sim.reset();
     println!("################################################################################");
+    println!("reset");
     println!("{sim}");
-    sim.clock();
 
+    sim.clock();
     println!("################################################################################");
+    println!("clock");
     println!("{sim}");
+
+    sim.clock();
+    println!("################################################################################");
+    println!("clock");
+    println!("{sim}");
+
     sim.poke("top.in".into(), Value::Word(8, 10));
-
+    println!("poke top.in = 10w8");
     println!("################################################################################");
     println!("{sim}");
 
     sim.clock();
     println!("################################################################################");
+    println!("clock");
     println!("{sim}");
 }
 

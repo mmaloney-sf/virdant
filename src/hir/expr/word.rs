@@ -14,29 +14,30 @@ impl IsExpr for ExprWord {
     }
 
     fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Result<Arc<Type>, TypeError> {
-        todo!()
+        if let Some(width) = self.width() {
+            let typ = Arc::new(Type::Word(width));
+            self.typecell().set(typ.clone());
+            Ok(typ)
+        } else {
+            Err(TypeError::CantInfer)
+        }
     }
 
-    fn typecheck(&self, ctx: Context<Path, Arc<Type>>, typ: Arc<Type>) -> Result<(), TypeError> {
-        /*
-        if let Type::Word(n) = typ {
-            if let Some(width) = self.width() {
-                assert_eq!(*width, n);
-                if *width == n {
-                    typeinfer(ctx.clone(), expr)
-                }
-            } else {
-                if self.fits() {
-                    Expr::Word(Some(n), self.value())
-                } else {
-                    Err(TypeError::Other)
-                }
-            }
-        } else {
-            Err(TypeError::Other)
+    fn typecheck(&self, ctx: Context<Path, Arc<Type>>, type_expected: Arc<Type>) -> Result<(), TypeError> {
+        match (type_expected.as_ref(), self.width()) {
+            (Type::Word(expected_width), Some(actual_width)) if *expected_width == actual_width => {
+                let typ = Arc::new(Type::Word(actual_width));
+                self.typecell().set(typ.clone());
+                Ok(())
+            },
+            (Type::Word(expected_width), None) if fits_in(self.value(), *expected_width) => {
+                let typ = Arc::new(Type::Word(*expected_width));
+                self.typecell().set(typ.clone());
+                Ok(())
+            },
+            (Type::Word(expected_width), None) =>  Err(TypeError::Other),
+            (_, _) => Err(TypeError::Other),
         }
-        */
-        todo!()
     }
 }
 
@@ -47,13 +48,13 @@ impl ExprWord {
     fn width(&self) -> Option<Width> {
         self.1.width
     }
+}
 
-    fn fits(&self) -> bool {
-        // TODO
-        if self.width().unwrap() > 63 {
-            false
-        } else {
-            self.value() < (1 << self.width().unwrap())
-        }
+fn fits_in(value: u64, width: Width) -> bool {
+    // TODO
+    if width > 63 {
+        false
+    } else {
+        value < (1 << width)
     }
 }

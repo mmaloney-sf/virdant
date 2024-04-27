@@ -4,11 +4,11 @@ use crate::ast::*;
 grammar;
 
 pub Package: Package = {
-    <defs: Def*> => Package(defs),
+    <items: Item*> => Package(items),
 }
 
-Def: Def = {
-    <m:ModDef> => Def::ModDef(m),
+Item: Item = {
+    <m:ModDef> => Item::ModDef(m),
 }
 
 Visibility: Visibility = {

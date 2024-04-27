@@ -12,10 +12,10 @@ pub type BinOp = String;
 pub type Field = String;
 
 #[derive(Debug, Clone)]
-pub struct Package(Vec<Def>);
+pub struct Package(Vec<Item>);
 
 #[derive(Debug, Clone)]
-pub enum Def {
+pub enum Item {
     ModDef(ModDef),
 }
 

@@ -1,4 +1,5 @@
 pub mod ast;
+pub mod expr;
 pub mod context;
 pub mod eval;
 pub mod value;
@@ -8,6 +9,7 @@ pub mod typecheck;
 
 use context::Context;
 use ast::*;
+use expr::*;
 use value::*;
 use eval::*;
 use sim::*;

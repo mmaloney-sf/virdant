@@ -3,29 +3,7 @@ use std::collections::HashSet;
 use crate::context::Context;
 use crate::value::Value;
 use crate::ast::*;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Type {
-    Unknown,
-    Clock,
-    Bool,
-    Word(Width),
-    Vec(Box<Type>, usize),
-    Other(String),
-}
-
-impl std::fmt::Display for Type {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        match self {
-            Type::Unknown => write!(f, "UNKNOWN"),
-            Type::Clock => write!(f, "Clock"),
-            Type::Bool => write!(f, "Bool"),
-            Type::Word(width) => write!(f, "Word<{width}>"),
-            Type::Vec(typ, n) => write!(f, "Vec<{typ}, {n}>"),
-            Type::Other(typename) => write!(f, "{typename}"),
-        }
-    }
-}
+use crate::types::Type;
 
 impl Expr {
     pub fn type_of(&self) -> Type {

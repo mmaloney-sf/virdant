@@ -3,12 +3,14 @@ pub mod context;
 pub mod expr;
 pub mod value;
 pub mod sim;
+pub mod types;
 
 use context::Context;
 use ast::*;
 use value::*;
 use expr::*;
 use sim::*;
+use types::*;
 
 fn main() {
     sim();

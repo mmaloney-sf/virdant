@@ -2,7 +2,7 @@ use lalrpop_util::lalrpop_mod;
 lalrpop_mod!(grammar);
 use lalrpop_util::ParseError;
 use lalrpop_util::lexer::Token;
-use crate::expr::Type;
+use crate::types::Type;
 
 pub type Ident = String;
 pub type Width = u64;

@@ -14,10 +14,7 @@ pub enum Item {
 
 #[derive(Debug, Clone)]
 pub struct ModDef {
-    pub name: Ident,
-    pub components: Vec<Component>,
-    pub connects: Vec<Connect>,
-    pub submodules: Vec<Submodule>,
+    pub decls: Vec<Decl>,
 }
 
 #[derive(Debug, Clone, Copy)]

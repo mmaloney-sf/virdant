@@ -1,14 +1,16 @@
+use std::sync::Arc;
+
 /// A [`Context`] is an associative list which assigns each element with type information.
 #[derive(Clone, Debug)]
-pub struct Context<K, T>(Vec<(K, T)>);
+pub struct Context<K, T>(Arc<Vec<(K, T)>>);
 
 impl<K: Eq + Clone, T: Clone> Context<K, T> {
     pub fn empty() -> Context<K, T> {
-        Context(vec![])
+        Context(Arc::new(vec![]))
     }
 
     pub fn from(ctx: Vec<(K, T)>) -> Context<K, T> {
-        Context(ctx)
+        Context(Arc::new(ctx))
     }
 
     pub fn lookup(&self, v: &K) -> Option<T> {
@@ -21,21 +23,21 @@ impl<K: Eq + Clone, T: Clone> Context<K, T> {
     }
 
     pub fn extend(&self, v: K, t: T) -> Context<K, T> {
-        let mut result = self.clone();
-        result.0.push((v, t));
-        result
+        let mut result = self.to_vec();
+        result.push((v, t));
+        Context(Arc::new(result))
     }
 
     pub fn extend_from(&self, another: &Context<K, T>) -> Context<K, T> {
-        let mut result = self.clone();
+        let mut result = self.to_vec();
         for (v, t) in another.0.iter() {
-            result.0.push((v.clone(), t.clone()));
+            result.push((v.clone(), t.clone()));
         }
-        result
+        Context(Arc::new(result))
     }
 
     pub fn into_inner(self) -> Vec<(K, T)> {
-        self.0
+        self.0.to_vec()
     }
 }
 

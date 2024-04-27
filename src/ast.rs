@@ -23,7 +23,7 @@ pub enum Item {
 pub struct ModDef {
     pub name: Ident,
     pub components: Vec<Component>,
-    pub connect: Vec<Connect>,
+    pub connects: Vec<Connect>,
     pub submodules: Vec<Submodule>,
 }
 
@@ -51,11 +51,10 @@ pub enum Component {
 #[derive(Debug, Clone)]
 pub struct Connect(Path, ConnectType, Expr);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum ConnectType {
     Continuous,
     Latched,
-//    Control,
 }
 
 #[derive(Debug, Clone)]
@@ -154,8 +153,50 @@ pub enum NamedItem<'a> {
     Submodule(&'a Submodule),
 }
 
+impl Connect {
+    pub fn target(&self) -> Path {
+        self.0.clone()
+    }
+
+    pub fn connect_type(&self) -> ConnectType {
+        self.1
+    }
+
+    pub fn expr(&self) -> Expr {
+        self.2.clone()
+    }
+}
+
 impl ModDef {
+    /// given a name, get either the component or submodule with that name, or None if none exists
+    /// (panic if there is more than one)
     pub fn get(&self, name: &str) -> Option<&NamedItem> {
         todo!()
+    }
+
+    /// returns a ist containing all paths which may appear as reference in any expression in the moddef
+    /// that is, all wires, all incoming ports, all registers, and the outgoing ports of every submodule
+    /// cf the `tap` expression, which can refer to a target path
+    pub fn visible_reference_paths(&self) -> Vec<Path> {
+        todo!()
+    }
+
+    /// returns a ist containing all paths which may appear as a target for any connect in the moddef
+    /// that is, all wires, all outgoing ports, all registers, and the incoming ports of every submodule
+    pub fn visible_target_paths(&self) -> Vec<Path> {
+        todo!()
+    }
+
+    /// given the name of a component, return the connect for it.
+    /// In the case that a component is declared and connected to in the same declaration,
+    /// return a synthetic Connect instead.
+    pub fn connect_for(&self, component_name: &str) -> Connect {
+        todo!()
+        /*
+        for connect in &self.connects {
+        }
+
+        panic!()
+        */
     }
 }

@@ -26,13 +26,13 @@ ModDef: ModDef = {
         <decls:(Decl ";")*>
     "}" => {
         let mut components = vec![];
-        let mut connect = vec![];
+        let mut connects = vec![];
         let mut submodules = vec![];
 
         for (decl, _semi) in decls {
           match decl {
             Decl::Component(c) => components.push(c),
-            Decl::Connect(c) => connect.push(c),
+            Decl::Connect(c) => connects.push(c),
             Decl::Submodule(m) => submodules.push(m),
           }
         }
@@ -40,7 +40,7 @@ ModDef: ModDef = {
         ModDef {
             name,
             components,
-            connect,
+            connects,
             submodules,
         }
     }

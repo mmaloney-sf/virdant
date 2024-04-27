@@ -1,10 +1,10 @@
 mod reference;
-mod literal;
+mod word;
 mod vec;
 mod methodcall;
 
 use reference::*;
-use literal::*;
+use word::*;
 use vec::*;
 use methodcall::*;
 
@@ -21,7 +21,7 @@ use crate::ast::WordLit;
 #[derive(Debug, Clone)]
 pub enum Expr {
     Reference(ExprReference),
-    Literal(ExprLiteral),
+    Word(ExprWord),
     Vec(ExprVec),
     MethodCall(ExprMethodCall),
 }
@@ -30,7 +30,7 @@ impl Expr {
     fn to_class(&self) -> &dyn IsExpr {
         match self {
             Expr::Reference(inner) => inner,
-            Expr::Literal(inner) => inner,
+            Expr::Word(inner) => inner,
             Expr::MethodCall(inner) => inner,
             Expr::Vec(inner) => inner,
         }
@@ -86,7 +86,7 @@ impl Expr {
     pub fn to_hir(expr: &ast::Expr) -> Result<Arc<Expr>, VirdantError> {
         match expr {
             ast::Expr::Reference(path) => Ok(Expr::Reference(ExprReference(TypeCell::unknown(), path.clone())).into()),
-            ast::Expr::Word(lit) => Ok(Expr::Literal(ExprLiteral::Word(TypeCell::unknown(), lit.clone())).into()),
+            ast::Expr::Word(lit) => Ok(Expr::Word(ExprWord(TypeCell::unknown(), lit.clone())).into()),
             ast::Expr::Vec(es) => {
                 let mut es_hir = vec![];
                 for e in es {

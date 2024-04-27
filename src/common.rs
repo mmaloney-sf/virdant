@@ -20,6 +20,7 @@ pub enum VirdantError {
 pub enum TypeError {
     TypeMismatch(),
     CantInfer,
+    Other,
 }
 
 #[derive(Debug, Clone)]

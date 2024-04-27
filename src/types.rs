@@ -1,4 +1,4 @@
-use crate::ast::Width;
+use crate::common::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {

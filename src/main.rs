@@ -1,4 +1,5 @@
 pub mod ast;
+pub mod parse;
 pub mod check;
 pub mod expr;
 pub mod context;
@@ -8,9 +9,10 @@ pub mod types;
 pub mod typecheck;
 pub mod sim;
 pub mod mlir;
+pub mod common;
 
 use context::Context;
-use ast::{parse_package, parse_expr, Path};
+use parse::{parse_package, parse_expr};
 use check::*;
 use expr::*;
 use value::*;
@@ -19,6 +21,7 @@ use types::*;
 use typecheck::*;
 use sim::*;
 use mlir::*;
+use common::*;
 
 fn main() {
     mlir();

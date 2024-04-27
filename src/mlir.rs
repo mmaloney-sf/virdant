@@ -1,7 +1,8 @@
 use std::io::Write;
 
 use super::*;
-use ast::{Submodule, Component, Package, ModDef, Item, Width};
+use crate::common::*;
+use ast::{Submodule, Component, Package, ModDef, Item};
 
 impl Package {
     pub fn mlir<F: Write>(&self, mut f: F) -> std::io::Result<()> {

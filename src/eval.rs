@@ -2,7 +2,8 @@ use crate::context::Context;
 use crate::value::Value;
 use crate::types::Type;
 use crate::expr::*;
-use crate::ast::{Path, Field, WithEdit};
+use crate::common::*;
+use crate::ast::WithEdit;
 
 pub fn eval(ctx: Context<Path, Value>, expr: &Expr) -> Value {
     match expr {

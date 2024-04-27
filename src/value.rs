@@ -1,5 +1,5 @@
+use crate::common::*;
 use super::*;
-use ast::{Field, Width};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {

@@ -1,7 +1,12 @@
 [package]
 name = "virdant"
-version = "0.1.0"
+version = "0.1.0-rc0"
 edition = "2021"
+license = "MIT"
+description = "Virdant is a modern hardware description language."
+readme = "README.md"
+publish = true
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

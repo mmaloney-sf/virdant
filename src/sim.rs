@@ -29,7 +29,7 @@ impl SimBuilder {
         self.sim
     }
 
-    pub fn add_simple_node(mut self, path: Path, typ: Type, expr: Expr) -> Self {
+    pub fn add_simple_node(mut self, path: Path, typ: Arc<Type>, expr: Arc<Expr>) -> Self {
         let cell_id = self.sim.cells.len();
 
         let update = Comb {
@@ -50,7 +50,7 @@ impl SimBuilder {
         self
     }
 
-    pub fn add_reg_node(mut self, path: Path, typ: Type, reset: Option<Value>, expr: Expr) -> Self {
+    pub fn add_reg_node(mut self, path: Path, typ: Arc<Type>, reset: Option<Value>, expr: Arc<Expr>) -> Self {
         let set_cell_id = self.sim.cells.len();
         let val_cell_id = self.sim.cells.len() + 1;
 
@@ -254,13 +254,13 @@ enum Node {
 //    },
     Simple {
         path: Path,
-        typ: Type,
+        typ: Arc<Type>,
         cell_id: CellId,
         update: Comb,
     },
     Reg {
         path: Path,
-        typ: Type,
+        typ: Arc<Type>,
         val_cell_id: CellId,
         set_cell_id: CellId,
         update: Comb,
@@ -269,7 +269,7 @@ enum Node {
 }
 
 impl Node {
-    pub fn type_of(&self) -> Type {
+    pub fn type_of(&self) -> Arc<Type> {
         match self {
             Node::Simple { typ, .. } => typ.clone(),
             Node::Reg { typ, .. } => typ.clone(),
@@ -315,7 +315,7 @@ impl Node {
 #[derive(Debug, Clone)]
 struct Comb {
     rel: Path,
-    expr: Expr,
+    expr: Arc<Expr>,
     sensitivities: Vec<CellId>,
 }
 

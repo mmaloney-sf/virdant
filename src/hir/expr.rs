@@ -47,6 +47,8 @@ pub trait IsExpr {
         result
     }
 
+    fn type_of(&self) -> Option<Arc<Type>>;
+
     fn typeinfer(&self, _ctx: Context<Path, Arc<Type>>) -> Option<Arc<Type>> {
         None
     }
@@ -70,6 +72,7 @@ pub trait IsExpr {
 
 impl IsExpr for Expr {
     fn subexprs(&self) -> Vec<Arc<Expr>> { self.to_class().subexprs() }
+    fn type_of(&self) -> Option<Arc<Type>> { self.to_class().type_of() }
     fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Option<Arc<Type>> { self.to_class().typeinfer(ctx) }
     fn typecheck(&self, ctx: Context<Path, Arc<Type>>, type_expected: Arc<Type>) -> Result<(), TypeError> { self.to_class().typecheck(ctx, type_expected) }
 }
@@ -77,14 +80,14 @@ impl IsExpr for Expr {
 impl Expr {
     pub fn to_hir(expr: &ast::Expr) -> Result<Arc<Expr>, VirdantError> {
         match expr {
-            ast::Expr::Reference(path) => Ok(Expr::Reference(ExprReference(path.clone())).into()),
-            ast::Expr::Word(lit) => Ok(Expr::Literal(ExprLiteral::Word(lit.clone())).into()),
+            ast::Expr::Reference(path) => Ok(Expr::Reference(ExprReference(None, path.clone())).into()),
+            ast::Expr::Word(lit) => Ok(Expr::Literal(ExprLiteral::Word(None, lit.clone())).into()),
             ast::Expr::Vec(es) => {
                 let mut es_hir = vec![];
                 for e in es {
                     es_hir.push(Expr::to_hir(e)?);
                 }
-                Ok(Expr::Vec(ExprVec(es_hir)).into())
+                Ok(Expr::Vec(ExprVec(None, es_hir)).into())
             },
             ast::Expr::MethodCall(subject, method, args) => {
                 let subject_hir = Expr::to_hir(subject)?;
@@ -92,7 +95,7 @@ impl Expr {
                 for arg in args {
                     args_hir.push(Expr::to_hir(arg)?);
                 }
-                Ok(Expr::MethodCall(ExprMethodCall(subject_hir, method.clone(), args_hir)).into())
+                Ok(Expr::MethodCall(ExprMethodCall(None, subject_hir, method.clone(), args_hir)).into())
             },
             _ => todo!(),
         }

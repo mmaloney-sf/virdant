@@ -3,20 +3,20 @@ use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
-    X(Type),
+    X(Arc<Type>),
     Bool(bool),
     Word(Width, u64),
-    Vec(Type, Vec<Value>),
-    Struct(Type, Vec<(Field, Value)>),
+    Vec(Arc<Type>, Vec<Value>),
+    Struct(Arc<Type>, Vec<(Field, Value)>),
 }
 
 impl Value {
-    pub fn type_of(&self) -> Type {
+    pub fn type_of(&self) -> Arc<Type> {
         match self {
             Value::X(typ) => typ.clone(),
-            Value::Bool(_b) => Type::Bool,
-            Value::Word(width, _value) => Type::Word(*width),
-            Value::Vec(typ, vs) => Type::Vec(Box::new(typ.clone()), vs.len()),
+            Value::Bool(_b) => Type::Bool.into(),
+            Value::Word(width, _value) => Type::Word(*width).into(),
+            Value::Vec(typ, vs) => Type::Vec(typ.clone(), vs.len()).into(),
             Value::Struct(typ, _flds) => typ.clone(),
         }
     }

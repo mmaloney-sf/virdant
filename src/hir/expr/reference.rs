@@ -2,17 +2,21 @@ use crate::common::*;
 use super::*;
 
 #[derive(Debug, Clone)]
-pub struct ExprReference(pub Path);
+pub struct ExprReference(pub Option<Arc<Type>>, pub Path);
 
 impl ExprReference {
     pub fn path(&self) -> &Path {
-        &self.0
+        &self.1
     }
 }
 
 impl IsExpr for ExprReference {
     fn subexprs(&self) -> Vec<Arc<Expr>> {
         vec![]
+    }
+
+    fn type_of(&self) -> Option<Arc<Type>> {
+        self.0.clone()
     }
 
     fn references(&self) -> HashSet<Path> {

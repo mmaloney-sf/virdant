@@ -3,13 +3,19 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub enum ExprLiteral {
-    Word(WordLit),
+    Word(Option<Arc<Type>>, WordLit),
 }
 
 
 impl IsExpr for ExprLiteral {
     fn subexprs(&self) -> Vec<Arc<Expr>> {
         vec![]
+    }
+
+    fn type_of(&self) -> Option<Arc<Type>> {
+        match self {
+            ExprLiteral::Word(typ, _lit) => typ.clone(),
+        }
     }
 }
 

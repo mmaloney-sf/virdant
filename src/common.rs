@@ -1,3 +1,5 @@
+pub use std::sync::Arc;
+
 pub type Width = u64;
 pub type Field = String;
 

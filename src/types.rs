@@ -6,7 +6,7 @@ pub enum Type {
     Clock,
     Bool,
     Word(Width),
-    Vec(Box<Type>, usize),
+    Vec(Arc<Type>, usize),
     Other(String),
 }
 

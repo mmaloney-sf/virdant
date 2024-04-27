@@ -79,18 +79,18 @@ pub fn parse() {
 /*
 pub fn sim() {
     let ctx = Context::from(vec![
-        ("r".into(), Type::Word(8)),
-        ("in".into(), Type::Word(8)),
-        ("out".into(), Type::Word(8)),
+        ("r".into(), Type::Word(8).into()),
+        ("in".into(), Type::Word(8).into()),
+        ("out".into(), Type::Word(8).into()),
     ]);
 
-    let out_expr = typeinfer(ctx.clone(), &parse_expr("r").unwrap());
-    let r_expr = typeinfer(ctx, &parse_expr("r->add(in)").unwrap());
+    let out_expr = Expr::to_hir(&parse_expr("r").unwrap()).unwrap().typeinfer(ctx.clone()).unwrap();
+    let r_expr = Expr::to_hir(&parse_expr("r->add(in)").unwrap()).unwrap().typeinfer(ctx.clone()).unwrap();
 
     let mut sim = Sim::new()
-        .add_simple_node("top.out".into(), Type::Word(8), out_expr)
-        .add_simple_node("top.in".into(), Type::Word(8), Expr::Word(Some(8), 1))
-        .add_reg_node("top.r".into(), Type::Word(8), Some(Value::Word(8, 100)), r_expr)
+        .add_simple_node("top.out".into(), Type::Word(8).into(), out_expr)
+        .add_simple_node("top.in".into(), Type::Word(8).into(), Expr::Word(Some(8), 1))
+        .add_reg_node("top.r".into(), Type::Word(8).into(), Some(Value::Word(8, 100)), r_expr)
         .build();
 
     println!("################################################################################");

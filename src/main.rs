@@ -28,7 +28,7 @@ pub fn parse() {
             incoming in : Word[8];
             outgoing out : Word[8];
 
-            Buffer buf;
+            submodule buf of Buffer;
             buf.in := in;
 
             out := buf.out->add(in);

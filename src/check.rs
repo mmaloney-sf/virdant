@@ -3,11 +3,14 @@ use ast::{Package, ModDef};
 
 impl Package {
     pub fn check(&self) {
+        todo!();
+        /*
         self.check_moddefs_acyclic();
         for moddef in &self.moddefs() {
             moddef.check_names_unique();
             moddef.check_connections_unique();
         }
+        */
     }
 
     // asserts that no module contains itself as a transitive submodule.

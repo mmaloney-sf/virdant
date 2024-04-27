@@ -8,7 +8,7 @@ pub mod value;
 pub mod types;
 pub mod typecheck;
 pub mod sim;
-pub mod mlir;
+//pub mod mlir;
 pub mod common;
 
 use context::Context;
@@ -20,13 +20,14 @@ use eval::*;
 use types::*;
 use typecheck::*;
 use sim::*;
-use mlir::*;
+//use mlir::*;
 use common::*;
 
 fn main() {
-    mlir();
+    sim();
 }
 
+/*
 pub fn mlir() {
     let package = parse_package("
 
@@ -52,6 +53,7 @@ pub fn mlir() {
     let mut stdout = std::io::stdout();
     package.mlir(&mut stdout).unwrap();
 }
+*/
 
 pub fn parse() {
     let package = parse_package("

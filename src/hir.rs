@@ -1,3 +1,5 @@
+mod expr;
+
 use std::collections::HashMap;
 use std::sync::Arc;
 use crate::common::*;
@@ -5,6 +7,7 @@ use crate::ast;
 use crate::types::Type;
 use crate::value::Value;
 use crate::ast::InlineConnect;
+use expr::Expr;
 
 pub struct Package {
     items: HashMap<Ident, Arc<Item>>,
@@ -33,10 +36,6 @@ pub enum Component {
     Reg(Ident, Type, Expr, Value, InlineConnect),
 }
 
-#[derive(Debug, Clone)]
-pub enum Expr {
-}
-
 impl Package {
     pub fn to_hir(package: &ast::Package) -> Result<Arc<Package>, VirdantError> {
         let mut errors = ErrorReport::new();
@@ -57,12 +56,6 @@ impl Package {
 
 impl Item {
     pub fn to_hir(item: &ast::Item) -> Result<Arc<Item>, VirdantError> {
-        todo!()
-    }
-}
-
-impl Expr {
-    pub fn to_hir(item: &ast::Expr) -> Result<Arc<Item>, VirdantError> {
         todo!()
     }
 }

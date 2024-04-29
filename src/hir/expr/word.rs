@@ -33,7 +33,7 @@ impl IsExpr for ExprWord {
         }
     }
 
-    fn eval(&self, _ctx: Context<Path, Value>) -> Value {
+    fn eval(&self, _ctx: Context<Path, Value>, typ: Arc<Type>) -> Value {
         Value::Word(self.width().unwrap(), self.value())
     }
 }

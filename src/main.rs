@@ -20,7 +20,7 @@ use hir::*;
 use common::*;
 
 fn main() {
-    parse();
+    repl();
 }
 
 /*
@@ -124,7 +124,6 @@ pub fn sim() {
 }
 */
 
-/*
 pub fn repl() {
     loop {
         let mut input = String::new();
@@ -142,8 +141,8 @@ pub fn repl() {
                         ("buffer.out".into(), Value::Word(8, 42)),
                     ]);
                     let type_ctx = value_context_to_type_context(ctx.clone());
-                    let typed_expr = typeinfer(type_ctx, &expr);
-                    println!("{}", eval(ctx, &typed_expr));
+                    let typed_expr: Expr = Expr::to_hir(&expr).unwrap().typeinfer(type_ctx).unwrap();
+                    println!("{}", typed_expr.eval(ctx));
                 },
                 Err(err) => eprintln!("{err:?}"),
             }
@@ -151,11 +150,10 @@ pub fn repl() {
     }
 }
 
-pub fn value_context_to_type_context(ctx: Context<Path, Value>) -> Context<Path, Type> {
-    let new_ctx: Vec<(Path, Type)> = ctx.into_inner().into_iter().map(|(path, value)| (path, value.type_of())).collect();
+pub fn value_context_to_type_context(ctx: Context<Path, Value>) -> Context<Path, Arc<Type>> {
+    let new_ctx: Vec<(Path, Arc<Type>)> = ctx.into_inner().into_iter().map(|(path, value)| (path, value.type_of().into())).collect();
     Context::from(new_ctx)
 }
-*/
 
 #[test]
 fn test_parse_exprs() {

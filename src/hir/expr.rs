@@ -87,14 +87,15 @@ pub trait IsExpr {
         }
     }
 
-    fn eval(&self, ctx: Context<Path, Value>) -> Value;
+    fn eval(&self, ctx: Context<Path, Value>, typ: Arc<Type>) -> Value;
 }
 
-impl IsExpr for Expr {
-    fn subexprs(&self) -> Vec<Expr> { self.to_class().subexprs() }
-    fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Result<Expr, TypeError> { self.to_class().typeinfer(ctx) }
-    fn typecheck(&self, ctx: Context<Path, Arc<Type>>, type_expected: Arc<Type>) -> Result<Expr, TypeError> { self.to_class().typecheck(ctx, type_expected) }
-    fn eval(&self, ctx: Context<Path, Value>) -> Value { self.to_class().eval(ctx) }
+impl Expr {
+    pub fn references(&self) -> HashSet<Path> { self.to_class().references() }
+    pub fn subexprs(&self) -> Vec<Expr> { self.to_class().subexprs() }
+    pub fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Result<Expr, TypeError> { self.to_class().typeinfer(ctx) }
+    pub fn typecheck(&self, ctx: Context<Path, Arc<Type>>, type_expected: Arc<Type>) -> Result<Expr, TypeError> { self.to_class().typecheck(ctx, type_expected) }
+    pub fn eval(&self, ctx: Context<Path, Value>) -> Value { self.to_class().eval(ctx, self.type_of().unwrap()) }
 }
 
 impl Expr {

@@ -10,15 +10,12 @@ impl IsExpr for ExprWord {
     }
 
     fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Result<Expr, TypeError> {
-        todo!()
-            /*
         if let Some(width) = self.width() {
             let typ = Arc::new(Type::Word(width));
-            Ok(typ)
+            Ok(ExprNode::Word(self.clone()).with_type(typ))
         } else {
             Err(TypeError::CantInfer)
         }
-        */
     }
 
     fn typecheck(&self, ctx: Context<Path, Arc<Type>>, type_expected: Arc<Type>) -> Result<Expr, TypeError> {
@@ -38,6 +35,10 @@ impl IsExpr for ExprWord {
             (_, _) => Err(TypeError::Other),
         }
         */
+    }
+
+    fn eval(&self, _ctx: Context<Path, Value>) -> Value {
+        Value::Word(self.width().unwrap(), self.value())
     }
 }
 

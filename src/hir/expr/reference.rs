@@ -21,9 +21,13 @@ impl IsExpr for ExprReference {
 
     fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Result<Expr, TypeError> {
         if let Some(type_actual) = ctx.lookup(self.path()) {
-            todo!()
+            Ok(ExprNode::Reference(self.clone()).with_type(type_actual))
         } else {
             Err(TypeError::CantInfer)
         }
+    }
+
+    fn eval(&self, ctx: Context<Path, Value>) -> Value {
+        ctx.lookup(self.path()).unwrap()
     }
 }

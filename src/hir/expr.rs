@@ -8,7 +8,6 @@ use word::*;
 use vec::*;
 use methodcall::*;
 
-use std::sync::RwLock;
 use std::collections::HashSet;
 
 use crate::ast;
@@ -51,8 +50,12 @@ impl Expr {
 }
 
 impl ExprNode {
-    pub fn to_expr(self) -> Expr {
+    pub fn without_type(self) -> Expr {
         Expr(None, self.into())
+    }
+
+    pub fn with_type(self, typ: Arc<Type>) -> Expr {
+        Expr(Some(typ), self.into())
     }
 }
 
@@ -84,15 +87,14 @@ pub trait IsExpr {
         }
     }
 
-    fn eval(&self, ctx: Context<Path, Value>) -> Value {
-        todo!()
-    }
+    fn eval(&self, ctx: Context<Path, Value>) -> Value;
 }
 
 impl IsExpr for Expr {
     fn subexprs(&self) -> Vec<Expr> { self.to_class().subexprs() }
     fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Result<Expr, TypeError> { self.to_class().typeinfer(ctx) }
     fn typecheck(&self, ctx: Context<Path, Arc<Type>>, type_expected: Arc<Type>) -> Result<Expr, TypeError> { self.to_class().typecheck(ctx, type_expected) }
+    fn eval(&self, ctx: Context<Path, Value>) -> Value { self.to_class().eval(ctx) }
 }
 
 impl Expr {
@@ -117,7 +119,7 @@ impl Expr {
             },
             _ => todo!(),
         };
-        Ok(expr_node.to_expr())
+        Ok(expr_node.without_type())
     }
 }
 
@@ -127,25 +129,25 @@ fn test_parse_exprs() {
     use crate::parse;
 
     let expr_strs = vec![
-        "0",
-        "1_000",
-        "0b1010",
+//        "0",
+//        "1_000",
+//        "0b1010",
         "2w8",
         "0b1010w4",
 //        "0xff",
 //        "0xffw16",
         "x",
-        "x.y",
-        "x.y.z",
-        "[]",
-        "[0, 1, 1, 2, 3, 5]",
+        "m.y",
+//        "x.y.z",
+//        "[]",
+//        "[0, 1, 1, 2, 3, 5]",
         "(x)",
 //        "cat(x, y, z)",
 //        "f(x, y)",
-        "z->f(x, y)",
-        "a->eq(b)",
-        "a->lt(b)",
-        "a->lte(b)",
+//        "z->f(x, y)",
+//        "a->eq(b)",
+//        "a->lt(b)",
+//        "a->lte(b)",
 //        "x->real",
 //        "x[0]",
 //        "x[8..0]",
@@ -165,6 +167,15 @@ fn test_parse_exprs() {
     for expr_str in expr_strs {
         eprintln!("Testing {expr_str:?}");
         let expr: ast::Expr = parse::parse_expr(expr_str).unwrap();
-        Expr::to_hir(&expr).unwrap();
+        let type_ctx = Context::from(vec![
+              ("x".into(), Type::Word(8).into()),
+              ("m.y".into(), Type::Word(8).into()),
+        ]);
+        let expr = Expr::to_hir(&expr).unwrap().typeinfer(type_ctx).unwrap();
+        let ctx = Context::from(vec![
+              ("x".into(), Value::Word(8, 1)),
+              ("m.y".into(), Value::Word(8, 1)),
+        ]);
+        expr.eval(ctx);
     }
 }

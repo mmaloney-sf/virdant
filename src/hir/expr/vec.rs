@@ -12,4 +12,6 @@ impl IsExpr for ExprVec {
     fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Result<Expr, TypeError> {
         todo!()
     }
+
+    fn eval(&self, ctx: Context<Path, Value>) -> Value { todo!() }
 }

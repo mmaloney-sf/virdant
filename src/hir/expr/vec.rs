@@ -2,19 +2,14 @@ use crate::common::*;
 use super::*;
 
 #[derive(Debug, Clone)]
-pub struct ExprVec(pub TypeCell, pub Vec<Arc<Expr>>);
+pub struct ExprVec(pub Vec<Expr>);
 
 impl IsExpr for ExprVec {
-    fn subexprs(&self) -> Vec<Arc<Expr>> {
-        self.1.clone()
-    }
-
-    fn typecell(&self) -> TypeCell {
+    fn subexprs(&self) -> Vec<Expr> {
         self.0.clone()
     }
 
-    fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Result<Arc<Type>, TypeError> {
+    fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Result<Expr, TypeError> {
         todo!()
     }
-
 }

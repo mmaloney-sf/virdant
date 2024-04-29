@@ -19,7 +19,20 @@ use crate::context::Context;
 use crate::ast::WordLit;
 
 #[derive(Debug, Clone)]
-pub enum Expr {
+pub struct Expr(Option<Arc<Type>>, Arc<ExprNode>);
+
+impl Expr {
+    fn as_node(&self) -> &ExprNode {
+        &self.1
+    }
+
+    fn type_of(&self) -> Option<Arc<Type>> {
+        self.0.clone()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum ExprNode {
     Reference(ExprReference),
     Word(ExprWord),
     Vec(ExprVec),
@@ -28,17 +41,23 @@ pub enum Expr {
 
 impl Expr {
     fn to_class(&self) -> &dyn IsExpr {
-        match self {
-            Expr::Reference(inner) => inner,
-            Expr::Word(inner) => inner,
-            Expr::MethodCall(inner) => inner,
-            Expr::Vec(inner) => inner,
+        match self.as_node() {
+            ExprNode::Reference(inner) => inner,
+            ExprNode::Word(inner) => inner,
+            ExprNode::MethodCall(inner) => inner,
+            ExprNode::Vec(inner) => inner,
         }
     }
 }
 
+impl ExprNode {
+    pub fn to_expr(self) -> Expr {
+        Expr(None, self.into())
+    }
+}
+
 pub trait IsExpr {
-    fn subexprs(&self) -> Vec<Arc<Expr>>;
+    fn subexprs(&self) -> Vec<Expr>;
 
     fn references(&self) -> HashSet<Path> {
         let mut result = HashSet::new();
@@ -48,20 +67,15 @@ pub trait IsExpr {
         result
     }
 
-    fn type_of(&self) -> Arc<Type> {
-        self.typecell().get().clone()
-    }
-
-    fn typecell(&self) -> TypeCell;
-
-    fn typeinfer(&self, _ctx: Context<Path, Arc<Type>>) -> Result<Arc<Type>, TypeError> {
+    fn typeinfer(&self, _ctx: Context<Path, Arc<Type>>) -> Result<Expr, TypeError> {
         Err(TypeError::CantInfer)
     }
 
-    fn typecheck(&self, ctx: Context<Path, Arc<Type>>, type_expected: Arc<Type>) -> Result<(), TypeError> {
-        if let Ok(type_actual) = self.typeinfer(ctx) {
+    fn typecheck(&self, ctx: Context<Path, Arc<Type>>, type_expected: Arc<Type>) -> Result<Expr, TypeError> {
+        if let Ok(self_inferred) = self.typeinfer(ctx) {
+            let type_actual = self_inferred.type_of().unwrap();
             if type_actual == type_expected {
-                Ok(())
+                Ok(self_inferred)
             } else {
                 Err(TypeError::TypeMismatch())
             }
@@ -76,54 +90,34 @@ pub trait IsExpr {
 }
 
 impl IsExpr for Expr {
-    fn subexprs(&self) -> Vec<Arc<Expr>> { self.to_class().subexprs() }
-    fn typecell(&self) -> TypeCell { self.to_class().typecell() }
-    fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Result<Arc<Type>, TypeError> { self.to_class().typeinfer(ctx) }
-    fn typecheck(&self, ctx: Context<Path, Arc<Type>>, type_expected: Arc<Type>) -> Result<(), TypeError> { self.to_class().typecheck(ctx, type_expected) }
+    fn subexprs(&self) -> Vec<Expr> { self.to_class().subexprs() }
+    fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Result<Expr, TypeError> { self.to_class().typeinfer(ctx) }
+    fn typecheck(&self, ctx: Context<Path, Arc<Type>>, type_expected: Arc<Type>) -> Result<Expr, TypeError> { self.to_class().typecheck(ctx, type_expected) }
 }
 
 impl Expr {
-    pub fn to_hir(expr: &ast::Expr) -> Result<Arc<Expr>, VirdantError> {
-        match expr {
-            ast::Expr::Reference(path) => Ok(Expr::Reference(ExprReference(TypeCell::unknown(), path.clone())).into()),
-            ast::Expr::Word(lit) => Ok(Expr::Word(ExprWord(TypeCell::unknown(), lit.clone())).into()),
+    pub fn to_hir(expr: &ast::Expr) -> Result<Expr, VirdantError> {
+        let expr_node = match expr {
+            ast::Expr::Reference(path) => ExprNode::Reference(ExprReference(path.clone())),
+            ast::Expr::Word(lit) => ExprNode::Word(ExprWord(lit.clone())),
             ast::Expr::Vec(es) => {
                 let mut es_hir = vec![];
                 for e in es {
                     es_hir.push(Expr::to_hir(e)?);
                 }
-                Ok(Expr::Vec(ExprVec(TypeCell::unknown(), es_hir)).into())
+                ExprNode::Vec(ExprVec(es_hir))
             },
             ast::Expr::MethodCall(subject, method, args) => {
-                let subject_hir = Expr::to_hir(subject)?;
-                let mut args_hir = vec![];
+                let subject_hir: Expr = Expr::to_hir(subject)?;
+                let mut args_hir: Vec<Expr> = vec![];
                 for arg in args {
                     args_hir.push(Expr::to_hir(arg)?);
                 }
-                Ok(Expr::MethodCall(ExprMethodCall(TypeCell::unknown(), subject_hir, method.clone(), args_hir)).into())
+                ExprNode::MethodCall(ExprMethodCall(subject_hir, method.clone(), args_hir))
             },
             _ => todo!(),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct TypeCell(Arc<RwLock<Option<Arc<Type>>>>);
-
-impl TypeCell {
-    fn unknown() -> TypeCell {
-        TypeCell(Arc::new(RwLock::new(None)))
-    }
-
-    fn get(&self) -> Arc<Type> {
-        let lock = self.0.read().unwrap();
-        lock.clone().unwrap()
-    }
-
-    fn set(&self, typ: Arc<Type>) {
-        let mut lock = self.0.write().unwrap();
-        assert!(lock.is_none(), "TypeCell is already set");
-        *lock = Some(typ);
+        };
+        Ok(expr_node.to_expr())
     }
 }
 

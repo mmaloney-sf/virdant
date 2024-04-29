@@ -2,32 +2,31 @@ use crate::common::*;
 use super::*;
 
 #[derive(Debug, Clone)]
-pub struct ExprWord(pub TypeCell, pub WordLit);
+pub struct ExprWord(pub WordLit);
 
 impl IsExpr for ExprWord {
-    fn subexprs(&self) -> Vec<Arc<Expr>> {
+    fn subexprs(&self) -> Vec<Expr> {
         vec![]
     }
 
-    fn typecell(&self) -> TypeCell {
-        self.0.clone()
-    }
-
-    fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Result<Arc<Type>, TypeError> {
+    fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Result<Expr, TypeError> {
+        todo!()
+            /*
         if let Some(width) = self.width() {
             let typ = Arc::new(Type::Word(width));
-            self.typecell().set(typ.clone());
             Ok(typ)
         } else {
             Err(TypeError::CantInfer)
         }
+        */
     }
 
-    fn typecheck(&self, ctx: Context<Path, Arc<Type>>, type_expected: Arc<Type>) -> Result<(), TypeError> {
+    fn typecheck(&self, ctx: Context<Path, Arc<Type>>, type_expected: Arc<Type>) -> Result<Expr, TypeError> {
+        todo!()
+        /*
         match (type_expected.as_ref(), self.width()) {
             (Type::Word(expected_width), Some(actual_width)) if *expected_width == actual_width => {
                 let typ = Arc::new(Type::Word(actual_width));
-                self.typecell().set(typ.clone());
                 Ok(())
             },
             (Type::Word(expected_width), None) if fits_in(self.value(), *expected_width) => {
@@ -38,15 +37,16 @@ impl IsExpr for ExprWord {
             (Type::Word(expected_width), None) =>  Err(TypeError::Other),
             (_, _) => Err(TypeError::Other),
         }
+        */
     }
 }
 
 impl ExprWord {
     fn value(&self) -> u64 {
-        self.1.value
+        self.0.value
     }
     fn width(&self) -> Option<Width> {
-        self.1.width
+        self.0.width
     }
 }
 

@@ -2,14 +2,10 @@ use crate::common::*;
 use super::*;
 
 #[derive(Debug, Clone)]
-pub struct ExprMethodCall(pub TypeCell, pub Arc<Expr>, pub Ident, pub Vec<Arc<Expr>>);
+pub struct ExprMethodCall(pub Expr, pub Ident, pub Vec<Expr>);
 
 impl IsExpr for ExprMethodCall {
-    fn subexprs(&self) -> Vec<Arc<Expr>> {
+    fn subexprs(&self) -> Vec<Expr> {
         vec![]
-    }
-
-    fn typecell(&self) -> TypeCell {
-        self.0.clone()
     }
 }

@@ -101,7 +101,7 @@ impl Expr {
     pub fn to_hir(expr: &ast::Expr) -> Result<Expr, VirdantError> {
         let expr_node = match expr {
             ast::Expr::Reference(path) => ExprNode::Reference(ExprReference(path.clone())),
-            ast::Expr::Word(lit) => ExprNode::Word(ExprWord(lit.clone())),
+            ast::Expr::Word(lit) => ExprNode::Word(ExprWord(lit.value, lit.width)),
             ast::Expr::Vec(es) => {
                 let mut es_hir = vec![];
                 for e in es {
@@ -124,7 +124,7 @@ impl Expr {
 }
 
 #[test]
-fn test_parse_exprs() {
+fn test_typeinfer_exprs() {
     use crate::ast;
     use crate::parse;
 
@@ -172,6 +172,63 @@ fn test_parse_exprs() {
               ("m.y".into(), Type::Word(8).into()),
         ]);
         let expr = Expr::to_hir(&expr).unwrap().typeinfer(type_ctx).unwrap();
+        let ctx = Context::from(vec![
+              ("x".into(), Value::Word(8, 1)),
+              ("m.y".into(), Value::Word(8, 1)),
+        ]);
+        expr.eval(ctx);
+    }
+}
+
+#[test]
+fn test_typecheck_exprs() {
+    use crate::ast;
+    use crate::parse;
+
+    let expr_strs = vec![
+        ("0", Type::Word(1)),
+        ("1_000", Type::Word(10)),
+        ("0b1010", Type::Word(4)),
+        ("2w8", Type::Word(8)),
+        ("0b1010w4", Type::Word(4)),
+//        ("0xff", Type::Word(8)),
+//        ("0xffw16", Type::Word(8)),
+        ("x", Type::Word(8)),
+        ("m.y", Type::Word(8)),
+//        ("x.y.z", Type::Word(8)),
+//        ("[]", Type::Word(8)),
+//        ("[0, 1, 1, 2, 3, 5]", Type::Word(8)),
+        ("(x)", Type::Word(8)),
+//        ("cat(x, y, z)", Type::Word(8)),
+//        ("f(x, y)", Type::Word(8)),
+//        ("z->f(x, y)", Type::Word(8)),
+//        ("a->eq(b)", Type::Word(8)),
+//        ("a->lt(b)", Type::Word(8)),
+//        ("a->lte(b)", Type::Word(8)),
+//        ("x->real", Type::Word(8)),
+//        ("x[0]", Type::Word(8)),
+//        ("x[8..0]", Type::Word(8)),
+//        ("x[i]", Type::Word(8)),
+//        ("struct Unit {}", Type::Word(8)),
+//        ("struct Complex { real = 0w8, imag = 1w8 }", Type::Word(8)),
+//        ("struct Complex { real = 0w8, imag = 1w8 }", Type::Word(8)),
+        /*
+        "
+            with x {
+                this[0] = 1w8;
+                this[2] = 7w8;
+            }
+        ",
+        */
+    ];
+    for (expr_str, typ) in expr_strs {
+        eprintln!("Testing {expr_str:?}");
+        let expr: ast::Expr = parse::parse_expr(expr_str).unwrap();
+        let type_ctx = Context::from(vec![
+              ("x".into(), Type::Word(8).into()),
+              ("m.y".into(), Type::Word(8).into()),
+        ]);
+        let expr = Expr::to_hir(&expr).unwrap().typecheck(type_ctx, typ.into()).unwrap();
         let ctx = Context::from(vec![
               ("x".into(), Value::Word(8, 1)),
               ("m.y".into(), Value::Word(8, 1)),

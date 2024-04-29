@@ -2,7 +2,7 @@ use crate::common::*;
 use super::*;
 
 #[derive(Debug, Clone)]
-pub struct ExprWord(pub WordLit);
+pub struct ExprWord(pub u64, pub Option<Width>);
 
 impl IsExpr for ExprWord {
     fn subexprs(&self) -> Vec<Expr> {
@@ -19,22 +19,18 @@ impl IsExpr for ExprWord {
     }
 
     fn typecheck(&self, ctx: Context<Path, Arc<Type>>, type_expected: Arc<Type>) -> Result<Expr, TypeError> {
-        todo!()
-        /*
         match (type_expected.as_ref(), self.width()) {
             (Type::Word(expected_width), Some(actual_width)) if *expected_width == actual_width => {
                 let typ = Arc::new(Type::Word(actual_width));
-                Ok(())
+                Ok(ExprNode::Word(self.clone()).with_type(typ))
             },
             (Type::Word(expected_width), None) if fits_in(self.value(), *expected_width) => {
                 let typ = Arc::new(Type::Word(*expected_width));
-                self.typecell().set(typ.clone());
-                Ok(())
+                Ok(ExprNode::Word(ExprWord(self.value(), Some(*expected_width))).with_type(typ))
             },
             (Type::Word(expected_width), None) =>  Err(TypeError::Other),
             (_, _) => Err(TypeError::Other),
         }
-        */
     }
 
     fn eval(&self, _ctx: Context<Path, Value>) -> Value {
@@ -44,10 +40,10 @@ impl IsExpr for ExprWord {
 
 impl ExprWord {
     fn value(&self) -> u64 {
-        self.0.value
+        self.0
     }
     fn width(&self) -> Option<Width> {
-        self.0.width
+        self.1
     }
 }
 

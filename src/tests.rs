@@ -24,8 +24,7 @@ fn test_examples() {
                         };
 
                         if let Err(_error) = std::panic::catch_unwind(|| {
-                            let package = Package::from_ast(&parse_package(&text).expect(&format!("Testing {:?}", entry.path())));
-                            package.check().expect(&format!("Failed to check: {filename}"));
+                            Package::compile(&parse_package(&text).expect(&format!("Testing {:?}", entry.path()))).expect(&format!("Failed to check: {filename}"));
                         }) {
                             errors.push(filename.to_string());
                         }

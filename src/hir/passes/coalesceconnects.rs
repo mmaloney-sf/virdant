@@ -13,7 +13,7 @@ impl Pass for CoalesceConnects {
     }
 }
 
-fn on_moddef(moddef: &Arc<ModDef>) -> Result<Arc<ModDef>, VirdantError> {
+fn on_moddef(moddef: Arc<ModDef>) -> Result<Arc<ModDef>, VirdantError> {
     /*
     let new_moddef = ModDef::clone(moddef);
 

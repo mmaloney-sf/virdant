@@ -1,5 +1,5 @@
 mod expr;
-pub mod passes;
+mod passes;
 
 use std::sync::Arc;
 use crate::common::*;
@@ -18,7 +18,7 @@ pub struct Package {
 
 #[derive(Debug, Clone)]
 pub enum Item {
-    ModDef(Arc<ModDef>),
+    ModDef(ModDef),
 }
 
 #[derive(Debug, Clone)]
@@ -29,40 +29,10 @@ pub struct ModDef {
     pub connects: Vec<Connect>,
 }
 
-impl Component {
-    pub fn name(&self) -> Ident {
-        match self {
-            Component::Incoming(name, _typ) => name.clone(),
-            Component::Outgoing(name, _typ, _connect) => name.clone(),
-            Component::Wire(name, _typ, _connect) => name.clone(),
-            Component::Reg(name, _typ, _clk, /*Option<Value>,*/ _connect) => name.clone(),
-        }
-    }
-
-    pub fn type_of(&self) -> Arc<Type> {
-        match self {
-            Component::Incoming(_name, typ) => typ.clone(),
-            Component::Outgoing(_name, typ, _connect) => typ.clone(),
-            Component::Wire(_name, typ, _connect) => typ.clone(),
-            Component::Reg(_name, typ, _clk, /*Option<Value>,*/ _connect) => typ.clone(),
-        }
-    }
-
-    pub fn connect_mut(&mut self) -> Option<&mut InlineConnect> {
-        match self {
-            Component::Incoming(_name, typ) => None,
-            Component::Outgoing(_name, typ, connect) => connect.as_mut(),
-            Component::Wire(_name, typ, connect) => connect.as_mut(),
-            Component::Reg(_name, typ, _clk, /*Option<Value>,*/ connect) => connect.as_mut(),
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Submodule {
     pub name: Ident,
     pub moddef_name: Ident,
-    pub moddef: Option<Arc<ModDef>>,
 }
 
 #[derive(Debug, Clone)]
@@ -74,7 +44,7 @@ pub enum Component {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum HirType {
+enum HirType {
     Clock,
     Word(Width),
     Vec(Arc<Type>, usize),
@@ -83,15 +53,15 @@ pub enum HirType {
 #[derive(Debug, Clone)]
 pub struct InlineConnect(pub ConnectType, pub Expr);
 
+#[derive(Debug, Clone)]
+pub struct Connect(pub Path, pub ConnectType, pub Expr);
+
 impl InlineConnect {
     pub fn from_ast(connect: &ast::InlineConnect) -> InlineConnect {
         let ast::InlineConnect(connect_type, expr) = connect;
         InlineConnect(*connect_type, Expr::from_ast(expr))
     }
 }
-
-#[derive(Debug, Clone)]
-pub struct Connect(pub Path, pub ConnectType, pub Expr);
 
 impl Package {
     pub fn compile(package: &ast::Package) -> Result<Package, VirdantError> {
@@ -118,7 +88,7 @@ impl Package {
         None
     }
 
-    pub fn moddefs(&self) -> Vec<Arc<ModDef>> {
+    pub fn moddefs(&self) -> Vec<ModDef> {
         let mut moddefs = vec![];
         for item in &self.items {
             match item {
@@ -143,6 +113,35 @@ impl Item {
     }
 }
 
+impl Component {
+    pub fn name(&self) -> Ident {
+        match self {
+            Component::Incoming(name, _typ) => name.clone(),
+            Component::Outgoing(name, _typ, _connect) => name.clone(),
+            Component::Wire(name, _typ, _connect) => name.clone(),
+            Component::Reg(name, _typ, _clk, /*Option<Value>,*/ _connect) => name.clone(),
+        }
+    }
+
+    pub fn type_of(&self) -> Arc<Type> {
+        match self {
+            Component::Incoming(_name, typ) => typ.clone(),
+            Component::Outgoing(_name, typ, _connect) => typ.clone(),
+            Component::Wire(_name, typ, _connect) => typ.clone(),
+            Component::Reg(_name, typ, _clk, /*Option<Value>,*/ _connect) => typ.clone(),
+        }
+    }
+
+    pub fn connect_mut(&mut self) -> Option<&mut InlineConnect> {
+        match self {
+            Component::Incoming(_name, _typ) => None,
+            Component::Outgoing(_name, _typ, connect) => connect.as_mut(),
+            Component::Wire(_name, _typ, connect) => connect.as_mut(),
+            Component::Reg(_name, _typ, _clk, /*Option<Value>,*/ connect) => connect.as_mut(),
+        }
+    }
+}
+
 impl Type {
     pub fn from_ast(typ: &ast::Type) -> Arc<Type> {
         match typ {
@@ -154,7 +153,7 @@ impl Type {
 }
 
 impl ModDef {
-    pub fn from_ast(moddef: &ast::ModDef) -> Arc<ModDef> {
+    pub fn from_ast(moddef: &ast::ModDef) -> ModDef {
         let name = moddef.name.clone();
         let mut components = vec![];
         let mut submodules = vec![];
@@ -177,7 +176,6 @@ impl ModDef {
                         Submodule {
                             name: name.clone(),
                             moddef_name: moddef_name.clone(),
-                            moddef: None,
                         }
                     );
                 },
@@ -192,6 +190,6 @@ impl ModDef {
             components,
             submodules,
             connects,
-        }.into()
+        }
     }
 }

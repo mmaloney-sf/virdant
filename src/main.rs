@@ -20,7 +20,7 @@ use hir::*;
 use common::*;
 
 fn main() {
-    repl();
+    hir_package();
 }
 
 /*
@@ -50,6 +50,24 @@ pub fn mlir() {
     package.mlir(&mut stdout).unwrap();
 }
 */
+
+pub fn hir_package() {
+    let package = parse_package("
+
+        public module Top {
+            incoming clk : Clock;
+            incoming in : Word[8];
+            outgoing out : Word[8];
+            reg buf : Word[8] on clk;
+
+            buf := in;
+            out := buf;
+        }
+
+    ").unwrap();
+    let package = Package::from_ast(&package);
+    dbg!(&package);
+}
 
 pub fn parse() {
     let package = parse_package("
@@ -83,9 +101,9 @@ pub fn sim() {
         ("out".into(), Type::Word(8).into()),
     ]);
 
-    let out_expr: Expr = Expr::to_hir(&parse_expr("r").unwrap()).unwrap().typeinfer(ctx.clone()).unwrap();
-    let in_expr: Expr = Expr::to_hir(&parse_expr("1w8").unwrap()).unwrap().typeinfer(ctx.clone()).unwrap();
-    let r_expr: Expr = Expr::to_hir(&parse_expr("r->add(in)").unwrap()).unwrap().typeinfer(ctx.clone()).unwrap();
+    let out_expr: Expr = Expr::from_ast(&parse_expr("r").unwrap()).unwrap().typeinfer(ctx.clone()).unwrap();
+    let in_expr: Expr = Expr::from_ast(&parse_expr("1w8").unwrap()).unwrap().typeinfer(ctx.clone()).unwrap();
+    let r_expr: Expr = Expr::from_ast(&parse_expr("r->add(in)").unwrap()).unwrap().typeinfer(ctx.clone()).unwrap();
 
     let mut sim = Sim::new()
         .add_simple_node("top.out".into(), out_expr)
@@ -140,7 +158,7 @@ pub fn repl() {
                         ("buffer.out".into(), Value::Word(8, 42)),
                     ]);
                     let type_ctx = value_context_to_type_context(ctx.clone());
-                    match Expr::to_hir(&expr) {
+                    match Expr::from_ast(&expr) {
                         Err(e) => eprintln!("ERROR: {e:?}"),
                         Ok(untyped_expr) => {
                             match untyped_expr.typeinfer(type_ctx) {

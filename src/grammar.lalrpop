@@ -1,6 +1,5 @@
 use crate::common::*;
 use crate::ast::*;
-use crate::types::Type;
 
 grammar;
 

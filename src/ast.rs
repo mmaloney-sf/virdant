@@ -1,4 +1,3 @@
-use crate::types::Type;
 use crate::common::*;
 
 #[derive(Debug, Clone)]
@@ -38,6 +37,13 @@ pub struct Component {
     pub connect: Option<InlineConnect>,
     pub clock: Option<Expr>,
     pub reset: Option<Expr>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Type {
+    Clock,
+    Word(Width),
+    Vec(Box<Type>, usize),
 }
 
 #[derive(Debug, Clone)]

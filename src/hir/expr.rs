@@ -25,7 +25,7 @@ impl Expr {
         &self.1
     }
 
-    fn type_of(&self) -> Option<Arc<Type>> {
+    pub fn type_of(&self) -> Option<Arc<Type>> {
         self.0.clone()
     }
 }

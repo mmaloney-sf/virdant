@@ -6,7 +6,9 @@ pub struct ExprMethodCall(pub Expr, pub Ident, pub Vec<Expr>);
 
 impl IsExpr for ExprMethodCall {
     fn subexprs(&self) -> Vec<Expr> {
-        vec![]
+        let mut result = vec![self.0.clone()];
+        result.extend(self.2.clone());
+        result
     }
 
     fn typeinfer(&self, ctx: Context<Path, Arc<Type>>) -> Result<Expr, TypeError> {

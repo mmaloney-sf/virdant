@@ -52,7 +52,7 @@ pub fn mlir() {
 */
 
 pub fn hir_package() {
-    let package = parse_package("
+    let package_text = "
 
         public module Top {
             incoming clk : Clock;
@@ -64,7 +64,9 @@ pub fn hir_package() {
             out := buf;
         }
 
-    ").unwrap();
+    ";
+    let package = parse_package(package_text).unwrap();
+    println!("{package_text}");
     let package = Package::from_ast(&package);
     dbg!(&package);
 }
@@ -101,9 +103,9 @@ pub fn sim() {
         ("out".into(), Type::Word(8).into()),
     ]);
 
-    let out_expr: Expr = Expr::from_ast(&parse_expr("r").unwrap()).unwrap().typeinfer(ctx.clone()).unwrap();
-    let in_expr: Expr = Expr::from_ast(&parse_expr("1w8").unwrap()).unwrap().typeinfer(ctx.clone()).unwrap();
-    let r_expr: Expr = Expr::from_ast(&parse_expr("r->add(in)").unwrap()).unwrap().typeinfer(ctx.clone()).unwrap();
+    let out_expr: Expr = Expr::from_ast(&parse_expr("r").unwrap()).typeinfer(ctx.clone()).unwrap();
+    let in_expr: Expr = Expr::from_ast(&parse_expr("1w8").unwrap()).typeinfer(ctx.clone()).unwrap();
+    let r_expr: Expr = Expr::from_ast(&parse_expr("r->add(in)").unwrap()).typeinfer(ctx.clone()).unwrap();
 
     let mut sim = Sim::new()
         .add_simple_node("top.out".into(), out_expr)
@@ -158,14 +160,10 @@ pub fn repl() {
                         ("buffer.out".into(), Value::Word(8, 42)),
                     ]);
                     let type_ctx = value_context_to_type_context(ctx.clone());
-                    match Expr::from_ast(&expr) {
+                    let untyped_expr = Expr::from_ast(&expr);
+                    match untyped_expr.typeinfer(type_ctx) {
                         Err(e) => eprintln!("ERROR: {e:?}"),
-                        Ok(untyped_expr) => {
-                            match untyped_expr.typeinfer(type_ctx) {
-                                Err(e) => eprintln!("ERROR: {e:?}"),
-                                Ok(typed_expr) => println!("{}", typed_expr.eval(ctx)),
-                            }
-                        },
+                        Ok(typed_expr) => println!("{}", typed_expr.eval(ctx)),
                     }
                 },
                 Err(err) => eprintln!("{err:?}"),

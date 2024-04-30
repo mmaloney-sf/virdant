@@ -102,32 +102,32 @@ impl Expr {
 }
 
 impl Expr {
-    pub fn from_ast(expr: &ast::Expr) -> Result<Expr, VirdantError> {
+    pub fn from_ast(expr: &ast::Expr) -> Expr {
         let expr_node = match expr {
             ast::Expr::Reference(path) => ExprNode::Reference(ExprReference(path.clone())),
             ast::Expr::Word(lit) => ExprNode::Word(ExprWord(lit.value, lit.width)),
             ast::Expr::Vec(es) => {
                 let mut es_hir = vec![];
                 for e in es {
-                    es_hir.push(Expr::from_ast(e)?);
+                    es_hir.push(Expr::from_ast(e));
                 }
                 ExprNode::Vec(ExprVec(es_hir))
             },
             ast::Expr::MethodCall(subject, method, args) => {
-                let subject_hir: Expr = Expr::from_ast(subject)?;
+                let subject_hir: Expr = Expr::from_ast(subject);
                 let mut args_hir: Vec<Expr> = vec![];
                 for arg in args {
-                    args_hir.push(Expr::from_ast(arg)?);
+                    args_hir.push(Expr::from_ast(arg));
                 }
                 ExprNode::MethodCall(ExprMethodCall(subject_hir, method.clone(), args_hir))
             },
             ast::Expr::As(subject, typ) => {
-                let subject_hir: Expr = Expr::from_ast(subject)?;
-                ExprNode::As(ExprAs(subject_hir, Type::from_ast(typ)?))
+                let subject_hir: Expr = Expr::from_ast(subject);
+                ExprNode::As(ExprAs(subject_hir, Type::from_ast(typ)))
             },
             _ => todo!(),
         };
-        Ok(expr_node.without_type())
+        expr_node.without_type()
     }
 }
 

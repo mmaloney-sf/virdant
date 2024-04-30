@@ -1,6 +1,5 @@
 pub mod ast;
 pub mod parse;
-pub mod check;
 pub mod context;
 pub mod value;
 pub mod types;
@@ -11,7 +10,6 @@ pub mod common;
 
 use context::Context;
 use parse::{parse_package, parse_expr};
-use check::*;
 use value::*;
 use types::*;
 use sim::*;
@@ -68,6 +66,7 @@ pub fn hir_package() {
     let package = parse_package(package_text).unwrap();
     println!("{package_text}");
     let package = Package::from_ast(&package);
+    package.check().unwrap();
     dbg!(&package);
 }
 

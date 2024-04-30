@@ -1,6 +1,6 @@
 mod expr;
+mod check;
 
-use std::collections::HashMap;
 use std::sync::Arc;
 use crate::common::*;
 use crate::ast;
@@ -8,6 +8,7 @@ use crate::types::Type;
 use crate::value::Value;
 use crate::ast::ConnectType;
 
+pub use check::*;
 pub use expr::Expr;
 pub use expr::IsExpr;
 

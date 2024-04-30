@@ -1,5 +1,5 @@
 mod expr;
-mod check;
+pub mod passes;
 
 use std::sync::Arc;
 use crate::common::*;
@@ -47,6 +47,15 @@ impl Component {
             Component::Reg(_name, typ, _clk, /*Option<Value>,*/ _connect) => typ.clone(),
         }
     }
+
+    pub fn connect_mut(&mut self) -> Option<&mut InlineConnect> {
+        match self {
+            Component::Incoming(_name, typ) => None,
+            Component::Outgoing(_name, typ, connect) => connect.as_mut(),
+            Component::Wire(_name, typ, connect) => connect.as_mut(),
+            Component::Reg(_name, typ, _clk, /*Option<Value>,*/ connect) => connect.as_mut(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -85,14 +94,19 @@ impl InlineConnect {
 pub struct Connect(pub Path, pub ConnectType, pub Expr);
 
 impl Package {
-    pub fn from_ast(package: &ast::Package) -> Arc<Package> {
+    pub fn compile(package: &ast::Package) -> Result<Package, VirdantError> {
+        let package = Package::from_ast(package);
+        package.run_passes()
+    }
+
+    pub fn from_ast(package: &ast::Package) -> Package {
         let mut items = vec![];
         for item in &package.items {
             items.push(Item::from_ast(item))
         }
         Package {
             items,
-        }.into()
+        }
     }
 
     pub fn item(&self, name: Ident) -> Option<&Item> {

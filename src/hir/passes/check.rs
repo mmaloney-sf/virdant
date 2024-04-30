@@ -1,9 +1,16 @@
-use std::collections::HashSet;
-use crate::common::*;
 use super::*;
 
+pub struct Check;
+
+impl Pass for Check {
+    fn run(&self, package: Package) -> Result<Package, VirdantError> {
+        package.check()?;
+        Ok(package)
+    }
+}
+
 impl Package {
-    pub fn check(&self) -> Result<(), VirdantError> {
+    fn check(&self) -> Result<(), VirdantError> {
         self.no_duplicate_moddefs()?;
         //self.check_moddefs_acyclic()?;
         for moddef in &self.moddefs() {

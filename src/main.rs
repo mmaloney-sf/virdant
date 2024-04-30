@@ -7,11 +7,11 @@ use virdant::common::*;
 use virdant::types::Type;
 
 fn main() {
-    mlir();
+    hir_package();
 }
 
 pub fn mlir() {
-    let package_ast = parse_package("
+    let package_text = "
 
         public module Top {
             incoming clk : Clock;
@@ -20,8 +20,10 @@ pub fn mlir() {
             reg buf : Word[8] on clk <= in->add(1);
         }
 
-    ").unwrap();
+    ";
+    let package_ast = parse_package(package_text).unwrap();
     let package = Package::from_ast(&package_ast);
+    println!("{package_text}");
     let mut stdout = std::io::stdout();
     package.mlir(&mut stdout).unwrap();
 }
@@ -33,20 +35,28 @@ pub fn hir_package() {
             incoming clk : Clock;
             incoming in : Word[8];
             outgoing out : Word[8];
-            reg buf : Word[8] on clk;
 
-            submodule buf of Foo;
+            submodule buf of Buffer;
+            buf.in := in;
 
-            buf := in;
-            out := buf;
+            out := buf.out->add(in);
+        }
+
+        module Buffer {
+            incoming clk : Clock;
+            incoming in : Word[8];
+            outgoing out : Word[8] := in;
+            reg buf : Word[8] on clk <= in;
         }
 
     ";
     let package = parse_package(package_text).unwrap();
     println!("{package_text}");
-    let package = Package::from_ast(&package);
-    package.check().unwrap();
+    let package = Package::compile(&package).unwrap();
     dbg!(&package);
+
+//    let mut stdout = std::io::stdout();
+//    package.mlir(&mut stdout).unwrap();
 }
 
 pub fn parse() {

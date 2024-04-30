@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 pub mod ast;
 pub mod parse;
 pub mod context;
@@ -176,55 +179,4 @@ pub fn repl() {
 pub fn value_context_to_type_context(ctx: Context<Path, Value>) -> Context<Path, Arc<Type>> {
     let new_ctx: Vec<(Path, Arc<Type>)> = ctx.into_inner().into_iter().map(|(path, value)| (path, value.type_of().into())).collect();
     Context::from(new_ctx)
-}
-
-#[test]
-fn test_parse_exprs() {
-    let expr_strs = vec![
-        "0",
-        "1_000",
-        "0b1010",
-        "2w8",
-        "0b1010w4",
-//        "0xff",
-//        "0xffw16",
-        "x",
-        "x.y",
-        "x.y.z",
-        "[]",
-        "[0, 1, 1, 2, 3, 5]",
-        "(x)",
-//        "cat(x, y, z)",
-//        "f(x, y)",
-        "z->f(x, y)",
-        "a->eq(b)",
-        "a->lt(b)",
-        "a->lte(b)",
-//        "x->real",
-//        "x[0]",
-//        "x[8..0]",
-//        "x[i]",
-//        "struct Unit {}",
-//        "struct Complex { real = 0w8, imag = 1w8 }",
-//        "struct Complex { real = 0w8, imag = 1w8 }",
-        /*
-        "
-            with x {
-                this[0] = 1w8;
-                this[2] = 7w8;
-            }
-        ",
-        */
-    ];
-    for expr_str in expr_strs {
-        eprintln!("Testing {expr_str:?}");
-        let _expr: ast::Expr = parse_expr(expr_str).unwrap();
-    }
-}
-
-#[test]
-fn test_parse_package() {
-    let package_text = std::fs::read_to_string("examples/hello.vir").unwrap();
-    let package = parse_package(&package_text).unwrap();
-    dbg!(package);
 }

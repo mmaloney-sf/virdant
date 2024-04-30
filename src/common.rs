@@ -118,10 +118,3 @@ impl Path {
         self.parts().len() > 2
     }
 }
-
-#[test]
-fn path_tests() {
-    let p1: Path = "top.foo".into();
-    let p2: Path = "top.foo.bar".into();
-    assert_eq!(p2.parent(), p1);
-}

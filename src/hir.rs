@@ -24,10 +24,16 @@ pub enum Item {
 #[derive(Debug, Clone)]
 pub struct ModDef {
     pub name: Ident,
-    pub components: Vec<Component>,
-    pub submodules: Vec<Submodule>,
+    pub entities: Vec<Entity>,
     pub connects: Vec<Connect>,
 }
+
+#[derive(Debug, Clone)]
+pub enum Entity {
+    Component(Component),
+    Submodule(Submodule),
+}
+
 
 #[derive(Debug, Clone)]
 pub struct Submodule {
@@ -155,8 +161,7 @@ impl Type {
 impl ModDef {
     pub fn from_ast(moddef: &ast::ModDef) -> ModDef {
         let name = moddef.name.clone();
-        let mut components = vec![];
-        let mut submodules = vec![];
+        let mut entities = vec![];
         let mut connects = vec![];
 
         for decl in &moddef.decls {
@@ -169,14 +174,14 @@ impl ModDef {
                         ast::ComponentKind::Wire => Component::Wire(component.name.clone(), Type::from_ast(&component.typ), connect),
                         ast::ComponentKind::Reg => Component::Reg(component.name.clone(), Type::from_ast(&component.typ), component.clock.as_ref().map(|e| Expr::from_ast(e)), connect),
                     };
-                    components.push(c);
+                    entities.push(Entity::Component(c));
                 },
                 ast::Decl::Submodule(ast::Submodule(name, moddef_name)) => {
-                    submodules.push(
-                        Submodule {
+                    entities.push(
+                        Entity::Submodule(Submodule {
                             name: name.clone(),
                             moddef_name: moddef_name.clone(),
-                        }
+                        })
                     );
                 },
                 ast::Decl::Connect(ast::Connect(path, connect_type, expr)) => {
@@ -187,9 +192,39 @@ impl ModDef {
 
         ModDef {
             name,
-            components,
-            submodules,
+            entities,
             connects,
+        }
+    }
+
+    pub fn components(&self) -> Vec<Component> {
+        let mut components = vec![];
+        for entity in &self.entities {
+            match entity {
+                Entity::Component(component) => components.push(component.clone()),
+                _ => (),
+            }
+        }
+        components
+    }
+
+    pub fn submodules(&self) -> Vec<Submodule> {
+        let mut submodules = vec![];
+        for entity in &self.entities {
+            match entity {
+                Entity::Submodule(submodule) => submodules.push(submodule.clone()),
+                _ => (),
+            }
+        }
+        submodules
+    }
+}
+
+impl Entity {
+    pub fn name(&self) -> Ident {
+        match self {
+            Entity::Component(component) => component.name(),
+            Entity::Submodule(submodule) => submodule.name.clone(),
         }
     }
 }

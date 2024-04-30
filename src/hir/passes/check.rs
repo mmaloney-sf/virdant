@@ -48,16 +48,10 @@ impl ModDef {
         let mut errors = ErrorReport::new();
 
         let mut names = HashSet::new();
-        for component in &self.components {
-            let component_name = component.name();
-            if !names.insert(component_name.clone()) {
-                errors.add(VirdantError::Unknown(format!("Duplicate component or submodule name: {component_name}")));
-            }
-        }
-        for submodule in &self.submodules {
-            let submodule_name = &submodule.name;
-            if !names.insert(submodule_name.clone()) {
-                errors.add(VirdantError::Unknown(format!("Duplicate component or submodule name: {submodule_name}")));
+        for entity in &self.entities {
+            let entity_name = entity.name();
+            if !names.insert(entity_name.clone()) {
+                errors.add(VirdantError::Unknown(format!("Duplicate entity or submodule name: {entity_name}")));
             }
         }
         errors.check()?;

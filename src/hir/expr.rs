@@ -1,8 +1,10 @@
+mod ascription;
 mod reference;
 mod word;
 mod vec;
 mod methodcall;
 
+use ascription::*;
 use reference::*;
 use word::*;
 use vec::*;
@@ -34,6 +36,7 @@ pub enum ExprNode {
     Reference(ExprReference),
     Word(ExprWord),
     Vec(ExprVec),
+    As(ExprAs),
     MethodCall(ExprMethodCall),
 }
 
@@ -44,6 +47,7 @@ impl Expr {
             ExprNode::Word(inner) => inner,
             ExprNode::MethodCall(inner) => inner,
             ExprNode::Vec(inner) => inner,
+            ExprNode::As(inner) => inner,
         }
     }
 }
@@ -116,6 +120,10 @@ impl Expr {
                     args_hir.push(Expr::to_hir(arg)?);
                 }
                 ExprNode::MethodCall(ExprMethodCall(subject_hir, method.clone(), args_hir))
+            },
+            ast::Expr::As(subject, typ) => {
+                let subject_hir: Expr = Expr::to_hir(subject)?;
+                ExprNode::As(ExprAs(subject_hir, typ.clone().into()))
             },
             _ => todo!(),
         };

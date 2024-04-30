@@ -55,6 +55,7 @@ pub enum Expr {
     Vec(Vec<Expr>),
     Struct(Ident, Vec<(Field, Box<Expr>)>),
     MethodCall(Box<Expr>, Ident, Vec<Expr>),
+    As(Box<Expr>, Type),
 }
 
 #[derive(Debug, Clone)]

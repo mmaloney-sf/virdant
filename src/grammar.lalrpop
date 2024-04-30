@@ -124,6 +124,9 @@ ExprCall: Box<Expr> = {
     <ll:@L> <s:ExprIdx> "->" <name:Id> "(" <es:ExprList> ")" <rr:@R> => {
         Box::new(Expr::MethodCall(s, name, es))
     },
+    <ll:@L> <s:ExprIdx> "->" "as" "(" <typ:Type> ")" <rr:@R> => {
+        Box::new(Expr::As(s, *typ))
+    },
     <e:ExprIdx> => e,
 }
 
@@ -168,12 +171,6 @@ FieldExprList: Vec<(String, Expr)> = {
         }
     },
 }
-
-/*
-ExprAs: Box<Expr> = {
-  "as" <t:Type> "("
-}
-*/
 
 /*
 ExprWith: Box<Expr> = {

@@ -4,6 +4,20 @@ use super::*;
 #[derive(Debug, Clone)]
 pub struct ExprMethodCall(pub Expr, pub Ident, pub Vec<Expr>);
 
+impl ExprMethodCall {
+    pub fn subject(&self) -> Expr {
+        self.0.clone()
+    }
+
+    pub fn method(&self) -> Ident {
+        self.1.clone()
+    }
+
+    pub fn args(&self) -> Vec<Expr> {
+        self.2.clone()
+    }
+}
+
 impl IsExpr for ExprMethodCall {
     fn subexprs(&self) -> Vec<Expr> {
         let mut result = vec![self.0.clone()];

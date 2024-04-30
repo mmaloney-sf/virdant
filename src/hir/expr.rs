@@ -22,7 +22,7 @@ use super::Type;
 pub struct Expr(Option<Arc<Type>>, Arc<ExprNode>);
 
 impl Expr {
-    fn as_node(&self) -> &ExprNode {
+    pub fn as_node(&self) -> &ExprNode {
         &self.1
     }
 

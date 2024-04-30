@@ -39,10 +39,10 @@ impl IsExpr for ExprWord {
 }
 
 impl ExprWord {
-    fn value(&self) -> u64 {
+    pub fn value(&self) -> u64 {
         self.0
     }
-    fn width(&self) -> Option<Width> {
+    pub fn width(&self) -> Option<Width> {
         self.1
     }
 }

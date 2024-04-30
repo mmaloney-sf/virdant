@@ -8,6 +8,7 @@ use crate::types::Type;
 use crate::ast::ConnectType;
 
 pub use expr::Expr;
+pub use expr::ExprNode;
 pub use expr::IsExpr;
 
 #[derive(Debug, Clone)]
@@ -72,6 +73,13 @@ pub enum HirType {
 
 #[derive(Debug, Clone)]
 pub struct InlineConnect(pub ConnectType, pub Expr);
+
+impl InlineConnect {
+    pub fn from_ast(connect: &ast::InlineConnect) -> InlineConnect {
+        let ast::InlineConnect(connect_type, expr) = connect;
+        InlineConnect(*connect_type, Expr::from_ast(expr))
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Connect(pub Path, pub ConnectType, pub Expr);
@@ -141,11 +149,12 @@ impl ModDef {
         for decl in &moddef.decls {
             match decl {
                 ast::Decl::Component(component) => {
+                    let connect = component.connect.as_ref().map(|c| InlineConnect::from_ast(&c));
                     let c = match component.kind {
                         ast::ComponentKind::Incoming => Component::Incoming(component.name.clone(), Type::from_ast(&component.typ)),
-                        ast::ComponentKind::Outgoing => Component::Outgoing(component.name.clone(), Type::from_ast(&component.typ), None),
-                        ast::ComponentKind::Wire => Component::Wire(component.name.clone(), Type::from_ast(&component.typ), None),
-                        ast::ComponentKind::Reg => Component::Reg(component.name.clone(), Type::from_ast(&component.typ), component.clock.as_ref().map(|e| Expr::from_ast(e)), None),
+                        ast::ComponentKind::Outgoing => Component::Outgoing(component.name.clone(), Type::from_ast(&component.typ), connect),
+                        ast::ComponentKind::Wire => Component::Wire(component.name.clone(), Type::from_ast(&component.typ), connect),
+                        ast::ComponentKind::Reg => Component::Reg(component.name.clone(), Type::from_ast(&component.typ), component.clock.as_ref().map(|e| Expr::from_ast(e)), connect),
                     };
                     components.push(c);
                 },

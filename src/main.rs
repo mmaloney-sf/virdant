@@ -5,39 +5,26 @@ use virdant::sim::*;
 use virdant::hir::*;
 use virdant::common::*;
 use virdant::types::Type;
-//use mlir::*;
 
 fn main() {
-    hir_package();
+    mlir();
 }
 
-/*
 pub fn mlir() {
-    let package = parse_package("
+    let package_ast = parse_package("
 
         public module Top {
             incoming clk : Clock;
             incoming in : Word[8];
-            outgoing out : Word[8];
-
-            submodule buf of Buffer;
-            buf.in := in;
-
-            out := buf.out->add(in);
-        }
-
-        module Buffer {
-            incoming clk : Clock;
-            incoming in : Word[8];
             outgoing out : Word[8] := in;
-            reg buf : Word[8] on clk <= in;
+            reg buf : Word[8] on clk <= in->add(1);
         }
 
     ").unwrap();
+    let package = Package::from_ast(&package_ast);
     let mut stdout = std::io::stdout();
     package.mlir(&mut stdout).unwrap();
 }
-*/
 
 pub fn hir_package() {
     let package_text = "

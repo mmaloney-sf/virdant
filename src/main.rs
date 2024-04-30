@@ -1,24 +1,11 @@
-#[cfg(test)]
-mod tests;
-
-pub mod ast;
-pub mod parse;
-pub mod context;
-pub mod value;
-pub mod types;
-pub mod sim;
-pub mod hir;
-//pub mod mlir;
-pub mod common;
-
-use context::Context;
-use parse::{parse_package, parse_expr};
-use value::*;
-use types::*;
-use sim::*;
-use hir::*;
+use virdant::context::Context;
+use virdant::parse::{parse_package, parse_expr};
+use virdant::value::*;
+use virdant::sim::*;
+use virdant::hir::*;
+use virdant::common::*;
+use virdant::types::Type;
 //use mlir::*;
-use common::*;
 
 fn main() {
     hir_package();

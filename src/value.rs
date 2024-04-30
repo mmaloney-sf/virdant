@@ -1,5 +1,5 @@
 use crate::common::*;
-use super::*;
+use crate::types::Type;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {

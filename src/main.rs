@@ -20,7 +20,7 @@ use hir::*;
 use common::*;
 
 fn main() {
-    sim();
+    repl();
 }
 
 /*

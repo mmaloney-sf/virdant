@@ -15,7 +15,6 @@ use crate::value::Value;
 use crate::common::*;
 use crate::types::Type;
 use crate::context::Context;
-use crate::ast::WordLit;
 
 #[derive(Debug, Clone)]
 pub struct Expr(Option<Arc<Type>>, Arc<ExprNode>);

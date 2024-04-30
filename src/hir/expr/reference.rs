@@ -27,7 +27,7 @@ impl IsExpr for ExprReference {
         }
     }
 
-    fn eval(&self, ctx: Context<Path, Value>, typ: Arc<Type>) -> Value {
+    fn eval(&self, ctx: Context<Path, Value>, _typ: Arc<Type>) -> Value {
         ctx.lookup(self.path()).unwrap()
     }
 }

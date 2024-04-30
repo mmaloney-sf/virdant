@@ -14,7 +14,14 @@ impl IsExpr for ExprVec {
             Err(TypeError::CantInfer)
         } else {
             let typed_args: Vec<Expr> = self.0.iter().map(|arg| arg.typeinfer(ctx.clone()).unwrap()).collect();
-            todo!()
+            let element_type = typed_args[0].type_of().unwrap();
+            for typed_arg in &typed_args {
+                if typed_arg.type_of().unwrap() != element_type {
+                    return Err(TypeError::Other);
+                }
+            }
+            let typ: Arc<Type> = Type::Vec(element_type, self.0.len()).into();
+            Ok(ExprNode::Vec(ExprVec(typed_args)).with_type(typ))
         }
     }
 

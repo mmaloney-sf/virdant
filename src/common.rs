@@ -25,7 +25,8 @@ impl std::fmt::Debug for Path {
 pub enum VirdantError {
     Multiple(Vec<VirdantError>),
     TypeError(TypeError),
-    Unknown(String),
+    Other(String),
+    Unknown,
 }
 
 #[derive(Debug, Clone)]
@@ -90,6 +91,10 @@ impl Ident {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    pub fn as_path(&self) -> Path {
+        self.0.as_str().into()
+    }
 }
 
 impl Path {
@@ -116,5 +121,13 @@ impl Path {
 
     pub fn is_remote(&self) -> bool {
         self.parts().len() > 2
+    }
+
+    pub fn as_ident(&self) -> Option<Ident> {
+        if self.is_local() {
+            Some(self.0.clone().into())
+        } else {
+            None
+        }
     }
 }

@@ -27,7 +27,7 @@ impl Package {
         for item in &self.items {
             let item_name = item.name();
             if !items.insert(item_name.clone()) {
-                errors.add(VirdantError::Unknown(format!("Duplicate module definition: {item_name}")));
+                errors.add(VirdantError::Other(format!("Duplicate module definition: {item_name}")));
             }
         }
 
@@ -51,7 +51,7 @@ impl ModDef {
         for entity in &self.entities {
             let entity_name = entity.name();
             if !names.insert(entity_name.clone()) {
-                errors.add(VirdantError::Unknown(format!("Duplicate entity or submodule name: {entity_name}")));
+                errors.add(VirdantError::Other(format!("Duplicate entity or submodule name: {entity_name}")));
             }
         }
         errors.check()?;

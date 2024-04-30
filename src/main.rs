@@ -58,6 +58,8 @@ pub fn hir_package() {
             outgoing out : Word[8];
             reg buf : Word[8] on clk;
 
+            submodule buf of Foo;
+
             buf := in;
             out := buf;
         }

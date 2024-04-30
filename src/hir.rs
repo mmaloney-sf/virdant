@@ -5,10 +5,8 @@ use std::sync::Arc;
 use crate::common::*;
 use crate::ast;
 use crate::types::Type;
-use crate::value::Value;
 use crate::ast::ConnectType;
 
-pub use check::*;
 pub use expr::Expr;
 pub use expr::IsExpr;
 
@@ -30,8 +28,31 @@ pub struct ModDef {
     pub connects: Vec<Connect>,
 }
 
+impl Component {
+    pub fn name(&self) -> Ident {
+        match self {
+            Component::Incoming(name, _typ) => name.clone(),
+            Component::Outgoing(name, _typ, _connect) => name.clone(),
+            Component::Wire(name, _typ, _connect) => name.clone(),
+            Component::Reg(name, _typ, _clk, /*Option<Value>,*/ _connect) => name.clone(),
+        }
+    }
+
+    pub fn type_of(&self) -> Arc<Type> {
+        match self {
+            Component::Incoming(_name, typ) => typ.clone(),
+            Component::Outgoing(_name, typ, _connect) => typ.clone(),
+            Component::Wire(_name, typ, _connect) => typ.clone(),
+            Component::Reg(_name, typ, _clk, /*Option<Value>,*/ _connect) => typ.clone(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Submodule {
+    pub name: Ident,
+    pub moddef_name: Ident,
+    pub moddef: Option<Arc<ModDef>>,
 }
 
 #[derive(Debug, Clone)]
@@ -65,12 +86,37 @@ impl Package {
             items,
         }.into()
     }
+
+    pub fn item(&self, name: Ident) -> Option<&Item> {
+        for item in &self.items {
+            if item.name() == name {
+                return Some(item);
+            }
+        }
+        None
+    }
+
+    pub fn moddefs(&self) -> Vec<Arc<ModDef>> {
+        let mut moddefs = vec![];
+        for item in &self.items {
+            match item {
+                Item::ModDef(moddef) => moddefs.push(moddef.clone()),
+            }
+        }
+        moddefs
+    }
 }
 
 impl Item {
     pub fn from_ast(item: &ast::Item) -> Item {
         match item {
             ast::Item::ModDef(moddef) => Item::ModDef(ModDef::from_ast(moddef)),
+        }
+    }
+
+    fn name(&self) -> Ident {
+        match self {
+            Item::ModDef(m) => m.name.clone(),
         }
     }
 }
@@ -98,12 +144,20 @@ impl ModDef {
                     let c = match component.kind {
                         ast::ComponentKind::Incoming => Component::Incoming(component.name.clone(), Type::from_ast(&component.typ)),
                         ast::ComponentKind::Outgoing => Component::Outgoing(component.name.clone(), Type::from_ast(&component.typ), None),
-                        ast::ComponentKind::Wire => todo!(),
+                        ast::ComponentKind::Wire => Component::Wire(component.name.clone(), Type::from_ast(&component.typ), None),
                         ast::ComponentKind::Reg => Component::Reg(component.name.clone(), Type::from_ast(&component.typ), component.clock.as_ref().map(|e| Expr::from_ast(e)), None),
                     };
                     components.push(c);
                 },
-                ast::Decl::Submodule(submodule) => todo!(),
+                ast::Decl::Submodule(ast::Submodule(name, moddef_name)) => {
+                    submodules.push(
+                        Submodule {
+                            name: name.clone(),
+                            moddef_name: moddef_name.clone(),
+                            moddef: None,
+                        }
+                    );
+                },
                 ast::Decl::Connect(ast::Connect(path, connect_type, expr)) => {
                     connects.push(Connect(path.clone(), *connect_type, Expr::from_ast(expr)));
                 },
@@ -116,13 +170,5 @@ impl ModDef {
             submodules,
             connects,
         }.into()
-    }
-}
-
-impl ast::Item {
-    fn name(&self) -> Ident {
-        match self {
-            ast::Item::ModDef(m) => m.name.clone(),
-        }
     }
 }

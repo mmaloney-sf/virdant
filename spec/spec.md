@@ -41,9 +41,9 @@ Virdant has four **kinds** of components:
 * `wire`
 * `reg`
 
-The components `incoming` and `outgoing` represent ports in towards and out from the module respectively.
-The component `wire` represents a named value, used for clarity or to create an alias to a complex expression.
-The component `reg` represents a stateful value.
+The `incoming` and `outgoing` components represent ports in towards and out from the module respectively.
+The `wire` component represents a named value, used for clarity or to create an alias to a complex expression.
+The `reg` component represents a stateful value.
 
 Note, we do not confuse the kind of a component with its type, since types.
 The type indicates the type of data that flows through the component.
@@ -56,8 +56,8 @@ Submodules are not expressions, and so they do not have a type.
 
 A **target** is a component which we may connect to.
 
-Inside of a module definition, each component `outgoing`, `wire`, and `reg` introduces a **local target**,
-and each `incoming` port of a submodule, as defined by its module definition, introduces a **non-local target**.
+Inside of a module definition, each `outgoing`, `wire`, and `reg` component introduces a **local target**,
+and each `incoming` component of a submodule, as defined by its module definition, introduces a **non-local target**.
 
 A **connect** is an unnamed statement which associate the expression on the right hand side to the target on the left hand side.
 

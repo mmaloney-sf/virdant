@@ -4,6 +4,9 @@ Virdant is a hardware description langauge.
 It is a reimagination of the [FIRRTL](https://github.com/chipsalliance/firrtl-spec) hardware description language.
 It is intended to be a human-readable intermediate target for a hardware generator, like [Chisel](https://github.com/chipsalliance/chisel).
 
+# Specification
+[The Virdant Specification](spec/spec.md)
+
 ## Rationale
 
 Most programming languages go through one or two major iterations before settling on their stable form.

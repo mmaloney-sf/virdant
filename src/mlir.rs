@@ -25,10 +25,8 @@ struct Mlir<'a> {
 
 impl<'a> Mlir<'a> {
     fn mlir_package<F: Write + ?Sized>(&mut self, package: &Package) -> std::io::Result<()> {
-        for item in &package.items {
-            match item {
-                Item::ModDef(moddef) => self.mlir_moddef(moddef)?,
-            }
+        for moddef in package.moddefs.values() {
+            self.mlir_moddef(moddef)?;
         }
         Ok(())
     }
@@ -53,21 +51,18 @@ impl<'a> Mlir<'a> {
                 self.mlir_type(typ.clone())?;
                 writeln!(self.writer)?;
             },
-            Component::Outgoing(name, _typ, e) => {
-                let InlineConnect(_connect_type, expr) = e.as_ref().unwrap();
+            Component::Outgoing(name, _typ, expr) => {
                 let ssa = self.mlir_expr(&expr)?;
                 writeln!(self.writer, "    %{name} = virdant.outgoing({ssa})")?;
             },
-            Component::Wire(name, typ, e) => {
-                let InlineConnect(_connect_type, expr) = e.as_ref().unwrap();
+            Component::Wire(name, typ, expr) => {
                 let ssa = self.mlir_expr(&expr)?;
                 write!(self.writer, "    %{name} = virdant.wire({ssa}) : ")?;
                 self.mlir_type(typ.clone())?;
                 writeln!(self.writer)?;
             },
-            Component::Reg(name, typ, clk, /* rst, */ e) => {
-                let clock_ssa = self.mlir_expr(clk.as_ref().unwrap())?;
-                let InlineConnect(_connect_type, expr) = e.as_ref().unwrap();
+            Component::Reg(name, typ, clk, /* rst, */ expr) => {
+                let clock_ssa = self.mlir_expr(clk)?;
                 let connect_ssa = self.mlir_expr(&expr)?;
                 write!(self.writer, "    %{name} = virdant.reg({clock_ssa}, {connect_ssa}) : ")?;
                 self.mlir_type(typ.clone())?;
@@ -78,7 +73,7 @@ impl<'a> Mlir<'a> {
     }
 
     fn mlir_submodule(&mut self, submodule: &Submodule) -> std::io::Result<()> {
-        writeln!(self.writer, "    %{} = virdant.submodule @{}", submodule.name, submodule.moddef_name)?;
+        writeln!(self.writer, "    %{} = virdant.submodule @{}", submodule.name, submodule.moddef)?;
         Ok(())
     }
 

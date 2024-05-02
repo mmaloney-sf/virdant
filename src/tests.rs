@@ -3,8 +3,8 @@ use crate::value::Value;
 use crate::context::Context;
 use crate::types::Type;
 use crate::parse::{parse_package, parse_expr};
-use crate::hir::Package;
 use crate::ast;
+use crate::checker;
 use crate::hir::*;
 
 #[test]
@@ -24,7 +24,7 @@ fn test_examples() {
                         };
 
                         if let Err(_error) = std::panic::catch_unwind(|| {
-                            Package::compile(&parse_package(&text).expect(&format!("Testing {:?}", entry.path()))).expect(&format!("Failed to check: {filename}"));
+                            checker::compile(&text).unwrap();
                         }) {
                             errors.push(filename.to_string());
                         }

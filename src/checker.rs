@@ -1,9 +1,11 @@
 use std::sync::Arc;
+use std::collections::HashMap;
 use crate::common::*;
 use crate::ast;
 use crate::parse;
 use crate::hir;
 use crate::context::Context;
+use crate::types::Type;
 
 #[salsa::query_group(QueryGroupStorage)]
 trait QueryGroup: salsa::Database {
@@ -16,11 +18,15 @@ trait QueryGroup: salsa::Database {
 
     fn package_moddef_names(&self) -> Result<Vec<Ident>, VirdantError>;
 
-    fn moddef_ast(&self, key: Ident) -> Result<ast::ModDef, VirdantError>;
+    fn moddef_ast(&self, moddef: Ident) -> Result<ast::ModDef, VirdantError>;
 
-    fn moddef_entity_names(&self, key: Ident) -> Result<Vec<Ident>, VirdantError>;
+    fn moddef_hir(&self, moddef: Ident) -> VirdantResult<hir::ModDef>;
 
-    fn moddef_component_names(&self, key: Ident) -> Result<Vec<Ident>, VirdantError>;
+    fn moddef_entity_names(&self, moddef: Ident) -> Result<Vec<Ident>, VirdantError>;
+
+    fn moddef_component_names(&self, moddef: Ident) -> Result<Vec<Ident>, VirdantError>;
+
+    fn moddef_component_hir(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Component>;
 
     fn moddef_component(&self, moddef: Ident, component: Ident) -> Result<ast::Component, VirdantError>;
 
@@ -45,32 +51,65 @@ trait QueryGroup: salsa::Database {
 
 
 fn package_hir(db: &dyn QueryGroup) -> VirdantResult<hir::Package> {
+    db.check()?;
+    let mut moddefs = HashMap::new();
     for moddef_name in db.package_moddef_names()? {
-        let moddef_ast = db.moddef_ast(moddef_name.clone())?;
+        let moddef_hir = db.moddef_hir(moddef_name.clone())?;
+        moddefs.insert(moddef_name.clone(), moddef_hir);
     }
 
-    todo!()
+    Ok(hir::Package {
+        moddefs,
+    })
+}
+
+fn moddef_component_hir(db: &dyn QueryGroup, moddef: Ident, component: Ident) -> VirdantResult<hir::Component> {
+    let c = db.moddef_component(moddef.clone(), component.clone())?;
+    Ok(match c.kind {
+        ast::ComponentKind::Incoming => hir::Component::Incoming(c.name.clone(), Type::from_ast(&c.typ)),
+        ast::ComponentKind::Outgoing => {
+            let expr = db.typecheck_component(moddef.clone(), component.clone())?;
+            hir::Component::Outgoing(c.name.clone(), Type::from_ast(&c.typ), expr)
+        },
+        ast::ComponentKind::Wire => {
+            let expr = db.typecheck_component(moddef.clone(), component.clone())?;
+            hir::Component::Wire(c.name.clone(), Type::from_ast(&c.typ), expr)
+        },
+        ast::ComponentKind::Reg => {
+            let ctx = db.moddef_context(moddef.clone())?;
+            let clock: hir::Expr = db.typecheck_expr(ctx, c.clock.unwrap(), ast::Type::Clock)?;
+
+            let expr = db.typecheck_component(moddef.clone(), component.clone())?;
+            hir::Component::Reg(c.name.clone(), Type::from_ast(&c.typ), clock, expr)
+        },
+    })
 }
 
 fn moddef_hir(db: &dyn QueryGroup, moddef: Ident) -> VirdantResult<hir::ModDef> {
-    let mut entities: Vec<hir::Entity> = vec![];
-    let mut connects: Vec<hir::Connect> = vec![];
+    let mut components: Vec<hir::Component> = vec![];
+    let mut submodules: Vec<hir::Submodule> = vec![];
 
     for decl in db.moddef_ast(moddef.clone())?.decls {
         match decl {
-            ast::Decl::Component(c) => todo!(),
-            ast::Decl::Submodule(m) => todo!(),
-            ast::Decl::Connect(ast::Connect(target, connect_type, expr)) => {
-//                connects.add();
-                todo!()
-            },
+            ast::Decl::Submodule(m) => submodules.push(
+                hir::Submodule {
+                    name: m.name,
+                    moddef: m.moddef,
+                }
+            ),
+            _ => (),
         }
+    }
+
+    for component_name in db.moddef_component_names(moddef.clone())? {
+        let component = db.moddef_component_hir(moddef.clone(), component_name)?;
+        components.push(component);
     }
 
     Ok(hir::ModDef {
         name: moddef.clone(),
-        entities,
-        connects,
+        components,
+        submodules,
     })
 }
 
@@ -89,7 +128,7 @@ fn typecheck_component(db: &dyn QueryGroup, moddef: Ident, component: Ident) -> 
     let ctx = db.moddef_context(moddef.clone())?;
     let typ = db.moddef_component_type(moddef.clone(), component.clone())?;
 
-    db.typecheck_expr(ctx, expr, typ)
+    db.typecheck_expr(ctx, expr, typ).map_err(|err| VirdantError::Other(format!("{err:?} {moddef} {component}")))
 }
 
 fn typecheck_expr(db: &dyn QueryGroup, ctx: Context<Path, Arc<crate::types::Type>>, expr: ast::Expr, typ: ast::Type) -> VirdantResult<hir::Expr> {
@@ -262,6 +301,16 @@ struct DatabaseStruct {
 }
 
 impl salsa::Database for DatabaseStruct {}
+
+pub fn compile(input: &str) -> VirdantResult<()> {
+    let mut db = DatabaseStruct::default();
+    db.set_source(Arc::new(input.to_string()));
+
+    let package = db.package_hir()?;
+    let mut stdout = std::io::stdout();
+    package.mlir(&mut stdout).map_err(|_err| VirdantError::Unknown)?;
+    Ok(())
+}
 
 #[test]
 fn foo() {

@@ -4,15 +4,7 @@ public module Top {
     incoming in : Word[8];
     outgoing out : Word[8];
 
-    submodule buf of Buffer;
-    buf.in := in;
-
-    out := buf.out->add(in);
-}
-
-module Buffer {
-    incoming clk : Clock;
-    incoming in : Word[8];
-    outgoing out : Word[8] := in;
-    reg buf : Word[8] on clk <= in;
+    reg buf : Word[8] on clk;
+    buf <= in;
+    out := buf->add(in);
 }

@@ -96,7 +96,7 @@ InlineConnect: InlineConnect = {
 }
 
 Submodule: Submodule = {
-    "submodule" <name:Id> "of" <moddef:Id> => Submodule(name, moddef),
+    "submodule" <name:Id> "of" <moddef:Id> => Submodule { name, moddef },
 }
 
 Type: Box<Type> = {

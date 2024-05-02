@@ -1,35 +1,35 @@
 use crate::common::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Package {
     pub items: Vec<Item>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Item {
     ModDef(ModDef),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum Visibility {
     Public,
     Private,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModDef {
     pub name: Ident,
     pub decls: Vec<Decl>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Decl {
     Component(Component),
     Submodule(Submodule),
     Connect(Connect),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Component {
     pub name: Ident,
     pub kind: ComponentKind,
@@ -46,7 +46,7 @@ pub enum Type {
     Vec(Box<Type>, usize),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ComponentKind {
     Incoming,
     Outgoing,
@@ -54,7 +54,7 @@ pub enum ComponentKind {
     Reg,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr {
     Reference(Path),
     Word(WordLit),
@@ -64,28 +64,31 @@ pub enum Expr {
     As(Box<Expr>, Type),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Connect(pub Path, pub ConnectType, pub Expr);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InlineConnect(pub ConnectType, pub Expr);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum ConnectType {
     Continuous,
     Latched,
 }
 
-#[derive(Debug, Clone)]
-pub struct Submodule(pub Ident, pub Ident);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Submodule {
+    pub name: Ident, 
+    pub moddef: Ident,
+}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WordLit {
     pub value: u64,
     pub width: Option<Width>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WithEdit {
     Idx(u64, Box<Expr>),
     Field(Field, Box<Expr>),

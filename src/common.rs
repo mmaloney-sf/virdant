@@ -21,15 +21,16 @@ impl std::fmt::Debug for Path {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VirdantError {
     Multiple(Vec<VirdantError>),
     TypeError(TypeError),
+    ParseError(String),
     Other(String),
     Unknown,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeError {
     TypeMismatch(),
     CantInfer,

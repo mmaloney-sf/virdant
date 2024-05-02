@@ -16,3 +16,4 @@ lalrpop = "0.20.2"
 [dependencies]
 lalrpop = "0.20.2"
 lalrpop-util = "0.20.2"
+salsa = "0.16.1"

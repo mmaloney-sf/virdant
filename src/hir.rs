@@ -176,11 +176,11 @@ impl ModDef {
                     };
                     entities.push(Entity::Component(c));
                 },
-                ast::Decl::Submodule(ast::Submodule(name, moddef_name)) => {
+                ast::Decl::Submodule(ast::Submodule { name, moddef }) => {
                     entities.push(
                         Entity::Submodule(Submodule {
                             name: name.clone(),
-                            moddef_name: moddef_name.clone(),
+                            moddef_name: moddef.clone(),
                         })
                     );
                 },

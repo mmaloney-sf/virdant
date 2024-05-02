@@ -18,7 +18,7 @@ use crate::common::*;
 use crate::context::Context;
 use super::Type;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Expr(Option<Arc<Type>>, Arc<ExprNode>);
 
 impl Expr {
@@ -31,7 +31,7 @@ impl Expr {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExprNode {
     Reference(ExprReference),
     Word(ExprWord),

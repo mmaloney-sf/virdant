@@ -1,7 +1,7 @@
 use crate::common::*;
 use super::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExprWord(pub u64, pub Option<Width>);
 
 impl IsExpr for ExprWord {

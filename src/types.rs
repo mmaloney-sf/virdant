@@ -1,6 +1,6 @@
 use crate::common::*;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Type {
     Unknown,
     Clock,

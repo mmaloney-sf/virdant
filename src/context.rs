@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 /// A [`Context`] is an associative list which assigns each element with type information.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Context<K, T>(Arc<Vec<(K, T)>>);
 
 impl<K: Eq + Clone, T: Clone> Context<K, T> {

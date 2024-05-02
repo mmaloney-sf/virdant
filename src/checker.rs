@@ -2,6 +2,8 @@ use std::sync::Arc;
 use crate::common::*;
 use crate::ast;
 use crate::parse;
+use crate::hir;
+use crate::context::Context;
 
 #[salsa::query_group(QueryGroupStorage)]
 trait QueryGroup: salsa::Database {
@@ -26,9 +28,74 @@ trait QueryGroup: salsa::Database {
 
     fn moddef_component_type(&self, moddef: Ident, component: Ident) -> Result<ast::Type, VirdantError>;
 
-    fn moddef_component_connects(&self, moddef: Ident, entity: Ident) -> Result<Vec<ast::InlineConnect>, VirdantError>;
+    fn moddef_component_connects(&self, moddef: Ident, component: Ident) -> Result<Vec<ast::InlineConnect>, VirdantError>;
+
+    fn moddef_context(&self, moddef: Ident) -> Result<Context<Path, Arc<crate::types::Type>>, VirdantError>;
+
+    fn typecheck_component(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Expr>;
+
+    fn typecheck_expr(&self, ctx: Context<Path, Arc<crate::types::Type>>, expr: ast::Expr, typ: ast::Type) -> VirdantResult<hir::Expr>;
+
+    fn check_moddef(&self, moddef: Ident) -> VirdantResult<()>;
 
     fn check(&self) -> Result<(), VirdantError>;
+
+    fn package_hir(&self) -> VirdantResult<hir::Package>;
+}
+
+
+fn package_hir(db: &dyn QueryGroup) -> VirdantResult<hir::Package> {
+    for moddef_name in db.package_moddef_names()? {
+        let moddef_ast = db.moddef_ast(moddef_name.clone())?;
+    }
+
+    todo!()
+}
+
+fn moddef_hir(db: &dyn QueryGroup, moddef: Ident) -> VirdantResult<hir::ModDef> {
+    let mut entities: Vec<hir::Entity> = vec![];
+    let mut connects: Vec<hir::Connect> = vec![];
+
+    for decl in db.moddef_ast(moddef.clone())?.decls {
+        match decl {
+            ast::Decl::Component(c) => todo!(),
+            ast::Decl::Submodule(m) => todo!(),
+            ast::Decl::Connect(ast::Connect(target, connect_type, expr)) => {
+//                connects.add();
+                todo!()
+            },
+        }
+    }
+
+    Ok(hir::ModDef {
+        name: moddef.clone(),
+        entities,
+        connects,
+    })
+}
+
+
+fn moddef_context(db: &dyn QueryGroup, moddef: Ident) -> Result<Context<Path, Arc<crate::types::Type>>, VirdantError> {
+    let mut ctx = Context::empty();
+    for component in db.moddef_component_names(moddef.clone())? {
+        let typ = crate::types::Type::from_ast(&db.moddef_component_type(moddef.clone(), component.clone())?);
+        ctx = ctx.extend(component.as_path(), typ);
+    }
+    Ok(ctx)
+}
+
+fn typecheck_component(db: &dyn QueryGroup, moddef: Ident, component: Ident) -> VirdantResult<hir::Expr> {
+    let ast::InlineConnect(_connect_type, expr) = db.moddef_component_connects(moddef.clone(), component.clone())?[0].clone();
+    let ctx = db.moddef_context(moddef.clone())?;
+    let typ = db.moddef_component_type(moddef.clone(), component.clone())?;
+
+    db.typecheck_expr(ctx, expr, typ)
+}
+
+fn typecheck_expr(db: &dyn QueryGroup, ctx: Context<Path, Arc<crate::types::Type>>, expr: ast::Expr, typ: ast::Type) -> VirdantResult<hir::Expr> {
+    let hir_expr = hir::Expr::from_ast(&expr);
+    let typ = crate::types::Type::from_ast(&typ);
+    hir_expr.typecheck(ctx, typ).map_err(|e| VirdantError::TypeError(e))
 }
 
 
@@ -43,23 +110,35 @@ fn moddef_component(db: &dyn QueryGroup, moddef: Ident, component: Ident) -> Res
     Err(VirdantError::Unknown)
 }
 
+fn check_moddef(db: &dyn QueryGroup, moddef: Ident) -> VirdantResult<()> {
+    let mut errors = ErrorReport::new();
+    for component in db.moddef_component_names(moddef.clone())? {
+        let c = db.moddef_component(moddef.clone(), component.clone())?;
+        let connects = db.moddef_component_connects(moddef.clone(), component.clone())?;
+        if c.kind == ast::ComponentKind::Incoming {
+            if connects.len() > 0 {
+                errors.add(VirdantError::Other(format!("connect for incoming {} in {}", component, moddef)));
+            }
+        } else {
+            if connects.len() < 1 {
+                errors.add(VirdantError::Other(format!("no connect for {} in {}", component, moddef)));
+            } else if connects.len() > 1 {
+                errors.add(VirdantError::Other(format!("multiple connects for {} in {}", component, moddef)));
+            } else {
+                if let Err(err) = db.typecheck_component(moddef.clone(), component.clone()) {
+                    errors.add(err);
+                }
+            }
+        }
+    }
+    errors.check()
+}
+
 fn check(db: &dyn QueryGroup) -> Result<(), VirdantError> {
     let mut errors = ErrorReport::new();
     for moddef in &db.package_moddef_names()? {
-        for component in db.moddef_component_names(moddef.clone())? {
-            let c = db.moddef_component(moddef.clone(), component.clone())?;
-            let connects = db.moddef_component_connects(moddef.clone(), component.clone())?;
-            if c.kind == ast::ComponentKind::Incoming {
-                if connects.len() > 0 {
-                    errors.add(VirdantError::Other(format!("connect for incoming {} in {}", component, moddef)));
-                }
-            } else {
-                if connects.len() < 1 {
-                    errors.add(VirdantError::Other(format!("no connect for {} in {}", component, moddef)));
-                } else if connects.len() > 1 {
-                    errors.add(VirdantError::Other(format!("multiple connects for {} in {}", component, moddef)));
-                }
-            }
+        if let Err(err) = db.check_moddef(moddef.clone()) {
+            errors.add(err);
         }
     }
     errors.check()
@@ -193,7 +272,7 @@ fn foo() {
             incoming in : Word[8];
             outgoing out : Word[8];
             reg r : Word[8] on clk <= in;
-            out := in;
+            out := in->add(1w8);
             submodule foo of Foo;
         }
 

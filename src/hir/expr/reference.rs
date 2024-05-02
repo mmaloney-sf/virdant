@@ -1,7 +1,7 @@
 use crate::common::*;
 use super::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExprReference(pub Path);
 
 impl ExprReference {

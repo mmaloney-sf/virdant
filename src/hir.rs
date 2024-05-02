@@ -11,37 +11,37 @@ pub use expr::Expr;
 pub use expr::ExprNode;
 pub use expr::IsExpr;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Package {
     pub items: Vec<Item>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Item {
     ModDef(ModDef),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModDef {
     pub name: Ident,
     pub entities: Vec<Entity>,
     pub connects: Vec<Connect>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Entity {
     Component(Component),
     Submodule(Submodule),
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Submodule {
     pub name: Ident,
     pub moddef_name: Ident,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Component {
     Incoming(Ident, Arc<Type>),
     Outgoing(Ident, Arc<Type>, Option<InlineConnect>),
@@ -56,10 +56,10 @@ enum HirType {
     Vec(Arc<Type>, usize),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InlineConnect(pub ConnectType, pub Expr);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Connect(pub Path, pub ConnectType, pub Expr);
 
 impl InlineConnect {

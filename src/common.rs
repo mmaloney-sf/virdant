@@ -21,6 +21,8 @@ impl std::fmt::Debug for Path {
     }
 }
 
+pub type VirdantResult<T> = Result<T, VirdantError>;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VirdantError {
     Multiple(Vec<VirdantError>),

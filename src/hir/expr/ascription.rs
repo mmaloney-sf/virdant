@@ -1,7 +1,7 @@
 use crate::common::*;
 use super::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExprAs(pub Expr, pub Arc<Type>);
 
 impl IsExpr for ExprAs {

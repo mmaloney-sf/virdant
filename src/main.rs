@@ -21,6 +21,9 @@ pub fn mlir() {
             reg buf : Word[8] on clk <= in->add(1);
         }
 
+        module Foo {
+        }
+
     ";
     checker::compile(package_text).unwrap();
 }

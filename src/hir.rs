@@ -1,5 +1,4 @@
 mod expr;
-mod passes;
 
 use std::collections::HashMap;
 use std::sync::Arc;

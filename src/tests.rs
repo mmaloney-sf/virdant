@@ -24,7 +24,7 @@ fn test_examples() {
                         };
 
                         if let Err(_error) = std::panic::catch_unwind(|| {
-                            checker::compile(&text).unwrap();
+                            checker::check_module(&text).unwrap();
                         }) {
                             errors.push(filename.to_string());
                         }

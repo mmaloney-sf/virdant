@@ -8,7 +8,7 @@ use crate::context::Context;
 use crate::types::Type;
 
 #[salsa::query_group(QueryGroupStorage)]
-trait QueryGroup: salsa::Database {
+pub trait QueryGroup: salsa::Database {
     #[salsa::input]
     fn source(&self) -> Arc<String>;
 
@@ -300,7 +300,7 @@ fn moddef_entity_names(db: &dyn QueryGroup, moddef: Ident) -> Result<Vec<Ident>,
 
 #[salsa::database(QueryGroupStorage)]
 #[derive(Default)]
-struct DatabaseStruct {
+pub struct DatabaseStruct {
     storage: salsa::Storage<Self>,
 }
 
@@ -316,10 +316,10 @@ pub fn compile(input: &str) -> VirdantResult<()> {
     Ok(())
 }
 
-pub fn check_module(input: &str) -> VirdantResult<()> {
+pub fn check_module(input: &str) -> VirdantResult<hir::Package> {
     let mut db = DatabaseStruct::default();
     db.set_source(Arc::new(input.to_string()));
-    db.check()
+    Ok(db.package_hir()?)
 }
 
 #[test]

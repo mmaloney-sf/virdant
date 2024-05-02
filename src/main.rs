@@ -8,7 +8,7 @@ use virdant::types::Type;
 use virdant::checker;
 
 fn main() {
-    mlir();
+    sim();
 }
 
 pub fn mlir() {
@@ -54,44 +54,40 @@ pub fn parse() {
 }
 
 pub fn sim() {
-    let ctx = Context::from(vec![
-        ("r".into(), Type::Word(8).into()),
-        ("in".into(), Type::Word(8).into()),
-        ("out".into(), Type::Word(8).into()),
-    ]);
+    let package = "
+        public module Top {
+            incoming clock : Clock;
+            incoming in : Word[8];
+            outgoing out : Word[8];
+            reg r : Word[8] on clock;
+            r <= r->add(in);
+            out := r;
+        }
+    ";
 
-    let out_expr: Expr = Expr::from_ast(&parse_expr("r").unwrap()).typeinfer(ctx.clone()).unwrap();
-    let in_expr: Expr = Expr::from_ast(&parse_expr("1w8").unwrap()).typeinfer(ctx.clone()).unwrap();
-    let r_expr: Expr = Expr::from_ast(&parse_expr("r->add(in)").unwrap()).typeinfer(ctx.clone()).unwrap();
-
-    let mut sim = Sim::new()
-        .add_simple_node("top.out".into(), out_expr)
-        .add_simple_node("top.in".into(), in_expr)
-        .add_reg_node("top.r".into(), Type::Word(8).into(), Some(Value::Word(8, 100)), r_expr)
-        .build();
-
+    let mut sim = virdant::sim::simulator(package, "Top").unwrap();
     println!("################################################################################");
     println!("Initial");
     println!("{sim}");
 
-    sim.reset();
-    println!("################################################################################");
-    println!("reset");
-    println!("{sim}");
-
-    sim.clock();
-    println!("################################################################################");
-    println!("clock");
-    println!("{sim}");
-
-    sim.clock();
-    println!("################################################################################");
-    println!("clock");
-    println!("{sim}");
-
     sim.poke("top.in".into(), Value::Word(8, 10));
-    println!("poke top.in = 10w8");
     println!("################################################################################");
+    println!("poke top.in = 10w8");
+    println!("{sim}");
+
+//    sim.reset();
+//    println!("################################################################################");
+//    println!("reset");
+//    println!("{sim}");
+
+    sim.clock();
+    println!("################################################################################");
+    println!("clock");
+    println!("{sim}");
+
+    sim.clock();
+    println!("################################################################################");
+    println!("clock");
     println!("{sim}");
 
     sim.clock();

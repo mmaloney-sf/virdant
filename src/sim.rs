@@ -51,7 +51,7 @@ impl SimBuilder {
         self
     }
 
-    pub fn add_reg_node(mut self, path: Path, typ: Arc<Type>, reset: Option<Value>, expr: Expr) -> Self {
+    pub fn add_reg_node(mut self, path: Path, typ: Arc<Type>, clock: Expr, reset: Option<Value>, expr: Expr) -> Self {
         let set_cell_id = self.sim.cells.len();
         let val_cell_id = self.sim.cells.len() + 1;
 
@@ -76,6 +76,20 @@ impl SimBuilder {
         self
     }
 
+    pub fn add_input_node(mut self, path: Path, typ: Arc<Type>) -> Self {
+        let cell_id = self.sim.cells.len();
+
+        let node = Node::Input {
+            cell_id,
+            path: path.clone(),
+            typ: typ.clone(),
+        };
+
+        self.sim.nodes.push(node);
+        self.sim.cells.push(Value::X(typ.clone()));
+        self
+    }
+
     fn patch_sensitivity_lists(&mut self) {
         let mut path_read_cell_ids = HashMap::new();
         for node in &self.sim.nodes {
@@ -84,28 +98,30 @@ impl SimBuilder {
 
 
         for node in &mut self.sim.nodes {
-            let update = node.update_mut();
-            let sensitivities: Vec<CellId> = update
-                .expr
-                .references()
-                .iter()
-                .map(|path| {
-                    let full_path = update.rel.join(path);
-                    path_read_cell_ids[&full_path]
-                })
-                .collect();
-            update.sensitivities = sensitivities;
+            if let Some(update) = node.update_mut() {
+                let sensitivities: Vec<CellId> = update
+                    .expr
+                    .references()
+                    .iter()
+                    .map(|path| {
+                        let full_path = update.rel.join(path);
+                        path_read_cell_ids[&full_path]
+                    })
+                    .collect();
+                update.sensitivities = sensitivities;
+            }
         }
     }
 
     fn initialize_constants(&mut self) {
         for i in 0..self.sim.nodes.len() {
             let node = &self.sim.nodes[i];
-            let update = node.update().clone();
-            if update.is_constant() {
-                let value = self.sim.eval(&update);
-                let cell_id = node.target_cell_id();
-                self.sim.update_cell(cell_id, value);
+            if let Some(update) = node.update().clone() {
+                if update.is_constant() {
+                    let value = self.sim.eval(&update);
+                    let cell_id = node.target_cell_id();
+                    self.sim.update_cell(cell_id, value);
+                }
             }
         }
     }
@@ -128,11 +144,12 @@ impl Sim {
             for node in &self.nodes.clone() {
                 match (event, node) {
                     (Event::CellUpdated(updated_cell_id), _) => {
-                        let update = node.update();
-                        if update.is_sensitive_to(updated_cell_id) {
-                            let value = self.eval(update);
-                            let cell_id = node.target_cell_id();
-                            self.update_cell(cell_id, value);
+                        if let Some(update) = node.update() {
+                            if update.is_sensitive_to(updated_cell_id) {
+                                let value = self.eval(update);
+                                let cell_id = node.target_cell_id();
+                                self.update_cell(cell_id, value);
+                            }
                         }
                     },
                     (Event::Clock(_clock_id), Node::Reg { set_cell_id, val_cell_id, .. }) => {
@@ -196,7 +213,7 @@ impl Sim {
                 return &node;
             }
         }
-        panic!()
+        panic!("No such node: {path}")
     }
 
     fn get_cell(&self, cell_id: CellId) -> &Value {
@@ -242,6 +259,10 @@ impl std::fmt::Display for Sim {
                     write!(f, "{} : {} = ", node.path(), node.type_of())?;
                     writeln!(f, "{} <= {}", *self.get_cell(*val_cell_id), *self.get_cell(*set_cell_id))?;
                 },
+                Node::Input { cell_id, .. } => {
+                    write!(f, "{} : {} = ", node.path(), node.type_of())?;
+                    writeln!(f, "{}", *self.get_cell(*cell_id))?;
+                },
             }
         }
 
@@ -268,6 +289,11 @@ enum Node {
         update: Comb,
         reset: Option<Value>,
     },
+    Input {
+        path: Path,
+        typ: Arc<Type>,
+        cell_id: CellId,
+    },
 }
 
 impl Node {
@@ -275,6 +301,7 @@ impl Node {
         match self {
             Node::Simple { typ, .. } => typ.clone(),
             Node::Reg { typ, .. } => typ.clone(),
+            Node::Input { typ, .. } => typ.clone(),
         }
     }
 
@@ -282,6 +309,7 @@ impl Node {
         match self {
             Node::Simple { cell_id, .. } => *cell_id,
             Node::Reg { val_cell_id, .. } => *val_cell_id,
+            Node::Input { cell_id, .. } => *cell_id,
         }
     }
 
@@ -289,20 +317,23 @@ impl Node {
         match self {
             Node::Simple { cell_id, .. } => *cell_id,
             Node::Reg { set_cell_id, .. } => *set_cell_id,
+            Node::Input { cell_id, .. } => *cell_id,
         }
     }
 
-    pub fn update(&self) -> &Comb {
+    pub fn update(&self) -> Option<&Comb> {
         match self {
-            Node::Simple { update, .. } => update,
-            Node::Reg { update, .. } => update,
+            Node::Simple { update, .. } => Some(update),
+            Node::Reg { update, .. } => Some(update),
+            Node::Input { .. } => None,
         }
     }
 
-    fn update_mut(&mut self) -> &mut Comb {
+    fn update_mut(&mut self) -> Option<&mut Comb> {
         match self {
-            Node::Simple { update, .. } => update,
-            Node::Reg { update, .. } => update,
+            Node::Simple { update, .. } => Some(update),
+            Node::Reg { update, .. } => Some(update),
+            Node::Input { .. } => None,
         }
     }
 
@@ -310,6 +341,7 @@ impl Node {
         match self {
             Node::Simple { path, .. } => path,
             Node::Reg { path, .. } => path,
+            Node::Input { path, .. } => path,
         }
     }
 }
@@ -336,4 +368,38 @@ enum Event {
     CellUpdated(CellId),
     Clock(ClockId),
     Reset(ResetId),
+}
+
+pub fn simulator(input: &str, top: &str) -> VirdantResult<Sim> {
+    use crate::hir;
+    let top: Ident = top.into();
+    use crate::checker::QueryGroup;
+
+    let mut db = crate::checker::DatabaseStruct::default();
+    db.set_source(Arc::new(input.to_string()));
+
+    let ctx = db.moddef_context(top.clone())?;
+    let mut sim = Sim::new();
+
+    for component_name in db.moddef_component_names(top.clone())? {
+        let component = db.moddef_component_hir(top.clone(), component_name.clone())?;
+        let full_path: Path = format!("top.{}", component_name.clone()).into();
+        match component {
+            hir::Component::Incoming(name, typ) => {
+                sim = sim.add_input_node(full_path, typ);
+            }
+            hir::Component::Outgoing(name, typ, expr) => {
+                sim = sim.add_simple_node(full_path, expr);
+            },
+            hir::Component::Wire(name, typ, expr) => {
+                sim = sim.add_simple_node(full_path, expr);
+            },
+            hir::Component::Reg(name, typ, clk, expr) => {
+                let reset = None;
+                sim = sim.add_reg_node(full_path, typ, clk, reset, expr);
+            },
+        }
+    }
+
+    Ok(sim.build())
 }

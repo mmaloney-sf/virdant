@@ -57,12 +57,6 @@ impl InlineConnect {
     }
 }
 
-impl Package {
-    pub fn moddefs(&self) -> Vec<ModDef> {
-        self.moddefs.values().cloned().collect()
-    }
-}
-
 impl Component {
     pub fn name(&self) -> Ident {
         match self {

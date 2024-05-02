@@ -113,3 +113,78 @@ For expressions which are well-typed, but whose type can't be inferred, you can 
 
 Types may have methods defined on them.
 These vary according to the type.
+
+
+## Grammar
+
+```
+Package := Item*
+
+Item := ModDef
+
+Visibility := "public"?
+
+ModDef :=
+    Visibility "module" Id "{"
+        (Decl ";")*
+    "}"
+
+Decl :=
+    Component |
+    Connect |
+    Submodule
+
+Component  :=
+    "incoming" Id ":" Type |
+    "outgoing" Id ":" Type> InlineConnect? |
+    "wire" Id ":" Type InlineConnect? |
+    "reg" Id ":" Type "on" Expr ("reset" Expr)? InlineConnect?
+
+Connect :=
+    Path ":=" Expr |
+    Path "<=" Expr
+
+InlineConnect :=
+    ":=" Expr |
+    "<=" Expr
+
+Submodule := "submodule" Id "of" Id
+
+Type :=
+    "Clock" |
+    "Word" "[" Nat "]"
+
+Expr :=
+    ExprCall
+
+ExprCall :=
+    ExprIdx "->" Id "(" ExprList ")" |
+    ExprIdx "->" "as" "(" Type ")" |
+    ExprIdx => e,
+
+ExprIdx :=
+    ExprBase
+
+ExprBase :=
+    ExprVec |
+    ExprLit |
+    ExprReference |
+    "(" Expr ")"
+
+FieldExprList :=
+    (Id "=" Expr ("," Id "=" Expr)* ","?)?
+
+ExprVec :=
+    "[" ExprList "]" |
+    "[" Expr ";" Nat "]"
+
+ExprList :=
+    (Expr ("," Expr)* ","?)?
+
+ExprLit :=
+     WordLit
+
+ExprReference := Path
+
+Path := Id ("." Id)*
+```

@@ -1,4 +1,3 @@
-// vim: ft=bitsy
 public module Top {
     incoming clk : Clock;
     incoming in : Word[8];

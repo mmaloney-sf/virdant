@@ -1,4 +1,3 @@
-// vim: ft=bitsy
 pub mod Top {
   input clk : Clock;
 

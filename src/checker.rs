@@ -54,7 +54,7 @@ fn package_hir(db: &dyn QueryGroup) -> VirdantResult<hir::Package> {
 
     for moddef_name in db.package_moddef_names()? {
         let moddef_hir = db.moddef_hir(moddef_name.clone())?;
-        moddefs.insert(moddef_name.clone(), moddef_hir);
+        moddefs.insert(moddef_name.clone(), moddef_hir.into());
     }
 
     Ok(hir::Package {

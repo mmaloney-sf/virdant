@@ -371,35 +371,14 @@ enum Event {
 }
 
 pub fn simulator(input: &str, top: &str) -> VirdantResult<Sim> {
-    use crate::hir;
     let top: Ident = top.into();
     use crate::checker::QueryGroup;
 
     let mut db = crate::checker::DatabaseStruct::default();
     db.set_source(Arc::new(input.to_string()));
 
-    let ctx = db.moddef_context(top.clone())?;
-    let mut sim = Sim::new();
-
-    for component_name in db.moddef_component_names(top.clone())? {
-        let component = db.moddef_component_hir(top.clone(), component_name.clone())?;
-        let full_path: Path = format!("top.{}", component_name.clone()).into();
-        match component {
-            hir::Component::Incoming(name, typ) => {
-                sim = sim.add_input_node(full_path, typ);
-            }
-            hir::Component::Outgoing(name, typ, expr) => {
-                sim = sim.add_simple_node(full_path, expr);
-            },
-            hir::Component::Wire(name, typ, expr) => {
-                sim = sim.add_simple_node(full_path, expr);
-            },
-            hir::Component::Reg(name, typ, clk, expr) => {
-                let reset = None;
-                sim = sim.add_reg_node(full_path, typ, clk, reset, expr);
-            },
-        }
-    }
-
-    Ok(sim.build())
+    let package = db.package_hir()?;
+    let elaborated = package.elab(top.into())?;
+    let sim = elaborated.simulator();
+    Ok(sim)
 }

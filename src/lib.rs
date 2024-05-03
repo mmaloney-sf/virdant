@@ -11,3 +11,4 @@ pub mod hir;
 pub mod mlir;
 pub mod checker;
 pub mod common;
+pub mod elab;

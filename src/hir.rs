@@ -6,6 +6,7 @@ use crate::common::*;
 use crate::ast;
 use crate::types::Type;
 use crate::ast::ConnectType;
+use crate::elab;
 
 pub use expr::Expr;
 pub use expr::ExprNode;
@@ -13,7 +14,7 @@ pub use expr::IsExpr;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Package {
-    pub moddefs: HashMap<Ident, ModDef>,
+    pub moddefs: HashMap<Ident, Arc<ModDef>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -84,5 +85,16 @@ impl Type {
             ast::Type::Word(width) => Type::Word(*width).into(),
             ast::Type::Vec(inner, len) => Type::Vec(Type::from_ast(inner), *len).into(),
         }
+    }
+}
+
+impl Package {
+    pub fn elab(&self, top: Ident) -> VirdantResult<elab::Elab> {
+        let moddef = self.moddefs.get(&top).ok_or(VirdantError::Other("Unknown module".into()))?.clone();
+        let submodules = HashMap::new();
+        Ok(elab::Elab {
+            moddef,
+            submodules,
+        })
     }
 }

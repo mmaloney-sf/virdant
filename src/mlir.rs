@@ -33,11 +33,11 @@ impl<'a> Mlir<'a> {
 
     fn mlir_moddef(&mut self, moddef: &ModDef) -> std::io::Result<()> {
         writeln!(self.writer, "virdant.module {} {{", moddef.name)?;
-        for component in &moddef.components() {
+        for component in &moddef.components {
             self.mlir_component(component)?;
 
         }
-        for submodule in &moddef.submodules() {
+        for submodule in &moddef.submodules {
             self.mlir_submodule(submodule)?;
         }
         writeln!(self.writer, "}}")?;

@@ -17,7 +17,7 @@ impl IsExpr for ExprVec {
             let element_type = typed_args[0].type_of().unwrap();
             for typed_arg in &typed_args {
                 if typed_arg.type_of().unwrap() != element_type {
-                    return Err(TypeError::Other);
+                    return Err(TypeError::Unknown);
                 }
             }
             let typ: Arc<Type> = Type::Vec(element_type, self.0.len()).into();

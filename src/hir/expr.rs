@@ -3,12 +3,16 @@ mod reference;
 mod word;
 mod vec;
 mod methodcall;
+mod idx;
+mod cat;
 
 use ascription::*;
 use reference::*;
 use word::*;
 use vec::*;
 use methodcall::*;
+use idx::*;
+use cat::*;
 
 use std::collections::HashSet;
 
@@ -38,6 +42,8 @@ pub enum ExprNode {
     Vec(ExprVec),
     As(ExprAs),
     MethodCall(ExprMethodCall),
+    Idx(ExprIdx),
+    Cat(ExprCat),
 }
 
 impl Expr {
@@ -48,6 +54,8 @@ impl Expr {
             ExprNode::MethodCall(inner) => inner,
             ExprNode::Vec(inner) => inner,
             ExprNode::As(inner) => inner,
+            ExprNode::Idx(inner) => inner,
+            ExprNode::Cat(inner) => inner,
         }
     }
 }
@@ -124,6 +132,17 @@ impl Expr {
             ast::Expr::As(subject, typ) => {
                 let subject_hir: Expr = Expr::from_ast(subject);
                 ExprNode::As(ExprAs(subject_hir, Type::from_ast(typ)))
+            },
+            ast::Expr::Idx(subject, idx) => {
+                let subject_hir: Expr = Expr::from_ast(subject);
+                ExprNode::Idx(ExprIdx(subject_hir, *idx))
+            },
+            ast::Expr::Cat(es) => {
+                let mut es_hir = vec![];
+                for e in es {
+                    es_hir.push(Expr::from_ast(e));
+                }
+                ExprNode::Cat(ExprCat(es_hir))
             },
             _ => todo!(),
         };

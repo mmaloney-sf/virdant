@@ -24,8 +24,6 @@ pub trait QueryGroup: salsa::Database {
 
     fn moddef_hir_typed(&self, moddef: Ident) -> VirdantResult<hir::ModDef>;
 
-    fn moddef_entity_names(&self, moddef: Ident) -> Result<Vec<Ident>, VirdantError>;
-
     fn moddef_component_names(&self, moddef: Ident) -> Result<Vec<Ident>, VirdantError>;
 
     fn moddef_submodules(&self, moddef: Ident) -> Result<Vec<hir::Submodule>, VirdantError>;
@@ -35,8 +33,6 @@ pub trait QueryGroup: salsa::Database {
     fn moddef_component_hir_typed(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Component>;
 
     fn moddef_component(&self, moddef: Ident, component: Ident) -> Result<ast::Component, VirdantError>;
-
-//    fn moddef_entity_ast(&self, moddef: Ident, entity: Ident) -> Result<Vec<Ident>, VirdantError>;
 
     fn moddef_component_type(&self, moddef: Ident, component: Ident) -> Result<ast::Type, VirdantError>;
 
@@ -355,19 +351,6 @@ fn moddef_component_names(db: &dyn QueryGroup, moddef: Ident) -> Result<Vec<Iden
         match decl {
             ast::Decl::Component(component) => result.push(component.name.clone()),
             ast::Decl::Submodule(submodule) => (),
-            ast::Decl::Connect(_connect) => (),
-        }
-    }
-    Ok(result)
-}
-
-fn moddef_entity_names(db: &dyn QueryGroup, moddef: Ident) -> Result<Vec<Ident>, VirdantError> {
-    let moddef = db.moddef_ast(moddef)?;
-    let mut result = vec![];
-    for decl in moddef.decls {
-        match decl {
-            ast::Decl::Component(component) => result.push(component.name.clone()),
-            ast::Decl::Submodule(submodule) => result.push(submodule.name.clone()),
             ast::Decl::Connect(_connect) => (),
         }
     }

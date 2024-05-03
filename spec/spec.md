@@ -114,6 +114,14 @@ For expressions which are well-typed, but whose type can't be inferred, you can 
 Types may have methods defined on them.
 These vary according to the type.
 
+### Concatenation
+
+You concatenate words together using `cat(x, y)`.
+
+### Indexing
+
+You into words with `x[i]`.
+
 
 ## Grammar
 
@@ -158,11 +166,13 @@ Expr :=
     ExprCall
 
 ExprCall :=
+    "cat" "(" ExprList ")" |
     ExprCall "->" Id "(" ExprList ")" |
     ExprCall "->" "as" "(" Type ")" |
-    ExprIdx => e,
+    ExprIdx,
 
 ExprIdx :=
+    ExprIdx "[" Nat "]" |
     ExprBase
 
 ExprBase :=

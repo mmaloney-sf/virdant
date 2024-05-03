@@ -2,6 +2,7 @@ pub use std::sync::Arc;
 
 pub type Width = u64;
 pub type Field = String;
+pub type StaticIndex = u64;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Ident(String);
@@ -36,7 +37,7 @@ pub enum VirdantError {
 pub enum TypeError {
     TypeMismatch(),
     CantInfer,
-    Other,
+    Unknown,
 }
 
 #[derive(Debug, Clone)]

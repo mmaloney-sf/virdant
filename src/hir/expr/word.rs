@@ -28,8 +28,8 @@ impl IsExpr for ExprWord {
                 let typ = Arc::new(Type::Word(*expected_width));
                 Ok(ExprNode::Word(ExprWord(self.value(), Some(*expected_width))).with_type(typ))
             },
-            (Type::Word(_expected_width), None) =>  Err(TypeError::Other),
-            (_, _) => Err(TypeError::Other),
+            (Type::Word(_expected_width), None) =>  Err(TypeError::Unknown),
+            (_, _) => Err(TypeError::Unknown),
         }
     }
 

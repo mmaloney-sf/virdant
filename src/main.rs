@@ -11,6 +11,44 @@ fn main() {
     sim();
 }
 
+pub fn sim() {
+    let package = std::fs::read_to_string("examples/sim.vir").unwrap();
+
+    let mut sim = virdant::sim::simulator(&package, "Top").unwrap();
+    println!("################################################################################");
+    println!("Initial");
+    println!("{sim}");
+
+    sim.poke("top.in".into(), Value::Word(8, 10));
+    println!("################################################################################");
+    println!("poke top.in = 10w8");
+    println!("{sim}");
+
+//    sim.reset();
+//    println!("################################################################################");
+//    println!("reset");
+//    println!("{sim}");
+
+    sim.clock();
+    println!("################################################################################");
+    println!("clock");
+    println!("{sim}");
+
+    sim.clock();
+    println!("################################################################################");
+    println!("clock");
+    println!("{sim}");
+
+    loop {
+    sim.clock();
+    println!("################################################################################");
+    println!("clock");
+    println!("{sim}");
+    std::thread::sleep(std::time::Duration::from_millis(400));
+    }
+}
+
+
 pub fn mlir() {
     let package_text = "
 
@@ -51,40 +89,6 @@ pub fn parse() {
 
     ").unwrap();
     dbg!(package);
-}
-
-pub fn sim() {
-    let package = std::fs::read_to_string("examples/sim.vir").unwrap();
-
-    let mut sim = virdant::sim::simulator(&package, "Top").unwrap();
-    println!("################################################################################");
-    println!("Initial");
-    println!("{sim}");
-
-    sim.poke("top.in".into(), Value::Word(8, 10));
-    println!("################################################################################");
-    println!("poke top.in = 10w8");
-    println!("{sim}");
-
-//    sim.reset();
-//    println!("################################################################################");
-//    println!("reset");
-//    println!("{sim}");
-
-    sim.clock();
-    println!("################################################################################");
-    println!("clock");
-    println!("{sim}");
-
-    sim.clock();
-    println!("################################################################################");
-    println!("clock");
-    println!("{sim}");
-
-    sim.clock();
-    println!("################################################################################");
-    println!("clock");
-    println!("{sim}");
 }
 
 pub fn repl() {

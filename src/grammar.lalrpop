@@ -114,9 +114,11 @@ pub Expr: Box<Expr> = {
 ExprCall: Box<Expr> = {
 //    <ll:@L> <name:Ctor> <rr:@R> =>  Box::new(Expr::Call(name, vec![], vec![])),
 //    <ll:@L> <name:Ctor> "(" <es:ExprList> ")" <rr:@R> =>  Box::new(Expr::Call(name, vec![], es)),
-//    "cat" "(" <es:ExprList> ")" => {
-//        Box::new(Expr::Cat(es))
-//    },
+
+    "cat" "(" <es:ExprList> ")" => {
+        Box::new(Expr::Cat(es))
+    },
+
 //    <ll:@L> <name:Id> "(" <es:ExprList> ")" <rr:@R> => {
 //        Box::new(Expr::FnCall(name, es))
 //    },
@@ -130,11 +132,9 @@ ExprCall: Box<Expr> = {
 }
 
 ExprIdx: Box<Expr> = {
-/*
-    <ll:@L> <e:ExprIdx> "->" <field:Id> <rr:@R> => Box::new(Expr::IdxField(e, field.clone())),
-    <ll:@L> <e:ExprIdx> "[" <i:Nat> "]" <rr:@R> => Box::new(Expr::Idx(e, i)),
-    <ll:@L> <e:ExprIdx> "[" <j:Nat> ".." <i:Nat> "]" <rr:@R> => Box::new(Expr::IdxRange(e, j, i)),
-*/
+//    <ll:@L> <e:ExprIdx> "->" <field:Id> <rr:@R> => Box::new(Expr::IdxField(e, field.clone())),
+    <e:ExprIdx> "[" <i:Nat> "]" => Box::new(Expr::Idx(e, i)),
+//    <ll:@L> <e:ExprIdx> "[" <j:Nat> ".." <i:Nat> "]" <rr:@R> => Box::new(Expr::IdxRange(e, j, i)),
     <e:ExprBase> => e,
 }
 

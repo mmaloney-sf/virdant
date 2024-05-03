@@ -1,0 +1,9 @@
+public module Top {
+    incoming clock : Clock;
+    incoming in : Word[8];
+    outgoing out : Word[8];
+
+    reg r : Word[8] on clock;
+    r <= r->add(in);
+    out := r;
+}

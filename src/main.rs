@@ -54,18 +54,9 @@ pub fn parse() {
 }
 
 pub fn sim() {
-    let package = "
-        public module Top {
-            incoming clock : Clock;
-            incoming in : Word[8];
-            outgoing out : Word[8];
-            reg r : Word[8] on clock;
-            r <= r->add(in);
-            out := r;
-        }
-    ";
+    let package = std::fs::read_to_string("examples/sim.vir").unwrap();
 
-    let mut sim = virdant::sim::simulator(package, "Top").unwrap();
+    let mut sim = virdant::sim::simulator(&package, "Top").unwrap();
     println!("################################################################################");
     println!("Initial");
     println!("{sim}");

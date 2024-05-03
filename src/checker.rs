@@ -22,11 +22,15 @@ pub trait QueryGroup: salsa::Database {
 
     fn moddef_hir(&self, moddef: Ident) -> VirdantResult<hir::ModDef>;
 
+    fn moddef_hir_typed(&self, moddef: Ident) -> VirdantResult<hir::ModDef>;
+
     fn moddef_entity_names(&self, moddef: Ident) -> Result<Vec<Ident>, VirdantError>;
 
     fn moddef_component_names(&self, moddef: Ident) -> Result<Vec<Ident>, VirdantError>;
 
     fn moddef_component_hir(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Component>;
+
+    fn moddef_component_hir_typed(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Component>;
 
     fn moddef_component(&self, moddef: Ident, component: Ident) -> Result<ast::Component, VirdantError>;
 
@@ -53,7 +57,7 @@ fn package_hir(db: &dyn QueryGroup) -> VirdantResult<hir::Package> {
     let mut moddefs = HashMap::new();
 
     for moddef_name in db.package_moddef_names()? {
-        let moddef_hir = db.moddef_hir(moddef_name.clone())?;
+        let moddef_hir = db.moddef_hir_typed(moddef_name.clone())?;
         moddefs.insert(moddef_name.clone(), moddef_hir.into());
     }
 
@@ -63,6 +67,31 @@ fn package_hir(db: &dyn QueryGroup) -> VirdantResult<hir::Package> {
 }
 
 fn moddef_component_hir(db: &dyn QueryGroup, moddef: Ident, component: Ident) -> VirdantResult<hir::Component> {
+    let c = db.moddef_component(moddef.clone(), component.clone())?;
+    let typ = crate::types::Type::from_ast(&c.typ);
+
+    Ok(match c.kind {
+        ast::ComponentKind::Incoming => hir::Component::Incoming(c.name.clone(), typ),
+        ast::ComponentKind::Outgoing => {
+            let ast::InlineConnect(_connect_type, expr) = db.moddef_component_connects(moddef.clone(), component.clone())?[0].clone();
+            let expr = hir::Expr::from_ast(&expr);
+            hir::Component::Outgoing(c.name.clone(), Type::from_ast(&c.typ), expr)
+        },
+        ast::ComponentKind::Wire => {
+            let ast::InlineConnect(_connect_type, expr) = db.moddef_component_connects(moddef.clone(), component.clone())?[0].clone();
+            let expr = hir::Expr::from_ast(&expr);
+            hir::Component::Wire(c.name.clone(), Type::from_ast(&c.typ), expr)
+        },
+        ast::ComponentKind::Reg => {
+            let ast::InlineConnect(_connect_type, expr) = db.moddef_component_connects(moddef.clone(), component.clone())?[0].clone();
+            let expr = hir::Expr::from_ast(&expr);
+            let clock: hir::Expr = hir::Expr::from_ast(&c.clock.unwrap());
+            hir::Component::Reg(c.name.clone(), Type::from_ast(&c.typ), clock, expr)
+        },
+    })
+}
+
+fn moddef_component_hir_typed(db: &dyn QueryGroup, moddef: Ident, component: Ident) -> VirdantResult<hir::Component> {
     let c = db.moddef_component(moddef.clone(), component.clone())?;
     let typ = crate::types::Type::from_ast(&c.typ);
 
@@ -105,6 +134,34 @@ fn moddef_hir(db: &dyn QueryGroup, moddef: Ident) -> VirdantResult<hir::ModDef> 
 
     for component_name in db.moddef_component_names(moddef.clone())? {
         let component = db.moddef_component_hir(moddef.clone(), component_name)?;
+        components.push(component);
+    }
+
+    Ok(hir::ModDef {
+        name: moddef.clone(),
+        components,
+        submodules,
+    })
+}
+
+fn moddef_hir_typed(db: &dyn QueryGroup, moddef: Ident) -> VirdantResult<hir::ModDef> {
+    let mut components: Vec<hir::Component> = vec![];
+    let mut submodules: Vec<hir::Submodule> = vec![];
+
+    for decl in db.moddef_ast(moddef.clone())?.decls {
+        match decl {
+            ast::Decl::Submodule(m) => submodules.push(
+                hir::Submodule {
+                    name: m.name,
+                    moddef: m.moddef,
+                }
+            ),
+            _ => (),
+        }
+    }
+
+    for component_name in db.moddef_component_names(moddef.clone())? {
+        let component = db.moddef_component_hir_typed(moddef.clone(), component_name)?;
         components.push(component);
     }
 

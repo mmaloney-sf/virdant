@@ -3,8 +3,6 @@ public module Top {
     incoming in : Word[8];
     outgoing out : Word[8];
 
-    submodule foo of Foo;
-
     reg buf : Word[8] on clk;
     buf <= in;
     out := buf->add(in);

@@ -28,6 +28,8 @@ pub trait QueryGroup: salsa::Database {
 
     fn moddef_component_names(&self, moddef: Ident) -> Result<Vec<Ident>, VirdantError>;
 
+    fn moddef_submodules(&self, moddef: Ident) -> Result<Vec<hir::Submodule>, VirdantError>;
+
     fn moddef_component_hir(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Component>;
 
     fn moddef_component_hir_typed(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Component>;
@@ -172,12 +174,29 @@ fn moddef_hir_typed(db: &dyn QueryGroup, moddef: Ident) -> VirdantResult<hir::Mo
     })
 }
 
+fn moddef_submodules(db: &dyn QueryGroup, moddef: Ident) -> Result<Vec<hir::Submodule>, VirdantError> {
+    let moddef_hir = db.moddef_hir(moddef.clone())?;
+    Ok(moddef_hir.submodules.iter().cloned().collect())
+}
 
 fn moddef_context(db: &dyn QueryGroup, moddef: Ident) -> Result<Context<Path, Arc<crate::types::Type>>, VirdantError> {
     let mut ctx = Context::empty();
     for component in db.moddef_component_names(moddef.clone())? {
         let typ = crate::types::Type::from_ast(&db.moddef_component_type(moddef.clone(), component.clone())?);
         ctx = ctx.extend(component.as_path(), typ);
+    }
+
+    for submodule in db.moddef_submodules(moddef.clone())? {
+        let submodule_moddef = db.moddef_hir(submodule.moddef.clone())?;
+        for component in &submodule_moddef.components {
+            if let hir::Component::Incoming(name, typ) = component {
+                let path = submodule.name.as_path().join(&name.as_path());
+                ctx = ctx.extend(path, typ.clone());
+            } else if let hir::Component::Outgoing(name, typ, _connect) = component {
+                let path = submodule.name.as_path().join(&name.as_path());
+                ctx = ctx.extend(path, typ.clone());
+            }
+        }
     }
     Ok(ctx)
 }

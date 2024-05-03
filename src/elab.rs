@@ -5,6 +5,7 @@ use crate::sim::{Sim, SimBuilder};
 use crate::types::Type;
 use crate::context::Context;
 
+#[derive(Clone, Debug)]
 pub struct Elab {
     pub moddef: Arc<hir::ModDef>,
     pub submodules: HashMap<Ident, Elab>,

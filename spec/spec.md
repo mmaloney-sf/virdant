@@ -158,8 +158,8 @@ Expr :=
     ExprCall
 
 ExprCall :=
-    ExprIdx "->" Id "(" ExprList ")" |
-    ExprIdx "->" "as" "(" Type ")" |
+    ExprCall "->" Id "(" ExprList ")" |
+    ExprCall "->" "as" "(" Type ")" |
     ExprIdx => e,
 
 ExprIdx :=

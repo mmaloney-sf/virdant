@@ -120,10 +120,10 @@ ExprCall: Box<Expr> = {
 //    <ll:@L> <name:Id> "(" <es:ExprList> ")" <rr:@R> => {
 //        Box::new(Expr::FnCall(name, es))
 //    },
-    <ll:@L> <s:ExprIdx> "->" <name:Id> "(" <es:ExprList> ")" <rr:@R> => {
+    <ll:@L> <s:ExprCall> "->" <name:Id> "(" <es:ExprList> ")" <rr:@R> => {
         Box::new(Expr::MethodCall(s, name, es))
     },
-    <ll:@L> <s:ExprIdx> "->" "as" "(" <typ:Type> ")" <rr:@R> => {
+    <ll:@L> <s:ExprCall> "->" "as" "(" <typ:Type> ")" <rr:@R> => {
         Box::new(Expr::As(s, *typ))
     },
     <e:ExprIdx> => e,

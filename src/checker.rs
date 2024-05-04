@@ -7,50 +7,79 @@ use crate::hir;
 use crate::context::Context;
 use crate::types::Type;
 
-#[salsa::query_group(QueryGroupStorage)]
-pub trait QueryGroup: salsa::Database {
+#[salsa::query_group(AstQDatabase)]
+pub trait AstQ: salsa::Database {
     #[salsa::input]
     fn source(&self) -> Arc<String>;
-
     fn package_ast(&self) -> Result<ast::Package, VirdantError>;
-
-    fn package_item_names(&self) -> Result<Vec<Ident>, VirdantError>;
-
-    fn package_moddef_names(&self) -> Result<Vec<Ident>, VirdantError>;
-
     fn moddef_ast(&self, moddef: Ident) -> Result<ast::ModDef, VirdantError>;
+}
 
+#[salsa::query_group(QueryGroupStorage)]
+pub trait StructureQ: AstQ {
+    fn package_item_names(&self) -> Result<Vec<Ident>, VirdantError>;
+    fn package_moddef_names(&self) -> Result<Vec<Ident>, VirdantError>;
     fn moddef_hir(&self, moddef: Ident) -> VirdantResult<hir::ModDef>;
-
-    fn moddef_hir_typed(&self, moddef: Ident) -> VirdantResult<hir::ModDef>;
-
     fn moddef_component_names(&self, moddef: Ident) -> Result<Vec<Ident>, VirdantError>;
-
     fn moddef_submodules(&self, moddef: Ident) -> Result<Vec<hir::Submodule>, VirdantError>;
-
     fn moddef_component_hir(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Component>;
-
-    fn moddef_component_hir_typed(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Component>;
-
     fn moddef_component(&self, moddef: Ident, component: Ident) -> Result<ast::Component, VirdantError>;
-
-    fn moddef_component_type(&self, moddef: Ident, component: Ident) -> Result<ast::Type, VirdantError>;
-
     fn moddef_component_connects(&self, moddef: Ident, component: Ident) -> Result<Vec<ast::InlineConnect>, VirdantError>;
 
+}
+
+#[salsa::query_group(TypecheckQStorage)]
+pub trait TypecheckQ: StructureQ {
     fn moddef_context(&self, moddef: Ident) -> Result<Context<Path, Arc<crate::types::Type>>, VirdantError>;
-
+    fn moddef_hir_typed(&self, moddef: Ident) -> VirdantResult<hir::ModDef>;
     fn typecheck_component(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Expr>;
+    fn moddef_component_type(&self, moddef: Ident, component: Ident) -> Result<ast::Type, VirdantError>;
+    fn moddef_component_hir_typed(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Component>;
+}
 
+#[salsa::query_group(PackageQStorage)]
+pub trait PackageQ: TypecheckQ {
     fn check_moddef(&self, moddef: Ident) -> VirdantResult<()>;
-
     fn check(&self) -> Result<(), VirdantError>;
-
     fn package_hir(&self) -> VirdantResult<hir::Package>;
 }
 
+fn check(db: &dyn PackageQ) -> Result<(), VirdantError> {
+    let mut errors = ErrorReport::new();
+    for moddef in &db.package_moddef_names()? {
+        if let Err(err) = db.check_moddef(moddef.clone()) {
+            errors.add(err);
+        }
+    }
+    errors.check()
+}
 
-fn package_hir(db: &dyn QueryGroup) -> VirdantResult<hir::Package> {
+
+fn check_moddef(db: &dyn PackageQ, moddef: Ident) -> VirdantResult<()> {
+    let mut errors = ErrorReport::new();
+    for component in db.moddef_component_names(moddef.clone())? {
+        let c = db.moddef_component(moddef.clone(), component.clone())?;
+        let connects = db.moddef_component_connects(moddef.clone(), component.clone())?;
+        if c.kind == ast::ComponentKind::Incoming {
+            if connects.len() > 0 {
+                errors.add(VirdantError::Other(format!("connect for incoming {} in {}", component, moddef)));
+            }
+        } else {
+            if connects.len() < 1 {
+                errors.add(VirdantError::Other(format!("no connect for {} in {}", component, moddef)));
+            } else if connects.len() > 1 {
+                errors.add(VirdantError::Other(format!("multiple connects for {} in {}", component, moddef)));
+            } else {
+                if let Err(err) = db.typecheck_component(moddef.clone(), component.clone()) {
+                    errors.add(err);
+                }
+            }
+        }
+    }
+    errors.check()
+}
+
+fn package_hir(db: &dyn PackageQ) -> VirdantResult<hir::Package> {
     db.check()?;
     let mut moddefs = HashMap::new();
 
@@ -64,7 +93,7 @@ fn package_hir(db: &dyn QueryGroup) -> VirdantResult<hir::Package> {
     })
 }
 
-fn moddef_component_hir(db: &dyn QueryGroup, moddef: Ident, component: Ident) -> VirdantResult<hir::Component> {
+fn moddef_component_hir(db: &dyn StructureQ, moddef: Ident, component: Ident) -> VirdantResult<hir::Component> {
     let c = db.moddef_component(moddef.clone(), component.clone())?;
     let typ = crate::types::Type::from_ast(&c.typ);
 
@@ -89,7 +118,7 @@ fn moddef_component_hir(db: &dyn QueryGroup, moddef: Ident, component: Ident) ->
     })
 }
 
-fn moddef_component_hir_typed(db: &dyn QueryGroup, moddef: Ident, component: Ident) -> VirdantResult<hir::Component> {
+fn moddef_component_hir_typed(db: &dyn TypecheckQ, moddef: Ident, component: Ident) -> VirdantResult<hir::Component> {
     let c = db.moddef_component(moddef.clone(), component.clone())?;
     let typ = crate::types::Type::from_ast(&c.typ);
 
@@ -114,7 +143,7 @@ fn moddef_component_hir_typed(db: &dyn QueryGroup, moddef: Ident, component: Ide
     })
 }
 
-fn moddef_hir(db: &dyn QueryGroup, moddef: Ident) -> VirdantResult<hir::ModDef> {
+fn moddef_hir(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<hir::ModDef> {
     let mut components: Vec<hir::Component> = vec![];
     let mut submodules: Vec<hir::Submodule> = vec![];
 
@@ -142,7 +171,7 @@ fn moddef_hir(db: &dyn QueryGroup, moddef: Ident) -> VirdantResult<hir::ModDef> 
     })
 }
 
-fn moddef_hir_typed(db: &dyn QueryGroup, moddef: Ident) -> VirdantResult<hir::ModDef> {
+fn moddef_hir_typed(db: &dyn TypecheckQ, moddef: Ident) -> VirdantResult<hir::ModDef> {
     let mut components: Vec<hir::Component> = vec![];
     let mut submodules: Vec<hir::Submodule> = vec![];
 
@@ -170,12 +199,12 @@ fn moddef_hir_typed(db: &dyn QueryGroup, moddef: Ident) -> VirdantResult<hir::Mo
     })
 }
 
-fn moddef_submodules(db: &dyn QueryGroup, moddef: Ident) -> Result<Vec<hir::Submodule>, VirdantError> {
+fn moddef_submodules(db: &dyn StructureQ, moddef: Ident) -> Result<Vec<hir::Submodule>, VirdantError> {
     let moddef_hir = db.moddef_hir(moddef.clone())?;
     Ok(moddef_hir.submodules.iter().cloned().collect())
 }
 
-fn moddef_context(db: &dyn QueryGroup, moddef: Ident) -> Result<Context<Path, Arc<crate::types::Type>>, VirdantError> {
+fn moddef_context(db: &dyn TypecheckQ, moddef: Ident) -> Result<Context<Path, Arc<crate::types::Type>>, VirdantError> {
     let mut ctx = Context::empty();
     for component in db.moddef_component_names(moddef.clone())? {
         let typ = crate::types::Type::from_ast(&db.moddef_component_type(moddef.clone(), component.clone())?);
@@ -197,7 +226,7 @@ fn moddef_context(db: &dyn QueryGroup, moddef: Ident) -> Result<Context<Path, Ar
     Ok(ctx)
 }
 
-fn typecheck_component(db: &dyn QueryGroup, moddef: Ident, component: Ident) -> VirdantResult<hir::Expr> {
+fn typecheck_component(db: &dyn TypecheckQ, moddef: Ident, component: Ident) -> VirdantResult<hir::Expr> {
     let ast::InlineConnect(_connect_type, expr) = db.moddef_component_connects(moddef.clone(), component.clone())?[0].clone();
     let ctx = db.moddef_context(moddef.clone())?;
     let typ = Type::from_ast(&db.moddef_component_type(moddef.clone(), component.clone())?);
@@ -214,7 +243,7 @@ fn typecheck_expr(db: &dyn QueryGroup, ctx: Context<Path, Arc<crate::types::Type
 */
 
 
-fn moddef_component(db: &dyn QueryGroup, moddef: Ident, component: Ident) -> Result<ast::Component, VirdantError> {
+fn moddef_component(db: &dyn StructureQ, moddef: Ident, component: Ident) -> Result<ast::Component, VirdantError> {
     let moddef_ast = db.moddef_ast(moddef.clone())?;
     for decl in &moddef_ast.decls {
         match decl {
@@ -225,41 +254,7 @@ fn moddef_component(db: &dyn QueryGroup, moddef: Ident, component: Ident) -> Res
     Err(VirdantError::Other(format!("No such moddef {}", moddef)))
 }
 
-fn check_moddef(db: &dyn QueryGroup, moddef: Ident) -> VirdantResult<()> {
-    let mut errors = ErrorReport::new();
-    for component in db.moddef_component_names(moddef.clone())? {
-        let c = db.moddef_component(moddef.clone(), component.clone())?;
-        let connects = db.moddef_component_connects(moddef.clone(), component.clone())?;
-        if c.kind == ast::ComponentKind::Incoming {
-            if connects.len() > 0 {
-                errors.add(VirdantError::Other(format!("connect for incoming {} in {}", component, moddef)));
-            }
-        } else {
-            if connects.len() < 1 {
-                errors.add(VirdantError::Other(format!("no connect for {} in {}", component, moddef)));
-            } else if connects.len() > 1 {
-                errors.add(VirdantError::Other(format!("multiple connects for {} in {}", component, moddef)));
-            } else {
-                if let Err(err) = db.typecheck_component(moddef.clone(), component.clone()) {
-                    errors.add(err);
-                }
-            }
-        }
-    }
-    errors.check()
-}
-
-fn check(db: &dyn QueryGroup) -> Result<(), VirdantError> {
-    let mut errors = ErrorReport::new();
-    for moddef in &db.package_moddef_names()? {
-        if let Err(err) = db.check_moddef(moddef.clone()) {
-            errors.add(err);
-        }
-    }
-    errors.check()
-}
-
-fn moddef_component_connects(db: &dyn QueryGroup, moddef: Ident, component: Ident) -> Result<Vec<ast::InlineConnect>, VirdantError> {
+fn moddef_component_connects(db: &dyn StructureQ, moddef: Ident, component: Ident) -> Result<Vec<ast::InlineConnect>, VirdantError> {
     let moddef_ast = db.moddef_ast(moddef)?;
     let mut result = vec![];
 
@@ -279,7 +274,7 @@ fn moddef_component_connects(db: &dyn QueryGroup, moddef: Ident, component: Iden
     Ok(result)
 }
 
-fn moddef_component_type(db: &dyn QueryGroup, moddef: Ident, component: Ident) -> Result<ast::Type, VirdantError> {
+fn moddef_component_type(db: &dyn TypecheckQ, moddef: Ident, component: Ident) -> Result<ast::Type, VirdantError> {
     let moddef_ast = db.moddef_ast(moddef)?;
     for decl in &moddef_ast.decls {
         match decl {
@@ -292,34 +287,12 @@ fn moddef_component_type(db: &dyn QueryGroup, moddef: Ident, component: Ident) -
     Err(VirdantError::Other("Component not found".into()))
 }
 
-fn package_ast(db: &dyn QueryGroup) -> Result<ast::Package, VirdantError> {
+fn package_ast(db: &dyn AstQ) -> Result<ast::Package, VirdantError> {
     let input = db.source();
     parse::parse_package(&input)
 }
 
-fn package_moddef_names(db: &dyn QueryGroup) -> Result<Vec<Ident>, VirdantError> {
-    let package = db.package_ast()?;
-    let mut result = vec![];
-    for item in &package.items {
-        match item {
-            ast::Item::ModDef(moddef) => result.push(moddef.name.clone()),
-        }
-    }
-    Ok(result)
-}
-
-fn package_item_names(db: &dyn QueryGroup) -> Result<Vec<Ident>, VirdantError> {
-    let package = db.package_ast()?;
-    let mut result = vec![];
-    for item in &package.items {
-        match item {
-            ast::Item::ModDef(moddef) => result.push(moddef.name.clone()),
-        }
-    }
-    Ok(result)
-}
-
-fn moddef_ast(db: &dyn QueryGroup, key: Ident) -> Result<ast::ModDef, VirdantError> {
+fn moddef_ast(db: &dyn AstQ, key: Ident) -> Result<ast::ModDef, VirdantError> {
     let package = db.package_ast()?;
     let mut result: Option<ast::ModDef> = None;
 
@@ -344,7 +317,30 @@ fn moddef_ast(db: &dyn QueryGroup, key: Ident) -> Result<ast::ModDef, VirdantErr
     }
 }
 
-fn moddef_component_names(db: &dyn QueryGroup, moddef: Ident) -> Result<Vec<Ident>, VirdantError> {
+
+fn package_moddef_names(db: &dyn StructureQ) -> Result<Vec<Ident>, VirdantError> {
+    let package = db.package_ast()?;
+    let mut result = vec![];
+    for item in &package.items {
+        match item {
+            ast::Item::ModDef(moddef) => result.push(moddef.name.clone()),
+        }
+    }
+    Ok(result)
+}
+
+fn package_item_names(db: &dyn StructureQ) -> Result<Vec<Ident>, VirdantError> {
+    let package = db.package_ast()?;
+    let mut result = vec![];
+    for item in &package.items {
+        match item {
+            ast::Item::ModDef(moddef) => result.push(moddef.name.clone()),
+        }
+    }
+    Ok(result)
+}
+
+fn moddef_component_names(db: &dyn StructureQ, moddef: Ident) -> Result<Vec<Ident>, VirdantError> {
     let moddef = db.moddef_ast(moddef)?;
     let mut result = vec![];
     for decl in moddef.decls {
@@ -357,16 +353,16 @@ fn moddef_component_names(db: &dyn QueryGroup, moddef: Ident) -> Result<Vec<Iden
     Ok(result)
 }
 
-#[salsa::database(QueryGroupStorage)]
+#[salsa::database(AstQDatabase, QueryGroupStorage, TypecheckQStorage, PackageQStorage)]
 #[derive(Default)]
-pub struct DatabaseStruct {
+pub struct Database {
     storage: salsa::Storage<Self>,
 }
 
-impl salsa::Database for DatabaseStruct {}
+impl salsa::Database for Database {}
 
 pub fn compile(input: &str) -> VirdantResult<()> {
-    let mut db = DatabaseStruct::default();
+    let mut db = Database::default();
     db.set_source(Arc::new(input.to_string()));
 
     let package = db.package_hir()?;
@@ -376,14 +372,14 @@ pub fn compile(input: &str) -> VirdantResult<()> {
 }
 
 pub fn check_module(input: &str) -> VirdantResult<hir::Package> {
-    let mut db = DatabaseStruct::default();
+    let mut db = Database::default();
     db.set_source(Arc::new(input.to_string()));
     Ok(db.package_hir()?)
 }
 
 #[test]
 fn test_checker() {
-    let mut db = DatabaseStruct::default();
+    let mut db = Database::default();
     db.set_source(Arc::new("
         public module Top {
             incoming clk : Clock;

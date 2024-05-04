@@ -372,9 +372,9 @@ enum Event {
 
 pub fn simulator(input: &str, top: &str) -> VirdantResult<Sim> {
     let top: Ident = top.into();
-    use crate::checker::QueryGroup;
+    use crate::checker::*;
 
-    let mut db = crate::checker::DatabaseStruct::default();
+    let mut db = crate::checker::Database::default();
     db.set_source(Arc::new(input.to_string()));
 
     let package = db.package_hir()?;

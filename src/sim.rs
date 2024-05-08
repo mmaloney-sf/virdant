@@ -376,9 +376,8 @@ pub fn simulator(input: &str, top: &str) -> VirdantResult<Sim> {
 
     let mut db = Database::default();
     db.set_source(Arc::new(input.to_string()));
+    let elaborated = db.elaborate(top.into())?;
 
-    let package = db.package_hir()?;
-    let elaborated = package.elab(top.into())?;
     let sim = elaborated.simulator();
     Ok(sim)
 }

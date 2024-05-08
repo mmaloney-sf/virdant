@@ -39,13 +39,6 @@ pub enum Component {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum HirType {
-    Clock,
-    Word(Width),
-    Vec(Arc<Type>, usize),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InlineConnect(pub ConnectType, pub Expr);
 
 #[derive(Debug, Clone, PartialEq, Eq)]

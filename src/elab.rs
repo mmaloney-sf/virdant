@@ -2,10 +2,8 @@ use std::collections::HashMap;
 use crate::common::*;
 use crate::hir;
 use crate::sim::{Sim, SimBuilder};
-use crate::types::Type;
-use crate::context::Context;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Elab {
     pub moddef: Arc<hir::ModDef>,
     pub submodules: HashMap<Ident, Elab>,

@@ -10,9 +10,10 @@ use crate::ast;
 #[salsa::query_group(TypecheckQStorage)]
 pub trait TypecheckQ: StructureQ {
     fn moddef_context(&self, moddef: Ident) -> Result<Context<Path, Arc<Type>>, VirdantError>;
+    fn moddef_component_type(&self, moddef: Ident, component: Ident) -> Result<ast::Type, VirdantError>;
+
     fn moddef_hir_typed(&self, moddef: Ident) -> VirdantResult<hir::ModDef>;
     fn typecheck_component(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Expr>;
-    fn moddef_component_type(&self, moddef: Ident, component: Ident) -> Result<ast::Type, VirdantError>;
     fn moddef_component_hir_typed(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Component>;
 }
 

@@ -4,13 +4,14 @@ use crate::context::Context;
 use crate::types::Type;
 use crate::parse::{parse_package, parse_expr};
 use crate::ast;
-use crate::db;
+use crate::db::*;
 use crate::hir::*;
 
 #[test]
 fn test_examples() {
     let examples_dir = std::path::Path::new("examples");
     let mut errors = vec![];
+    let mut db = Database::default();
 
     if let Ok(entries) = std::fs::read_dir(examples_dir) {
         for entry in entries {
@@ -22,9 +23,10 @@ fn test_examples() {
                             Ok(text) => text,
                             Err(_) => panic!("Failed to read file {:?}", entry.path()),
                         };
+                        db.set_source(Arc::new(text.to_string()));
 
                         if let Err(_error) = std::panic::catch_unwind(|| {
-                            db::check_module(&text).unwrap();
+                            db.check().unwrap();
                         }) {
                             errors.push(filename.to_string());
                         }
@@ -211,4 +213,25 @@ fn test_typecheck_exprs() {
         ]);
         expr.eval(ctx);
     }
+}
+
+#[test]
+fn test_checker() {
+    let mut db = Database::default();
+    db.set_source(Arc::new("
+        public module Top {
+            incoming clk : Clock;
+            incoming in : Word[8];
+            outgoing out : Word[8];
+            reg r : Word[8] on clk <= in;
+            out := in->add(1w8);
+            submodule foo of Foo;
+        }
+
+        module Foo {
+            wire w : Word[8] := 0;
+        }
+    ".to_string()));
+
+    db.check().unwrap();
 }

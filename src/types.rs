@@ -16,8 +16,8 @@ impl std::fmt::Display for Type {
             Type::Unknown => write!(f, "UNKNOWN"),
             Type::Clock => write!(f, "Clock"),
             Type::Bool => write!(f, "Bool"),
-            Type::Word(width) => write!(f, "Word<{width}>"),
-            Type::Vec(typ, n) => write!(f, "Vec<{typ}, {n}>"),
+            Type::Word(width) => write!(f, "Word[{width}]"),
+            Type::Vec(typ, n) => write!(f, "Vec[{typ}, {n}]"),
             Type::Other(typename) => write!(f, "{typename}"),
         }
     }

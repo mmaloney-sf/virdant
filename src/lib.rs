@@ -9,6 +9,6 @@ pub mod types;
 pub mod sim;
 pub mod hir;
 pub mod mlir;
-pub mod checker;
+pub mod db;
 pub mod common;
 pub mod elab;

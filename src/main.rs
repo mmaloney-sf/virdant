@@ -1,11 +1,10 @@
 use virdant::context::Context;
 use virdant::parse::{parse_package, parse_expr};
 use virdant::value::*;
-use virdant::sim::*;
 use virdant::hir::*;
 use virdant::common::*;
 use virdant::types::Type;
-use virdant::checker;
+use virdant::db;
 
 fn main() {
     sim();
@@ -63,7 +62,7 @@ pub fn mlir() {
         }
 
     ";
-    checker::compile(package_text).unwrap();
+    db::compile(package_text).unwrap();
 }
 
 pub fn parse() {

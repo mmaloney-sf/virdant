@@ -4,7 +4,7 @@ use crate::context::Context;
 use crate::types::Type;
 use crate::parse::{parse_package, parse_expr};
 use crate::ast;
-use crate::checker;
+use crate::db;
 use crate::hir::*;
 
 #[test]
@@ -24,7 +24,7 @@ fn test_examples() {
                         };
 
                         if let Err(_error) = std::panic::catch_unwind(|| {
-                            checker::check_module(&text).unwrap();
+                            db::check_module(&text).unwrap();
                         }) {
                             errors.push(filename.to_string());
                         }

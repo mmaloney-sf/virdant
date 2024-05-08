@@ -1,9 +1,9 @@
 public module Top {
     incoming clock : Clock;
     incoming in : Word[8];
-    outgoing out : Word[9];
+    outgoing out : Word[8];
 
     reg r : Word[8] on clock;
     r <= r->add(1);
-    out := cat(r, 1w1);
+    out := r->neg();
 }

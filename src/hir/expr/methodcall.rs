@@ -31,41 +31,85 @@ impl IsExpr for ExprMethodCall {
         let subject_type: &Type = &typed_subject.type_of().unwrap();
 
         match (subject_type, method.as_str()) {
-            (Type::Word(n), "eq") => {
+            (Type::Word(n), method@("eq" | "lt" | "gt" | "lte" | "gte")) => {
                 assert_eq!(args.len(), 1);
                 let arg: Expr = args[0].clone();
                 let typed_arg = arg.typecheck(ctx.clone(),  Type::Word(*n).into())?;
                 let typ: Arc<Type> = Type::Word(1).into();
-                Ok(ExprNode::MethodCall(ExprMethodCall(typed_subject, "eq".into(), vec![typed_arg])).with_type(typ))
+                Ok(ExprNode::MethodCall(ExprMethodCall(typed_subject, method.into(), vec![typed_arg])).with_type(typ))
             },
-            // 1w8->add(2)
-            (Type::Word(n), "add") => {
+            (Type::Word(n), method@("add" | "sub" | "and" | "or")) => {
                 assert_eq!(args.len(), 1);
                 let arg: Expr = args[0].clone();
                 let typed_arg = arg.typecheck(ctx.clone(),  Type::Word(*n).into())?;
                 let typ: Arc<Type> = Type::Word(*n).into();
-                Ok(ExprNode::MethodCall(ExprMethodCall(typed_subject, "add".into(), vec![typed_arg])).with_type(typ))
+                Ok(ExprNode::MethodCall(ExprMethodCall(typed_subject, method.into(), vec![typed_arg])).with_type(typ))
+            },
+            (Type::Word(n), method@("not" | "neg")) => {
+                assert_eq!(args.len(), 0);
+                let typ: Arc<Type> = Type::Word(*n).into();
+                Ok(ExprNode::MethodCall(ExprMethodCall(typed_subject, method.into(), vec![])).with_type(typ))
             },
             _ => panic!(),
         }
     }
 
-    fn eval(&self, ctx: Context<Path, Value>, _typ: Arc<Type>) -> Value {
+    fn eval(&self, ctx: Context<Path, Value>, typ: Arc<Type>) -> Value {
         let ExprMethodCall(subject, name, args) = self;
         let subject_value: Value = subject.eval(ctx.clone());
         let arg_values: Vec<Value> = args.iter().map(|arg| arg.eval(ctx.clone())).collect();
         let subject_type = &*subject.type_of().unwrap();
 
-        match (subject_type, name.as_str()) {
+        let result_value = match (subject_type, name.as_str()) {
             (Type::Word(_n), "eq") => {
-                Value::Bool(subject_value == *arg_values.first().unwrap())
+                let v = (subject_value.unwrap_word() == arg_values.first().unwrap().unwrap_word()) as u64;
+                Value::Word(1, v)
+            },
+            (Type::Word(_n), "lt") => {
+                let v = (subject_value.unwrap_word() < arg_values.first().unwrap().unwrap_word()) as u64;
+                Value::Word(1, v)
+            },
+            (Type::Word(_n), "lte") => {
+                let v = (subject_value.unwrap_word() <= arg_values.first().unwrap().unwrap_word()) as u64;
+                Value::Word(1, v)
+            },
+            (Type::Word(_n), "gt") => {
+                let v = (subject_value.unwrap_word() > arg_values.first().unwrap().unwrap_word()) as u64;
+                Value::Word(1, v)
+            },
+            (Type::Word(_n), "gte") => {
+                let v = (subject_value.unwrap_word() >= arg_values.first().unwrap().unwrap_word()) as u64;
+                Value::Word(1, v)
+            },
+            (Type::Word(n), "and") => {
+                let v = subject_value.unwrap_word() & arg_values.first().unwrap().unwrap_word();
+                Value::Word(*n, v)
+            },
+            (Type::Word(n), "or") => {
+                let v = subject_value.unwrap_word() | arg_values.first().unwrap().unwrap_word();
+                Value::Word(*n, v)
             },
             (Type::Word(n), "add") => {
                 let a = subject_value.unwrap_word();
                 let b = arg_values.first().unwrap().unwrap_word();
                 Value::Word(*n, a.wrapping_add(b) % (1 << n))
             },
+            (Type::Word(n), "sub") => {
+                let a = subject_value.unwrap_word();
+                let b = arg_values.first().unwrap().unwrap_word();
+                Value::Word(*n, a.wrapping_sub(b) % (1 << n))
+            },
+            (Type::Word(n), "not") => {
+                let a = subject_value.unwrap_word();
+                Value::Word(*n, !a % (1 << n))
+            },
+            (Type::Word(n), "neg") => {
+                let a = subject_value.unwrap_word();
+                Value::Word(*n, !a % (1 << n))
+            },
             _ => panic!(),
-        }
+        };
+        assert_eq!(result_value.type_of(), typ);
+        result_value
     }
 }

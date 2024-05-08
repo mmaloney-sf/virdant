@@ -8,8 +8,8 @@ use std::sync::Arc;
 pub trait AstQ: salsa::Database {
     #[salsa::input]
     fn source(&self) -> Arc<String>;
-    fn package_ast(&self) -> Result<ast::Package, VirdantError>;
-    fn moddef_ast(&self, moddef: Ident) -> Result<ast::ModDef, VirdantError>;
+    fn package_ast(&self) -> VirdantResult<ast::Package>;
+    fn moddef_ast(&self, moddef: Ident) -> VirdantResult<ast::ModDef>;
 }
 
 fn package_ast(db: &dyn AstQ) -> Result<ast::Package, VirdantError> {

@@ -8,7 +8,7 @@ use crate::elab;
 #[salsa::query_group(PackageQStorage)]
 pub trait PackageQ: TypecheckQ {
     fn check_moddef(&self, moddef: Ident) -> VirdantResult<()>;
-    fn check(&self) -> Result<(), VirdantError>;
+    fn check(&self) -> VirdantResult<()>;
     fn elaborate(&self, moddef: Ident) -> VirdantResult<elab::Elab>;
 
     fn package_hir(&self) -> VirdantResult<hir::Package>;

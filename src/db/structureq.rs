@@ -7,18 +7,18 @@ pub use super::AstQ;
 
 #[salsa::query_group(StructureQStorage)]
 pub trait StructureQ: AstQ {
-    fn package_item_names(&self) -> Result<Vec<Ident>, VirdantError>;
-    fn package_moddef_names(&self) -> Result<Vec<Ident>, VirdantError>;
+    fn package_item_names(&self) -> VirdantResult<Vec<Ident>>;
+    fn package_moddef_names(&self) -> VirdantResult<Vec<Ident>>;
     fn moddef_hir(&self, moddef: Ident) -> VirdantResult<hir::ModDef>;
-    fn moddef_component_names(&self, moddef: Ident) -> Result<Vec<Ident>, VirdantError>;
-    fn moddef_submodules(&self, moddef: Ident) -> Result<Vec<hir::Submodule>, VirdantError>;
+    fn moddef_component_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
+    fn moddef_submodules(&self, moddef: Ident) -> VirdantResult<Vec<hir::Submodule>>;
     fn moddef_component_hir(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Component>;
-    fn moddef_component(&self, moddef: Ident, component: Ident) -> Result<ast::Component, VirdantError>;
-    fn moddef_component_connects(&self, moddef: Ident, component: Ident) -> Result<Vec<ast::InlineConnect>, VirdantError>;
+    fn moddef_component(&self, moddef: Ident, component: Ident) -> VirdantResult<ast::Component>;
+    fn moddef_component_connects(&self, moddef: Ident, component: Ident) -> VirdantResult<Vec<ast::InlineConnect>>;
 
-    fn check_item_names_unique(&self) -> Result<(), VirdantError>;
-    fn check_submodule_moddefs_exist(&self) -> Result<(), VirdantError>;
-    fn check_no_submodule_cycles(&self) -> Result<(), VirdantError>;
+    fn check_item_names_unique(&self) -> VirdantResult<()>;
+    fn check_submodule_moddefs_exist(&self) -> VirdantResult<()>;
+    fn check_no_submodule_cycles(&self) -> VirdantResult<()>;
 }
 
 fn moddef_component_hir(db: &dyn StructureQ, moddef: Ident, component: Ident) -> VirdantResult<hir::Component> {

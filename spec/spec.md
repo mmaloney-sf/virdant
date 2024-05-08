@@ -114,13 +114,50 @@ For expressions which are well-typed, but whose type can't be inferred, you can 
 Types may have methods defined on them.
 These vary according to the type.
 
+#### Arithmetic
+* `a->add(b)` - Add `b` to `a`. Both must have the same bitwidth.
+* `a->sub(b)` - Subtract `b` from `a`. Both must have the same bitwidth.
+* `a->neg()` - Negation of `a`. Result is the same type as `a`.
+
+### Comparison
+* `a->eq(b)` - Compare `a` to `b`. Both must have the same bitwidth. Result is a `Word[1]`.
+* `a->lt(b)` - Less than. Compare `a` to `b`. Both must have the same bitwidth. Result is a `Word[1]`.
+* `a->lte(b)` - Less than or equal. Compare `a` to `b`. Both must have the same bitwidth. Result is a `Word[1]`.
+* `a->gt(b)` - Greater than. Compare `a` to `b`. Both must have the same bitwidth. Result is a `Word[1]`.
+* `a->gte(b)` - Greater than or equal. Compare `a` to `b`. Both must have the same bitwidth. Result is a `Word[1]`.
+
+### Logic
+* `a->and(b)` - Logical AND `a` and `b`. Both must have the same bitwidth. Result is the same bitwidth.
+* `a->or(b)` - Logical OR `a` and `b`. Both must have the same bitwidth. Result is the same bitwidth.
+* `a->not()` - Logical NOT `a`. Result is the same bitwidth.
+
+### Shifts
+* `a->sll(b)` - Shift left logical. The values `a` and `b` may have different bitwidths. Result is the same type as `a`.
+* `a->srl(b)` - Shift left logical. The values `a` and `b` may have different bitwidths. Result is the same type as `a`.
+
+### Dynamic Index
+* `a->get(i)` - Indexes into `a` fetching the bit in position `i`. When `i` is 0, this is the least significant bit. The bitwidth of `a` must be a power of 2 and the bitwidth of `i` must be the same as that power.
+
+
 ### Concatenation
 
 You concatenate words together using `cat(x, y)`.
+The results of each operand must be inferrable.
 
 ### Indexing
 
-You into words with `x[i]`.
+You index into words with `x[0]`, `x[1]`, `x[2]`, etc.
+The index must be a constant literal.
+`x[0]` is the least significant bit.
+
+### Slicing
+
+You slice into words with `x[1..0]`, `x[2..0]`,  `x[2..1]`, etc.
+The indexes must be a constant literals.
+For words, the higher index goes on the left.
+
+The upper index is non-inclusive.
+For example, if `x : Word[8]`, then `x` is the same as `x[8..0]`.
 
 
 ## Grammar

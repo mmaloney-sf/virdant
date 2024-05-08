@@ -50,6 +50,26 @@ impl IsExpr for ExprMethodCall {
                 let typ: Arc<Type> = Type::Word(*n).into();
                 Ok(ExprNode::MethodCall(ExprMethodCall(typed_subject, method.into(), vec![])).with_type(typ))
             },
+            (Type::Word(n), method@("sll" | "srl")) => {
+                assert_eq!(args.len(), 1);
+                let arg: Expr = args[0].clone();
+                let typed_arg = arg.typeinfer(ctx.clone())?;
+
+                let typ: Arc<Type> = Type::Word(*n).into();
+                Ok(ExprNode::MethodCall(ExprMethodCall(typed_subject, method.into(), vec![typed_arg])).with_type(typ))
+            },
+            (Type::Word(n), method@"get") => {
+                if !is_pow2(*n) {
+                    return Err(TypeError::Other(format!("{method} can only be used on Word[n] where n is a power of 2")));
+                }
+                assert_eq!(args.len(), 1);
+                let i = log2(*n);
+                let arg: Expr = args[0].clone();
+                let typed_arg = arg.typecheck(ctx.clone(), Type::Word(i).into())?;
+
+                let typ: Arc<Type> = Type::Word(1).into();
+                Ok(ExprNode::MethodCall(ExprMethodCall(typed_subject, method.into(), vec![typed_arg])).with_type(typ))
+            },
             _ => panic!(),
         }
     }
@@ -107,9 +127,38 @@ impl IsExpr for ExprMethodCall {
                 let a = subject_value.unwrap_word();
                 Value::Word(*n, !a % (1 << n))
             },
+            (Type::Word(n), "sll") => {
+                let v = subject_value.unwrap_word() << arg_values.first().unwrap().unwrap_word();
+                Value::Word(*n, v % (1 << n))
+            },
+            (Type::Word(n), "srl") => {
+                let v = subject_value.unwrap_word() >> arg_values.first().unwrap().unwrap_word();
+                Value::Word(*n, v % (1 << n))
+            },
+            (Type::Word(_n), "get") => {
+                let v = subject_value.unwrap_word();
+                let idx = arg_values.first().unwrap().unwrap_word();
+
+                // eg, 1 in position self.index(), or else all zeroes
+                let v_index_masked = v & (1 << idx);
+                // v_new should be 0b000.....01
+                // eg, 1 in index 0, or else all zeroes
+                let v_new = v_index_masked >> idx;
+                assert!(v_new == 0 || v_new == 1);
+                Value::Word(1, v_new)
+            },
             _ => panic!(),
         };
         assert_eq!(result_value.type_of(), typ);
         result_value
     }
+}
+
+fn is_pow2(n: u64) -> bool {
+    n != 0 && (n & (n - 1)) == 0
+}
+
+fn log2(n: u64) -> u64 {
+    assert!(is_pow2(n));
+    63 - (n.leading_zeros() as u64)
 }

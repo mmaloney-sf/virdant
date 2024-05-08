@@ -134,7 +134,7 @@ ExprCall: Box<Expr> = {
 ExprIdx: Box<Expr> = {
 //    <ll:@L> <e:ExprIdx> "->" <field:Id> <rr:@R> => Box::new(Expr::IdxField(e, field.clone())),
     <e:ExprIdx> "[" <i:Nat> "]" => Box::new(Expr::Idx(e, i)),
-//    <ll:@L> <e:ExprIdx> "[" <j:Nat> ".." <i:Nat> "]" <rr:@R> => Box::new(Expr::IdxRange(e, j, i)),
+    <ll:@L> <e:ExprIdx> "[" <j:Nat> ".." <i:Nat> "]" <rr:@R> => Box::new(Expr::IdxRange(e, j, i)),
     <e:ExprBase> => e,
 }
 

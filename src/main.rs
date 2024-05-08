@@ -18,6 +18,11 @@ pub fn sim() {
     println!("Initial");
     println!("{sim}");
 
+    sim.poke("top.r".into(), Value::Word(8, 1));
+    println!("################################################################################");
+    println!("poke top.r = 1w8");
+    println!("{sim}");
+
     sim.poke("top.in".into(), Value::Word(8, 10));
     println!("################################################################################");
     println!("poke top.in = 10w8");

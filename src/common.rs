@@ -1,4 +1,5 @@
 pub use std::sync::Arc;
+use crate::types::Type;
 
 pub type Width = u64;
 pub type Field = String;
@@ -41,8 +42,9 @@ pub enum VirdantError {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeError {
-    TypeMismatch(),
+    TypeMismatch(Arc<Type>, Arc<Type>),
     CantInfer,
+    Other(String),
     Unknown,
 }
 

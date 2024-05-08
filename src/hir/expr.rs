@@ -4,6 +4,7 @@ mod word;
 mod vec;
 mod methodcall;
 mod idx;
+mod idxrange;
 mod cat;
 
 use ascription::*;
@@ -12,6 +13,7 @@ use word::*;
 use vec::*;
 use methodcall::*;
 use idx::*;
+use idxrange::*;
 use cat::*;
 
 use std::collections::HashSet;
@@ -43,6 +45,7 @@ pub enum ExprNode {
     As(ExprAs),
     MethodCall(ExprMethodCall),
     Idx(ExprIdx),
+    IdxRange(ExprIdxRange),
     Cat(ExprCat),
 }
 
@@ -55,6 +58,7 @@ impl Expr {
             ExprNode::Vec(inner) => inner,
             ExprNode::As(inner) => inner,
             ExprNode::Idx(inner) => inner,
+            ExprNode::IdxRange(inner) => inner,
             ExprNode::Cat(inner) => inner,
         }
     }
@@ -91,7 +95,7 @@ pub trait IsExpr {
             if type_actual == type_expected {
                 Ok(self_inferred)
             } else {
-                Err(TypeError::TypeMismatch())
+                Err(TypeError::TypeMismatch(type_actual, type_expected))
             }
         } else {
             Err(TypeError::CantInfer)
@@ -136,6 +140,10 @@ impl Expr {
             ast::Expr::Idx(subject, idx) => {
                 let subject_hir: Expr = Expr::from_ast(subject);
                 ExprNode::Idx(ExprIdx(subject_hir, *idx))
+            },
+            ast::Expr::IdxRange(subject, idx0, idx1) => {
+                let subject_hir: Expr = Expr::from_ast(subject);
+                ExprNode::IdxRange(ExprIdxRange(subject_hir, *idx0, *idx1))
             },
             ast::Expr::Cat(es) => {
                 let mut es_hir = vec![];

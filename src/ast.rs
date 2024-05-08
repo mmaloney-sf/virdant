@@ -63,6 +63,7 @@ pub enum Expr {
     MethodCall(Box<Expr>, Ident, Vec<Expr>),
     As(Box<Expr>, Type),
     Idx(Box<Expr>, StaticIndex),
+    IdxRange(Box<Expr>, StaticIndex, StaticIndex),
     Cat(Vec<Expr>),
 }
 

@@ -9,7 +9,7 @@ syntax region blockComment start="/\*" end="\*/"
 hi link lineComment Comment
 hi link blockComment Comment
 
-syn keyword virdantKeyword public module mod enum type shape struct pub end of match if else wire reg incoming outgoing gate field let port init builtin fn top ext reset node when alt import from on affects with test while always task loop it assert cover is set poke peek submodule
+syn keyword virdantKeyword public module mod enum type shape struct pub end of match if else wire reg incoming outgoing gate field let port init builtin fn top ext when alt import from on affects with test while always task loop it assert cover is set poke peek submodule
 hi link virdantKeyword Keyword
 syn keyword virdantConstant true false XXX io
 hi link virdantConstant Number

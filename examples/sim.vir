@@ -3,7 +3,8 @@ public module Top {
     incoming in : Word[8];
     outgoing out : Word[8];
 
-    reg r : Word[8] on clock;
+    reg r : Word[3] on clock;
     r <= r->add(1);
-    out := r->neg();
+
+    out := cat(0w7, 5w8->get(r));
 }

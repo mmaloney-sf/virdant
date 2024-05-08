@@ -7,13 +7,13 @@ pub use super::AstQ;
 
 #[salsa::query_group(StructureQStorage)]
 pub trait StructureQ: AstQ {
-    fn package_item_names(&self) -> VirdantResult<Vec<Ident>>;
-    fn package_moddef_names(&self) -> VirdantResult<Vec<Ident>>;
     fn moddef_hir(&self, moddef: Ident) -> VirdantResult<hir::ModDef>;
-    fn moddef_component_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
     fn moddef_submodules(&self, moddef: Ident) -> VirdantResult<Vec<hir::Submodule>>;
     fn moddef_component_hir(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Component>;
-    fn moddef_component(&self, moddef: Ident, component: Ident) -> VirdantResult<ast::Component>;
+
+    fn package_item_names(&self) -> VirdantResult<Vec<Ident>>;
+    fn package_moddef_names(&self) -> VirdantResult<Vec<Ident>>;
+    fn moddef_component_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
     fn moddef_component_connects(&self, moddef: Ident, component: Ident) -> VirdantResult<Vec<ast::InlineConnect>>;
 
     fn check_item_names_unique(&self) -> VirdantResult<()>;
@@ -22,7 +22,7 @@ pub trait StructureQ: AstQ {
 }
 
 fn moddef_component_hir(db: &dyn StructureQ, moddef: Ident, component: Ident) -> VirdantResult<hir::Component> {
-    let c = db.moddef_component(moddef.clone(), component.clone())?;
+    let c = db.moddef_component_ast(moddef.clone(), component.clone())?;
     let typ = Type::from_ast(&c.typ);
 
     Ok(match c.kind {
@@ -112,17 +112,6 @@ fn package_moddef_names(db: &dyn StructureQ) -> Result<Vec<Ident>, VirdantError>
         }
     }
     Ok(result)
-}
-
-fn moddef_component(db: &dyn StructureQ, moddef: Ident, component: Ident) -> Result<ast::Component, VirdantError> {
-    let moddef_ast = db.moddef_ast(moddef.clone())?;
-    for decl in &moddef_ast.decls {
-        match decl {
-            ast::Decl::Component(c) if c.name == component => return Ok(c.clone()),
-            _ => (),
-        }
-    }
-    Err(VirdantError::Other(format!("No such moddef {}", moddef)))
 }
 
 fn moddef_component_connects(db: &dyn StructureQ, moddef: Ident, component: Ident) -> Result<Vec<ast::InlineConnect>, VirdantError> {

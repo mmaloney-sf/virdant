@@ -8,8 +8,10 @@ use std::sync::Arc;
 pub trait AstQ: salsa::Database {
     #[salsa::input]
     fn source(&self) -> Arc<String>;
+
     fn package_ast(&self) -> VirdantResult<ast::Package>;
     fn moddef_ast(&self, moddef: Ident) -> VirdantResult<ast::ModDef>;
+    fn moddef_component_ast(&self, moddef: Ident, component: Ident) -> VirdantResult<ast::Component>;
 }
 
 fn package_ast(db: &dyn AstQ) -> Result<ast::Package, VirdantError> {
@@ -40,4 +42,15 @@ fn moddef_ast(db: &dyn AstQ, key: Ident) -> Result<ast::ModDef, VirdantError> {
     } else {
         Err(VirdantError::Unknown)
     }
+}
+
+fn moddef_component_ast(db: &dyn AstQ, moddef: Ident, component: Ident) -> Result<ast::Component, VirdantError> {
+    let moddef_ast = db.moddef_ast(moddef.clone())?;
+    for decl in &moddef_ast.decls {
+        match decl {
+            ast::Decl::Component(c) if c.name == component => return Ok(c.clone()),
+            _ => (),
+        }
+    }
+    Err(VirdantError::Other(format!("No such moddef {}", moddef)))
 }

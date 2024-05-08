@@ -18,7 +18,7 @@ pub trait TypecheckQ: StructureQ {
 }
 
 fn moddef_component_hir_typed(db: &dyn TypecheckQ, moddef: Ident, component: Ident) -> VirdantResult<hir::Component> {
-    let c = db.moddef_component(moddef.clone(), component.clone())?;
+    let c = db.moddef_component_ast(moddef.clone(), component.clone())?;
     let typ = Type::from_ast(&c.typ);
 
     Ok(match c.kind {

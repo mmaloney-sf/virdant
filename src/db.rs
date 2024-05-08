@@ -3,16 +3,21 @@ mod structureq;
 mod typecheckq;
 mod packageq;
 
-pub use astq::{AstQ, AstQStorage};
-pub use structureq::{StructureQ, StructureQStorage};
-pub use typecheckq::{TypecheckQ, TypecheckQStorage};
-pub use packageq::{PackageQ, PackageQStorage};
+pub use astq::AstQ;
+pub use structureq::StructureQ;
+pub use typecheckq::TypecheckQ;
+pub use packageq::PackageQ;
 
 use std::sync::Arc;
 use crate::hir;
 use crate::common::*;
 
-#[salsa::database(AstQStorage, StructureQStorage, TypecheckQStorage, PackageQStorage)]
+#[salsa::database(
+    astq::AstQStorage,
+    structureq::StructureQStorage,
+    typecheckq::TypecheckQStorage,
+    packageq::PackageQStorage,
+)]
 #[derive(Default)]
 pub struct Database {
     storage: salsa::Storage<Self>,

@@ -12,6 +12,10 @@ pub trait PackageQ: TypecheckQ {
 }
 
 fn check(db: &dyn PackageQ) -> Result<(), VirdantError> {
+    db.check_item_names_unique()?;
+    db.check_submodule_moddefs_exist()?;
+    db.check_no_submodule_cycles()?;
+
     let mut errors = ErrorReport::new();
     for moddef in &db.package_moddef_names()? {
         if let Err(err) = db.check_moddef(moddef.clone()) {
@@ -20,7 +24,6 @@ fn check(db: &dyn PackageQ) -> Result<(), VirdantError> {
     }
     errors.check()
 }
-
 
 fn check_moddef(db: &dyn PackageQ, moddef: Ident) -> VirdantResult<()> {
     let mut errors = ErrorReport::new();
@@ -59,5 +62,3 @@ fn package_hir(db: &dyn PackageQ) -> VirdantResult<hir::Package> {
         moddefs,
     })
 }
-
-

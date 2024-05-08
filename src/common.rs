@@ -7,6 +7,12 @@ pub type StaticIndex = u64;
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Ident(String);
 
+impl std::borrow::Borrow<str> for Ident {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Path(String);
 

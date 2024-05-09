@@ -7,7 +7,7 @@ use virdant::types::Type;
 use virdant::db;
 
 fn main() {
-    sim();
+    verilog();
 }
 
 pub fn sim() {
@@ -67,7 +67,35 @@ pub fn mlir() {
         }
 
     ";
-    db::compile(package_text).unwrap();
+    db::compile_mlir(package_text).unwrap();
+}
+
+pub fn verilog() {
+    let package_text = "
+
+        public module Top {
+            incoming clk : Clock;
+            incoming in : Word[8];
+            outgoing out : Word[8];
+            reg b : Word[8] on clk <= in->add(1);
+
+            submodule buffer of Buffer;
+            buffer.clk := clk;
+            buffer.in := b;
+            out := buffer.out;
+        }
+
+        module Buffer {
+            incoming clk : Clock;
+            incoming in : Word[8];
+            outgoing out : Word[8];
+
+            reg b : Word[8] on clk <= in;
+            out := b;
+        }
+
+    ";
+    db::compile_verilog(package_text).unwrap();
 }
 
 pub fn parse() {

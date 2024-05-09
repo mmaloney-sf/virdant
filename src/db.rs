@@ -24,12 +24,22 @@ pub struct Database {
 
 impl salsa::Database for Database {}
 
-pub fn compile(input: &str) -> VirdantResult<()> {
+pub fn compile_mlir(input: &str) -> VirdantResult<()> {
     let mut db = Database::default();
     db.set_source(Arc::new(input.to_string()));
 
     let package = db.package_hir()?;
     let mut stdout = std::io::stdout();
     package.mlir(&mut stdout).map_err(|_err| VirdantError::Unknown)?;
+    Ok(())
+}
+
+pub fn compile_verilog(input: &str) -> VirdantResult<()> {
+    let mut db = Database::default();
+    db.set_source(Arc::new(input.to_string()));
+
+    let package = db.package_hir()?;
+    let mut stdout = std::io::stdout();
+    package.verilog(&mut stdout).map_err(|_err| VirdantError::Unknown)?;
     Ok(())
 }

@@ -31,6 +31,18 @@ impl IsExpr for ExprMethodCall {
         let subject_type: &Type = &typed_subject.type_of().unwrap();
 
         match (subject_type, method.as_str()) {
+            (Type::Word(1), method@"mux") => {
+                assert_eq!(args.len(), 2);
+                let arg0: Expr = args[0].clone();
+                let arg1: Expr = args[1].clone();
+                let typed_arg0 = arg0.typeinfer(ctx.clone())?;
+                let typed_arg1 = arg1.typeinfer(ctx.clone())?;
+                if typed_arg0.type_of().unwrap() != typed_arg1.type_of().unwrap() {
+                    return Err(TypeError::Unknown);
+                }
+                let typ: Arc<Type> = typed_arg0.type_of().unwrap();
+                Ok(ExprNode::MethodCall(ExprMethodCall(typed_subject, method.into(), vec![typed_arg0, typed_arg1])).with_type(typ))
+            },
             (Type::Word(n), method@("eq" | "lt" | "gt" | "lte" | "gte")) => {
                 assert_eq!(args.len(), 1);
                 let arg: Expr = args[0].clone();
@@ -81,6 +93,9 @@ impl IsExpr for ExprMethodCall {
         let subject_type = &*subject.type_of().unwrap();
 
         let result_value = match (subject_type, name.as_str()) {
+            (Type::Word(1), "mux") => {
+                todo!(); // TODO
+            },
             (Type::Word(_n), "eq") => {
                 let v = (subject_value.unwrap_word() == arg_values.first().unwrap().unwrap_word()) as u64;
                 Value::Word(1, v)

@@ -113,7 +113,9 @@ impl<'a> Verilog<'a> {
             Component::Reg(name, typ, clk, /* rst, */ expr) => {
                 //let clock_ssa = self.verilog_expr(clk)?;
                 let connect_ssa = self.verilog_expr(&expr)?;
-                writeln!(self.writer, "    reg  [31:0] {name};")?;
+                let width = if let Type::Word(n) = typ.as_ref() { n } else { panic!() };
+                let max_bit = width - 1;
+                writeln!(self.writer, "    reg  [{max_bit}:0] {name};")?;
                 writeln!(self.writer, "    always @(posedge {clk}) begin")?;
                 writeln!(self.writer, "        {name} <= {connect_ssa};")?;
                 writeln!(self.writer, "    end")?;
@@ -169,9 +171,24 @@ impl<'a> Verilog<'a> {
                 }
                 match m.method().as_str() {
                     "add" => {
-                        writeln!(self.writer, "    wire [31:0] {gs} = {subject_ssa} + {};", args_ssa.join(", "))?;
+                        writeln!(self.writer, "    wire [31:0] {gs} = {subject_ssa} + {};", args_ssa[0])?;
                     },
-                    _ => panic!(),
+                    "and" => {
+                        writeln!(self.writer, "    wire [31:0] {gs} = {subject_ssa} && {};", args_ssa[0])?;
+                    },
+                    "or" => {
+                        writeln!(self.writer, "    wire [31:0] {gs} = {subject_ssa} || {};", args_ssa[0])?;
+                    },
+                    "not" => {
+                        writeln!(self.writer, "    wire [31:0] {gs} = ~{subject_ssa};")?;
+                    },
+                    "eq" => {
+                        writeln!(self.writer, "    wire [31:0] {gs} = {subject_ssa} == {};", args_ssa[0])?;
+                    },
+                    "mux" => {
+                        writeln!(self.writer, "    wire [31:0] {gs} = {subject_ssa} ? {};", args_ssa.join(" : "))?;
+                    },
+                    _ => panic!("Unknown method: {}", m.method()),
                 }
                 Ok(gs)
             },

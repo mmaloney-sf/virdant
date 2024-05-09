@@ -62,7 +62,7 @@ impl<'a> Verilog<'a> {
                 if let Type::Word(1) = typ.as_ref() {
                     write!(self.writer, "    input  wire            {name}")?;
                 } else if let Type::Word(n) = typ.as_ref() {
-                    let max_bit = n + 1;
+                    let max_bit = n - 1;
                     let width_str = format!("[{max_bit}:0]");
                     let padded_width_str = format!("{width_str: >8}");
                     write!(self.writer, "    input  wire {padded_width_str} {name}")?;
@@ -76,7 +76,7 @@ impl<'a> Verilog<'a> {
                 if let Type::Word(1) = typ.as_ref() {
                     write!(self.writer, "    output wire             {name}")?;
                 } else if let Type::Word(n) = typ.as_ref() {
-                    let max_bit = n + 1;
+                    let max_bit = n - 1;
                     let width_str = format!("[{max_bit}:0]");
                     let padded_width_str = format!("{width_str: >8}");
                     write!(self.writer, "    output wire {padded_width_str} {name}")?;

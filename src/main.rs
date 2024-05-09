@@ -75,19 +75,22 @@ pub fn verilog() {
 
         public module Top {
             incoming clk : Clock;
-            incoming in : Word[8];
+            incoming in  : Word[8];
             outgoing out : Word[8];
-            reg b : Word[8] on clk <= in->add(1);
+
+            reg b : Word[8] on clk
+                <= in->add(1);
 
             submodule buffer of Buffer;
             buffer.clk := clk;
             buffer.in := b;
+
             out := buffer.out;
         }
 
         module Buffer {
             incoming clk : Clock;
-            incoming in : Word[8];
+            incoming in  : Word[8];
             outgoing out : Word[8];
 
             reg b : Word[8] on clk <= in;

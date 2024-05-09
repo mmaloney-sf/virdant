@@ -111,10 +111,9 @@ impl<'a> Verilog<'a> {
                 writeln!(self.writer, "    assign {name} = {ssa};")?;
             },
             Component::Reg(name, typ, clk, /* rst, */ expr) => {
-                let clock_ssa = self.verilog_expr(clk)?;
                 let connect_ssa = self.verilog_expr(&expr)?;
                 writeln!(self.writer, "    reg  [31:0] {name};")?;
-                writeln!(self.writer, "    always @(posedge clk) begin")?;
+                writeln!(self.writer, "    always @(posedge {clk}) begin")?;
                 writeln!(self.writer, "        {name} <= {connect_ssa};")?;
                 writeln!(self.writer, "    end")?;
             },

@@ -62,9 +62,8 @@ impl<'a> Mlir<'a> {
                 writeln!(self.writer)?;
             },
             Component::Reg(name, typ, clk, /* rst, */ expr) => {
-                let clock_ssa = self.mlir_expr(clk)?;
                 let connect_ssa = self.mlir_expr(&expr)?;
-                write!(self.writer, "    %{name} = virdant.reg({clock_ssa}, {connect_ssa}) : ")?;
+                write!(self.writer, "    %{name} = virdant.reg(%{clk}, {connect_ssa}) : ")?;
                 self.mlir_type(typ.clone())?;
                 writeln!(self.writer)?;
             },

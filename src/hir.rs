@@ -28,6 +28,7 @@ pub struct ModDef {
 pub struct Submodule {
     pub name: Ident,
     pub moddef: Ident,
+//    pub incoming_port_connects: Vec<Connect>, // TODO
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,7 +36,7 @@ pub enum Component {
     Incoming(Ident, Arc<Type>),
     Outgoing(Ident, Arc<Type>, Expr),
     Wire(Ident, Arc<Type>, Expr),
-    Reg(Ident, Arc<Type>, Expr, /*Option<Value>,*/ Expr),
+    Reg(Ident, Arc<Type>, Path, /*Option<Value>,*/ Expr),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

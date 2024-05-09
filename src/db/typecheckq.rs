@@ -33,11 +33,10 @@ fn moddef_component_hir_typed(db: &dyn TypecheckQ, moddef: Ident, component: Ide
         },
         ast::ComponentKind::Reg => {
             let ctx = db.moddef_context(moddef.clone())?;
-            let clock: hir::Expr = hir::Expr::from_ast(&c.clock.unwrap());
-            let clock_typed: hir::Expr = clock.typecheck(ctx, Type::from_ast(&ast::Type::Clock)).map_err(|e| VirdantError::TypeError(e))?;
+            let clock = c.clock.ok_or_else(|| VirdantError::Other(format!("No \"on\" clause for reg")))?;
 
             let expr = db.typecheck_component(moddef.clone(), component.clone())?;
-            hir::Component::Reg(c.name.clone(), Type::from_ast(&c.typ), clock_typed, expr)
+            hir::Component::Reg(c.name.clone(), Type::from_ast(&c.typ), clock, expr)
         },
     })
 }

@@ -51,7 +51,7 @@ impl SimBuilder {
         self
     }
 
-    pub fn add_reg_node(mut self, path: Path, typ: Arc<Type>, clock: Expr, reset: Option<Value>, expr: Expr) -> Self {
+    pub fn add_reg_node(mut self, path: Path, typ: Arc<Type>, clock: Path, reset: Option<Value>, expr: Expr) -> Self {
         let set_cell_id = self.sim.cells.len();
         let val_cell_id = self.sim.cells.len() + 1;
 

@@ -35,7 +35,7 @@ pub struct Component {
     pub kind: ComponentKind,
     pub typ: Type,
     pub connect: Option<InlineConnect>,
-    pub clock: Option<Expr>,
+    pub clock: Option<Path>,
     pub reset: Option<Expr>,
 }
 

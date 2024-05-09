@@ -40,7 +40,7 @@ fn moddef_component_hir(db: &dyn StructureQ, moddef: Ident, component: Ident) ->
         ast::ComponentKind::Reg => {
             let ast::InlineConnect(_connect_type, expr) = db.moddef_component_connects(moddef.clone(), component.clone())?[0].clone();
             let expr = hir::Expr::from_ast(&expr);
-            let clock: hir::Expr = hir::Expr::from_ast(&c.clock.unwrap());
+            let clock = c.clock.ok_or_else(|| VirdantError::Other(format!("No \"on\" clause for reg")))?;
             hir::Component::Reg(c.name.clone(), Type::from_ast(&c.typ), clock, expr)
         },
     })

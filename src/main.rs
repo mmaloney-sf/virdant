@@ -7,7 +7,13 @@ use virdant::types::Type;
 use virdant::db;
 
 fn main() {
-    verilog();
+//    verilog();
+
+    let args: Vec<String> = std::env::args().into_iter().collect();
+    let filename = &args[1];
+
+    let package_text = std::fs::read_to_string(filename).unwrap();
+    db::compile_verilog(&package_text).unwrap();
 }
 
 pub fn sim() {

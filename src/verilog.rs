@@ -111,6 +111,7 @@ impl<'a> Verilog<'a> {
                 writeln!(self.writer, "    assign {name} = {ssa};")?;
             },
             Component::Reg(name, typ, clk, /* rst, */ expr) => {
+                //let clock_ssa = self.verilog_expr(clk)?;
                 let connect_ssa = self.verilog_expr(&expr)?;
                 writeln!(self.writer, "    reg  [31:0] {name};")?;
                 writeln!(self.writer, "    always @(posedge {clk}) begin")?;
@@ -148,6 +149,13 @@ impl<'a> Verilog<'a> {
             ExprNode::Word(w) => {
                 let gs = self.gensym();
                 writeln!(self.writer, "    wire [31:0] {gs} = {};", w.value())?;
+                Ok(gs)
+            },
+            ExprNode::Idx(i) => {
+                let gs = self.gensym();
+                let subject_ssa = self.verilog_expr(&i.subject())?;
+                let index = i.index();
+                writeln!(self.writer, "    wire {gs} = {subject_ssa}[{index}];")?;
                 Ok(gs)
             },
             ExprNode::MethodCall(m) => {

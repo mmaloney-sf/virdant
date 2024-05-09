@@ -5,11 +5,11 @@ use super::*;
 pub struct ExprIdx(pub Expr, pub StaticIndex);
 
 impl ExprIdx {
-    fn subject(&self) -> Expr {
+    pub fn subject(&self) -> Expr {
         self.0.clone()
     }
 
-    fn index(&self) -> StaticIndex {
+    pub fn index(&self) -> StaticIndex {
         self.1
     }
 }

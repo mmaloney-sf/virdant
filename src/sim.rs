@@ -381,7 +381,7 @@ pub fn simulator(input: &str, top: &str) -> VirdantResult<Sim> {
     let top: Ident = top.into();
     use crate::db::*;
 
-    let mut db = Database::default();
+    let mut db = Db::default();
     db.set_source(Arc::new(input.to_string()));
     let elaborated = db.elaborate(top.into())?;
 

@@ -1,36 +1,41 @@
 use std::io::Write;
 
+use crate::common::*;
 use crate::types::Type;
 use crate::hir::*;
+use crate::db::*;
 
 type SsaName = String;
 
-impl Package {
-    pub fn verilog<F: Write>(&self, writer: &mut F) -> std::io::Result<()> {
+impl Db {
+    pub fn verilog<F: Write>(&self, writer: &mut F) -> VirdantResult<()> {
         let mut verilog = Verilog {
             writer,
+            db: self,
             gensym: 0,
         };
 
-        verilog.verilog_package::<dyn Write>(self)?;
+        verilog.verilog_package()?;
         Ok(())
     }
 }
 
 struct Verilog<'a> {
     writer: &'a mut dyn Write,
+    db: &'a Db,
     gensym: usize,
 }
 
 impl<'a> Verilog<'a> {
-    fn verilog_package<F: Write + ?Sized>(&mut self, package: &Package) -> std::io::Result<()> {
+    fn verilog_package(&mut self) -> VirdantResult<()> {
+        let package = self.db.package_hir()?;
         for moddef in package.moddefs.values() {
             self.verilog_moddef(moddef)?;
         }
         Ok(())
     }
 
-    fn verilog_moddef(&mut self, moddef: &ModDef) -> std::io::Result<()> {
+    fn verilog_moddef(&mut self, moddef: &ModDef) -> VirdantResult<()> {
         writeln!(self.writer, "module {}(", moddef.name)?;
         let ports = moddef.ports();
         for (i, port) in ports.iter().enumerate() {
@@ -56,7 +61,7 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
-    fn verilog_port(&mut self, component: &Component, is_last_port: bool) -> std::io::Result<()> {
+    fn verilog_port(&mut self, component: &Component, is_last_port: bool) -> VirdantResult<()> {
         match component {
             Component::Incoming(name, typ) => {
                 if let Type::Word(1) = typ.as_ref() {
@@ -98,7 +103,7 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
-    fn verilog_component(&mut self, component: &Component) -> std::io::Result<()> {
+    fn verilog_component(&mut self, component: &Component) -> VirdantResult<()> {
         match component {
             Component::Incoming(_name, _typ) => (),
             Component::Outgoing(name, _typ, expr) => {
@@ -124,13 +129,13 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
-    fn verilog_submodule(&mut self, submodule: &Submodule) -> std::io::Result<()> {
+    fn verilog_submodule(&mut self, submodule: &Submodule) -> VirdantResult<()> {
         writeln!(self.writer, "    {} {}();", submodule.moddef, submodule.name)?;
         Ok(())
     }
 
     /*
-    fn verilog_type(&mut self, typ: Arc<Type>) -> std::io::Result<()> {
+    fn verilog_type(&mut self, typ: Arc<Type>) -> VirdantResult<()> {
         match typ.as_ref() {
             Type::Clock => write!(self.writer, "!virdant.clock")?,
             Type::Word(n) => write!(self.writer, "!virdant.word<{n}>")?,
@@ -145,7 +150,7 @@ impl<'a> Verilog<'a> {
     }
     */
 
-    fn verilog_expr(&mut self, expr: &Expr) -> std::io::Result<SsaName> {
+    fn verilog_expr(&mut self, expr: &Expr) -> VirdantResult<SsaName> {
         match expr.as_node() {
             ExprNode::Reference(r) => Ok(format!("{}", r.path())),
             ExprNode::Word(w) => {

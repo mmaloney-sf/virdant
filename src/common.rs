@@ -36,6 +36,7 @@ pub enum VirdantError {
     Multiple(Vec<VirdantError>),
     TypeError(TypeError),
     ParseError(String),
+    Io(String),
     Other(String),
     Unknown,
 }
@@ -51,6 +52,12 @@ pub enum TypeError {
 #[derive(Debug, Clone)]
 pub struct ErrorReport {
     errors: Vec<VirdantError>,
+}
+
+impl From<std::io::Error> for VirdantError {
+    fn from(err: std::io::Error) -> VirdantError {
+        VirdantError::Io(format!("{err:?}"))
+    }
 }
 
 impl ErrorReport {

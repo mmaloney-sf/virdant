@@ -18,14 +18,14 @@ use crate::common::*;
     packageq::PackageQStorage,
 )]
 #[derive(Default)]
-pub struct Database {
+pub struct Db {
     storage: salsa::Storage<Self>,
 }
 
-impl salsa::Database for Database {}
+impl salsa::Database for Db {}
 
 pub fn compile_mlir(input: &str) -> VirdantResult<()> {
-    let mut db = Database::default();
+    let mut db = Db::default();
     db.set_source(Arc::new(input.to_string()));
 
     let package = db.package_hir()?;
@@ -35,11 +35,10 @@ pub fn compile_mlir(input: &str) -> VirdantResult<()> {
 }
 
 pub fn compile_verilog(input: &str) -> VirdantResult<()> {
-    let mut db = Database::default();
+    let mut db = Db::default();
     db.set_source(Arc::new(input.to_string()));
 
-    let package = db.package_hir()?;
     let mut stdout = std::io::stdout();
-    package.verilog(&mut stdout).map_err(|_err| VirdantError::Unknown)?;
+    db.verilog(&mut stdout).map_err(|_err| VirdantError::Unknown)?;
     Ok(())
 }

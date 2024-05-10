@@ -11,7 +11,7 @@ use crate::hir::*;
 fn test_examples() {
     let examples_dir = std::path::Path::new("examples");
     let mut errors = vec![];
-    let mut db = Database::default();
+    let mut db = Db::default();
 
     if let Ok(entries) = std::fs::read_dir(examples_dir) {
         for entry in entries {
@@ -217,7 +217,7 @@ fn test_typecheck_exprs() {
 
 #[test]
 fn test_checker() {
-    let mut db = Database::default();
+    let mut db = Db::default();
     db.set_source(Arc::new("
         public module Top {
             incoming clk : Clock;

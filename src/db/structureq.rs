@@ -27,20 +27,31 @@ fn moddef_component_hir(db: &dyn StructureQ, moddef: Ident, component: Ident) ->
     let c = db.moddef_component_ast(moddef.clone(), component.clone())?;
     let typ = Type::from_ast(&c.typ);
 
+    let connects = db.moddef_component_connects(moddef.clone(), component.clone())?;
+
     Ok(match c.kind {
         ast::ComponentKind::Incoming => hir::Component::Incoming(c.name.clone(), typ),
         ast::ComponentKind::Outgoing => {
-            let ast::InlineConnect(_connect_type, expr) = db.moddef_component_connects(moddef.clone(), component.clone())?[0].clone();
+            if connects.len() == 0 {
+                return Err(VirdantError::Other(format!("No connections to {}", c.name.clone())));
+            }
+            let ast::InlineConnect(_connect_type, expr) = connects[0].clone();
             let expr = hir::Expr::from_ast(&expr);
             hir::Component::Outgoing(c.name.clone(), Type::from_ast(&c.typ), expr)
         },
         ast::ComponentKind::Wire => {
-            let ast::InlineConnect(_connect_type, expr) = db.moddef_component_connects(moddef.clone(), component.clone())?[0].clone();
+            if connects.len() == 0 {
+                return Err(VirdantError::Other(format!("No connections to {}", c.name.clone())));
+            }
+            let ast::InlineConnect(_connect_type, expr) = connects[0].clone();
             let expr = hir::Expr::from_ast(&expr);
             hir::Component::Wire(c.name.clone(), Type::from_ast(&c.typ), expr)
         },
         ast::ComponentKind::Reg => {
-            let ast::InlineConnect(_connect_type, expr) = db.moddef_component_connects(moddef.clone(), component.clone())?[0].clone();
+            if connects.len() == 0 {
+                return Err(VirdantError::Other(format!("No connections to {}", c.name.clone())));
+            }
+            let ast::InlineConnect(_connect_type, expr) = connects[0].clone();
             let expr = hir::Expr::from_ast(&expr);
             let clock = c.clock.ok_or_else(|| VirdantError::Other(format!("No \"on\" clause for reg")))?;
             hir::Component::Reg(c.name.clone(), Type::from_ast(&c.typ), clock, expr)

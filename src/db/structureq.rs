@@ -15,6 +15,7 @@ pub trait StructureQ: AstQ {
     fn package_moddef_names(&self) -> VirdantResult<Vec<Ident>>;
     fn moddef_component_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
     fn moddef_component_connects(&self, moddef: Ident, component: Ident) -> VirdantResult<Vec<ast::InlineConnect>>;
+    fn moddef_submodule_connects(&self, moddef: Ident, submodule: Ident) -> VirdantResult<Vec<ast::InlineConnect>>;
 
     fn check_item_names_unique(&self) -> VirdantResult<()>;
     fn check_submodule_moddefs_exist(&self) -> VirdantResult<()>;
@@ -127,6 +128,24 @@ fn moddef_component_connects(db: &dyn StructureQ, moddef: Ident, component: Iden
             },
             ast::Decl::Connect(ast::Connect(target, connect_type, expr)) if target == &component.as_path() => {
                 result.push(ast::InlineConnect(*connect_type, expr.clone()));
+            },
+            _ => (),
+        }
+    }
+    Ok(result)
+}
+
+fn moddef_submodule_connects(db: &dyn StructureQ, moddef: Ident, submodule: Ident) -> Result<Vec<ast::InlineConnect>, VirdantError> {
+    let moddef_ast = db.moddef_ast(moddef)?;
+    let mut result = vec![];
+
+    for decl in &moddef_ast.decls {
+        match decl {
+            ast::Decl::Connect(ast::Connect(target, connect_type, expr)) if target.is_foreign() => {
+                if target.parts()[0] == submodule.as_str() {
+                    result.push(ast::InlineConnect(*connect_type, expr.clone()));
+                }
+
             },
             _ => (),
         }

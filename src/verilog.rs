@@ -65,16 +65,16 @@ impl<'a> Verilog<'a> {
                     let max_bit = n - 1;
                     let width_str = format!("[{max_bit}:0]");
                     let padded_width_str = format!("{width_str: >8}");
-                    write!(self.writer, "    input  wire {padded_width_str} {name}")?;
+                    write!(self.writer, "    input  wire  {padded_width_str} {name}")?;
                 } else if let Type::Clock = typ.as_ref() {
-                    write!(self.writer, "    input  wire          {name}")?;
+                    write!(self.writer, "    input  wire            {name}")?;
                 } else {
                     todo!()
                 }
             },
             Component::Outgoing(name, typ, _expr) => {
                 if let Type::Word(1) = typ.as_ref() {
-                    write!(self.writer, "    output wire             {name}")?;
+                    write!(self.writer, "    output wire            {name}")?;
                 } else if let Type::Word(n) = typ.as_ref() {
                     let max_bit = n - 1;
                     let width_str = format!("[{max_bit}:0]");
@@ -187,6 +187,12 @@ impl<'a> Verilog<'a> {
                     },
                     "mux" => {
                         writeln!(self.writer, "    wire [31:0] {gs} = {subject_ssa} ? {};", args_ssa.join(" : "))?;
+                    },
+                    "sll" => {
+                        writeln!(self.writer, "    wire [31:0] {gs} = {subject_ssa} << {};", args_ssa.join(" : "))?;
+                    },
+                    "srl" => {
+                        writeln!(self.writer, "    wire [31:0] {gs} = {subject_ssa} >> {};", args_ssa.join(" : "))?;
                     },
                     _ => panic!("Unknown method: {}", m.method()),
                 }

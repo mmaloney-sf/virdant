@@ -94,7 +94,12 @@ impl IsExpr for ExprMethodCall {
 
         let result_value = match (subject_type, name.as_str()) {
             (Type::Word(1), "mux") => {
-                todo!(); // TODO
+                let c = subject_value.unwrap_word() == 1;
+                if c {
+                    arg_values[0].clone()
+                } else {
+                    arg_values[1].clone()
+                }
             },
             (Type::Word(_n), "eq") => {
                 let v = (subject_value.unwrap_word() == arg_values.first().unwrap().unwrap_word()) as u64;

@@ -5,6 +5,7 @@ use virdant::hir::*;
 use virdant::common::*;
 use virdant::types::Type;
 use virdant::db;
+use virdant::vcd::Vcd;
 
 fn main() {
 //    verilog();
@@ -14,47 +15,44 @@ fn main() {
 
     let package_text = std::fs::read_to_string(filename).unwrap();
     db::compile_verilog(&package_text).unwrap();
+
+//    sim(filename);
 }
 
-pub fn sim() {
-    let package = std::fs::read_to_string("examples/sim.vir").unwrap();
+pub fn sim(filename: &str) {
+    let package = std::fs::read_to_string(filename).unwrap();
+    let mut fout = std::fs::File::create("trace.vcd").unwrap();
+
+    let mut vcd = Vcd::new(&mut fout);
+    vcd.header().unwrap();
 
     let mut sim = virdant::sim::simulator(&package, "Top").unwrap();
-    println!("################################################################################");
-    println!("Initial");
-    println!("{sim}");
-
-    sim.poke("top.r".into(), Value::Word(8, 1));
-    println!("################################################################################");
-    println!("poke top.r = 1w8");
-    println!("{sim}");
-
-    sim.poke("top.in".into(), Value::Word(8, 10));
-    println!("################################################################################");
-    println!("poke top.in = 10w8");
-    println!("{sim}");
-
-//    sim.reset();
 //    println!("################################################################################");
-//    println!("reset");
+//    println!("Initial");
 //    println!("{sim}");
 
-    sim.clock();
-    println!("################################################################################");
-    println!("clock");
-    println!("{sim}");
-
-    sim.clock();
-    println!("################################################################################");
-    println!("clock");
-    println!("{sim}");
+    let mut i = 0;
+    vcd.step(i).unwrap();
+//    vcd.val("clock", sim.peek("clock".into())).unwrap();
+    vcd.val("led_0", sim.peek("top.led_0".into())).unwrap();
+    vcd.val("led_1", sim.peek("top.led_1".into())).unwrap();
+    vcd.val("led_2", sim.peek("top.led_2".into())).unwrap();
+    vcd.val("led_3", sim.peek("top.led_3".into())).unwrap();
 
     loop {
-    sim.clock();
-    println!("################################################################################");
-    println!("clock");
-    println!("{sim}");
-    std::thread::sleep(std::time::Duration::from_millis(400));
+        i += 1;
+        sim.clock();
+//        println!("################################################################################");
+//        println!("clock");
+//        println!("{sim}");
+
+        vcd.step(i).unwrap();
+ //       vcd.val("clock", sim.peek("clock".into())).unwrap();
+        vcd.val("led_0", sim.peek("top.led_0".into())).unwrap();
+        vcd.val("led_1", sim.peek("top.led_1".into())).unwrap();
+        vcd.val("led_2", sim.peek("top.led_2".into())).unwrap();
+        vcd.val("led_3", sim.peek("top.led_3".into())).unwrap();
+//        std::thread::sleep(std::time::Duration::from_millis(400));
     }
 }
 

@@ -234,6 +234,13 @@ impl Sim {
         self.flow();
     }
 
+    pub fn peek(&mut self, path: Path) -> Value {
+        let node = self.get_node(&path);
+        let cell_id = node.target_cell_id();
+        let cell = self.get_cell_mut(cell_id);
+        cell.clone()
+    }
+
     pub fn clock(&mut self) {
         let clock_id = 0; // TODO
         self.events.push(Event::Clock(clock_id));

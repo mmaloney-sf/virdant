@@ -30,12 +30,18 @@ impl SimBuilder {
         self.sim
     }
 
-    pub fn add_simple_node(mut self, path: Path, expr: Expr) -> Self {
+    pub fn add_simple_node(mut self, path: Path, expr: Expr, is_internal_input: bool) -> Self {
         let typ = expr.type_of().unwrap();
         let cell_id = self.sim.cells.len();
 
+        let rel = if is_internal_input {
+            path.parent().parent()
+        } else {
+            path.parent()
+        };
+
         let update = Comb {
-            rel: path.parent(),
+            rel,
             expr,
             sensitivities: vec![],
         };
@@ -45,6 +51,7 @@ impl SimBuilder {
             path: path.clone(),
             typ: typ.clone(),
             update,
+            is_internal_input,
         };
 
         self.sim.nodes.push(node);
@@ -97,8 +104,8 @@ impl SimBuilder {
             path_read_cell_ids.insert(node.path().clone(), node.read_cell_id());
         }
 
-
         for node in &mut self.sim.nodes {
+            let is_internal_input = node.is_internal_input();
             if let Some(update) = node.update_mut() {
                 let sensitivities: Vec<CellId> = update
                     .expr
@@ -288,6 +295,7 @@ enum Node {
         typ: Arc<Type>,
         cell_id: CellId,
         update: Comb,
+        is_internal_input: bool,
     },
     Reg {
         path: Path,
@@ -350,6 +358,13 @@ impl Node {
             Node::Simple { path, .. } => path,
             Node::Reg { path, .. } => path,
             Node::Input { path, .. } => path,
+        }
+    }
+
+    fn is_internal_input(&self) -> bool {
+        match self {
+            Node::Simple { is_internal_input, .. } => *is_internal_input,
+            _ => false,
         }
     }
 }

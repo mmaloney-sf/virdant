@@ -26,16 +26,16 @@ impl Elab {
             match component {
                 hir::Component::Incoming(_name, typ) => {
                     if let Some(expr) = nonlocal_connects.get(&component.name()) {
-                        sim = sim.add_simple_node(full_path, expr.clone());
+                        sim = sim.add_simple_node(full_path, expr.clone(), true);
                     } else {
                         sim = sim.add_input_node(full_path, typ.clone());
                     }
                 }
                 hir::Component::Outgoing(_name, typ, expr) => {
-                    sim = sim.add_simple_node(full_path, expr.clone());
+                    sim = sim.add_simple_node(full_path, expr.clone(), false);
                 },
                 hir::Component::Wire(_name, typ, expr) => {
-                    sim = sim.add_simple_node(full_path, expr.clone());
+                    sim = sim.add_simple_node(full_path, expr.clone(), false);
                 },
                 hir::Component::Reg(_name, typ, clk, expr) => {
                     let reset = None;

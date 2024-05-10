@@ -4,6 +4,7 @@ use crate::hir::*;
 use crate::types::Type;
 use crate::value::Value;
 use crate::context::*;
+use crate::vcd::Vcd;
 
 type CellId = usize;
 type ClockId = usize;
@@ -386,5 +387,20 @@ pub fn simulator(input: &str, top: &str) -> VirdantResult<Sim> {
     let elaborated = db.elaborate(top.into())?;
 
     let sim = elaborated.simulator();
+    Ok(sim)
+}
+
+pub fn simulator_with_trace(input: &str, top: &str, fout: &mut dyn std::io::Write) -> VirdantResult<Sim> {
+    let mut vcd = Vcd::new(fout);
+//    vcd.header().unwrap();
+//    vcd.step(i).unwrap();
+//    vcd.val("clock", sim.peek("clock".into())).unwrap();
+//    vcd.val("led_0", sim.peek("top.led_0".into())).unwrap();
+//    vcd.val("led_1", sim.peek("top.led_1".into())).unwrap();
+//    vcd.val("led_2", sim.peek("top.led_2".into())).unwrap();
+//    vcd.val("led_3", sim.peek("top.led_3".into())).unwrap();
+
+    let mut sim = simulator(input, top)?;
+//    sim.set_vcd
     Ok(sim)
 }

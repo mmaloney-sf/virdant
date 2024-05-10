@@ -1,9 +1,9 @@
 public module Top {
     incoming clk : Clock;
-    incoming in : Word[8];
+    incoming reset : Word[1];
     outgoing out : Word[8];
 
-    reg buf : Word[8] on clk;
-    buf <= in;
-    out := buf->add(in);
+    reg buffer : Word[8] on clk;
+    buffer <= reset->mux(0w8, buffer->add(1));
+    out := buffer;
 }

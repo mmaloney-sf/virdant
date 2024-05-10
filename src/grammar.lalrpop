@@ -72,15 +72,15 @@ Component: Component = {
             reset: None,
         }
     },
-    "reg" <name:Id> ":" <typ:Type> "on" <clock:Path> <rst:("reset" Expr)?> <connect:InlineConnect?> => {
-        let reset = rst.map(|s| *s.1); // .1 ignores the "reset" keyword
+    "reg" <name:Id> ":" <typ:Type> "on" <clock:Path> <connect:InlineConnect?> => {
+//        let reset = rst.map(|s| *s.1); // .1 ignores the "reset" keyword
         Component {
             kind: ComponentKind::Reg,
             name,
             typ: *typ,
             connect,
             clock: Some(clock),
-            reset,
+            reset: None,
         }
     },
 }

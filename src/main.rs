@@ -5,73 +5,75 @@ use virdant::hir::*;
 use virdant::common::*;
 use virdant::types::Type;
 use virdant::db;
-use virdant::vcd::Vcd;
 
-fn main() {
-//    verilog();
+use clap::Parser;
 
-    let args: Vec<String> = std::env::args().into_iter().collect();
-    let filename = &args[1];
+#[derive(Parser, Debug)]
+#[command(name = "virdant", author, version, about, long_about = None)]
+struct Args {
+    filename: String,
 
-    let package_text = std::fs::read_to_string(filename).unwrap();
-    db::compile_verilog(&package_text).unwrap();
+    #[arg(short, long, default_value_t = false)]
+    compile: bool,
 
-//    sim(filename);
+    #[arg(long)]
+    sim: bool,
+
+    #[arg(long)]
+    top: Option<String>,
+
+    #[arg(long)]
+    mlir: bool,
+
+    #[arg(long)]
+    trace: Option<String>,
 }
 
-pub fn sim(filename: &str) {
-    let package = std::fs::read_to_string(filename).unwrap();
-    let mut fout = std::fs::File::create("trace.vcd").unwrap();
-
-    let mut vcd = Vcd::new(&mut fout);
-    vcd.header().unwrap();
-
-    let mut sim = virdant::sim::simulator(&package, "Top").unwrap();
-//    println!("################################################################################");
-//    println!("Initial");
-//    println!("{sim}");
-
-    let mut i = 0;
-    vcd.step(i).unwrap();
-//    vcd.val("clock", sim.peek("clock".into())).unwrap();
-    vcd.val("led_0", sim.peek("top.led_0".into())).unwrap();
-    vcd.val("led_1", sim.peek("top.led_1".into())).unwrap();
-    vcd.val("led_2", sim.peek("top.led_2".into())).unwrap();
-    vcd.val("led_3", sim.peek("top.led_3".into())).unwrap();
-
-    loop {
-        i += 1;
-        sim.clock();
-//        println!("################################################################################");
-//        println!("clock");
-//        println!("{sim}");
-
-        vcd.step(i).unwrap();
- //       vcd.val("clock", sim.peek("clock".into())).unwrap();
-        vcd.val("led_0", sim.peek("top.led_0".into())).unwrap();
-        vcd.val("led_1", sim.peek("top.led_1".into())).unwrap();
-        vcd.val("led_2", sim.peek("top.led_2".into())).unwrap();
-        vcd.val("led_3", sim.peek("top.led_3".into())).unwrap();
-//        std::thread::sleep(std::time::Duration::from_millis(400));
+fn main() {
+    let args = Args::parse();
+    if args.compile {
+        let package_text = std::fs::read_to_string(args.filename).unwrap();
+        db::compile_verilog(&package_text).unwrap();
+    } else if args.sim {
+        let top = args.top.unwrap_or_else(|| "Top".into());
+        let trace = args.trace.as_ref().map(|s| s.as_str());
+        sim(&args.filename, &top, trace);
+    } else if args.mlir {
+        let package_text = std::fs::read_to_string(args.filename).unwrap();
+        db::compile_mlir(&package_text).unwrap();
+    } else {
+        eprintln!("Please specify either --sim or --compile.");
     }
 }
 
+pub fn sim(filename: &str, top: &str, trace: Option<&str>) {
+    let package = std::fs::read_to_string(filename).unwrap();
 
-pub fn mlir() {
-    let package_text = "
+    let mut sim = if let Some(trace) = trace {
+    let mut fout = std::fs::File::create(trace).unwrap();
+        virdant::sim::simulator_with_trace(&package, top, &mut fout).unwrap()
+    } else {
+        virdant::sim::simulator(&package, top).unwrap()
+    };
 
-        public module Top {
-            incoming clk : Clock;
-            incoming in : Word[8];
-            outgoing out : Word[8] := in;
-            reg buf : Word[8] on clk <= in->add(1);
-        }
+    sim.poke("top.reset".into(), Value::Word(1, 1));
+    println!("################################################################################");
+    println!("Initial");
+    println!("{sim}");
 
-        module Foo {
-        }
+    sim.poke("top.reset".into(), Value::Word(1, 0));
+    println!("################################################################################");
+    println!("reset");
+    println!("{sim}");
 
-    ";
-    db::compile_mlir(package_text).unwrap();
+    loop {
+        sim.clock();
+        println!("################################################################################");
+        println!("clock");
+        println!("{sim}");
+
+        std::thread::sleep(std::time::Duration::from_millis(400));
+    }
 }
 
 pub fn verilog() {

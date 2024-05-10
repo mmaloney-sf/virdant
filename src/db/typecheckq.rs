@@ -15,6 +15,8 @@ pub trait TypecheckQ: StructureQ {
     fn moddef_hir_typed(&self, moddef: Ident) -> VirdantResult<hir::ModDef>;
     fn typecheck_component(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Expr>;
     fn moddef_component_hir_typed(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Component>;
+
+    fn moddef_submodule_connects_typed(&self, moddef: Ident, submodule: Ident) -> VirdantResult<Vec<hir::Connect>>;
 }
 
 fn moddef_component_hir_typed(db: &dyn TypecheckQ, moddef: Ident, component: Ident) -> VirdantResult<hir::Component> {
@@ -110,4 +112,18 @@ fn moddef_component_type(db: &dyn TypecheckQ, moddef: Ident, component: Ident) -
     }
 
     Err(VirdantError::Other("Component not found".into()))
+}
+
+fn moddef_submodule_connects_typed(db: &dyn TypecheckQ, moddef: Ident, submodule: Ident) -> VirdantResult<Vec<hir::Connect>> {
+    let mut result = vec![];
+    let submodule_moddef = db.moddef_submodule_moddef(moddef.clone(), submodule.clone())?;
+    for ast::Connect(target, connect_type, expr) in db.moddef_submodule_connects(moddef.clone(), submodule)? {
+        let component: Ident = target.parts()[1].into();
+        let ctx = db.moddef_context(moddef.clone())?;
+        let typ = Type::from_ast(&db.moddef_component_type(submodule_moddef.clone(), component.clone())?);
+        let expr_typed = hir::Expr::from_ast(&expr).typecheck(ctx, typ).map_err(|err| VirdantError::Other(format!("{err:?} {moddef} {component}")))?;
+
+        result.push(hir::Connect(target.clone(), connect_type, expr_typed));
+    }
+    Ok(result)
 }

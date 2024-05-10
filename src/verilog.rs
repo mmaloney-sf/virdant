@@ -4,6 +4,7 @@ use crate::common::*;
 use crate::types::Type;
 use crate::hir::*;
 use crate::db::*;
+use crate::ast;
 
 type SsaName = String;
 
@@ -49,7 +50,7 @@ impl<'a> Verilog<'a> {
         writeln!(self.writer, ");")?;
 
         for submodule in &moddef.submodules {
-            self.verilog_submodule(submodule)?;
+            self.verilog_submodule(moddef, submodule)?;
         }
 
         for component in &moddef.components {
@@ -129,8 +130,41 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
-    fn verilog_submodule(&mut self, submodule: &Submodule) -> VirdantResult<()> {
-        writeln!(self.writer, "    {} {}();", submodule.moddef, submodule.name)?;
+    fn verilog_submodule(&mut self, moddef: &ModDef, submodule: &Submodule) -> VirdantResult<()> {
+        let mut ports = vec![];
+
+        let moddef_hir = self.db.moddef_hir(submodule.moddef.clone())?;
+        for component in &moddef_hir.components {
+            match component {
+                Component::Outgoing(name, _typ, _expr) => ports.push(name.clone()),
+                Component::Incoming(name, _typ) => ports.push(name.clone()),
+                _ => (),
+            }
+        }
+
+        for Connect(path, _connect_type, expr) in &self.db.moddef_submodule_connects_typed(moddef.name.clone(), submodule.name.clone())? {
+            let gs = self.verilog_expr(&expr)?;
+            let parts = path.parts();
+            let name = parts[1];
+            writeln!(self.writer, "    assign __TEMP_{sm}_{name} = {gs};", sm = submodule.name)?;
+        }
+
+//        let width = todo!(); // TODO
+        for port in &ports {
+            writeln!(self.writer, "    wire [31:0] __TEMP_{sm}_{port};", sm = submodule.name)?;
+        }
+
+        writeln!(self.writer, "    {} {}(", submodule.moddef, submodule.name)?;
+        for (i, port) in ports.iter().enumerate() {
+            let last_port = i + 1 == ports.len();
+            write!(self.writer, "        .{port}(__TEMP_{sm}_{port})", sm = submodule.name)?;
+            if last_port {
+                writeln!(self.writer)?;
+            } else {
+                writeln!(self.writer, ",")?;
+            }
+        }
+        writeln!(self.writer, "    );")?;
         Ok(())
     }
 
@@ -152,7 +186,13 @@ impl<'a> Verilog<'a> {
 
     fn verilog_expr(&mut self, expr: &Expr) -> VirdantResult<SsaName> {
         match expr.as_node() {
-            ExprNode::Reference(r) => Ok(format!("{}", r.path())),
+            ExprNode::Reference(r) if r.path().is_local()  => Ok(format!("{}", r.path())),
+            ExprNode::Reference(r) => {
+                let parts = r.path().parts();
+                let sm = &parts[0];
+                let port = &parts[1];
+                Ok(format!("__TEMP_{sm}_{port}"))
+            },
             ExprNode::Word(w) => {
                 let gs = self.gensym();
                 writeln!(self.writer, "    wire [31:0] {gs} = {};", w.value())?;
@@ -174,31 +214,25 @@ impl<'a> Verilog<'a> {
                     let arg_ssa = self.verilog_expr(arg)?;
                     args_ssa.push(arg_ssa);
                 }
+                let typ = expr.type_of().unwrap();
+                let width_str: String = match typ.as_ref() {
+                    Type::Word(1) => " ".to_string(),
+                    Type::Word(n) => {
+                        let max_bit = *n - 1;
+                        format!("[{max_bit}:0]")
+                    },
+                    _ => panic!(),
+                };
+
                 match m.method().as_str() {
-                    "add" => {
-                        writeln!(self.writer, "    wire [31:0] {gs} = {subject_ssa} + {};", args_ssa[0])?;
-                    },
-                    "and" => {
-                        writeln!(self.writer, "    wire [31:0] {gs} = {subject_ssa} && {};", args_ssa[0])?;
-                    },
-                    "or" => {
-                        writeln!(self.writer, "    wire [31:0] {gs} = {subject_ssa} || {};", args_ssa[0])?;
-                    },
-                    "not" => {
-                        writeln!(self.writer, "    wire [31:0] {gs} = ~{subject_ssa};")?;
-                    },
-                    "eq" => {
-                        writeln!(self.writer, "    wire [31:0] {gs} = {subject_ssa} == {};", args_ssa[0])?;
-                    },
-                    "mux" => {
-                        writeln!(self.writer, "    wire [31:0] {gs} = {subject_ssa} ? {};", args_ssa.join(" : "))?;
-                    },
-                    "sll" => {
-                        writeln!(self.writer, "    wire [31:0] {gs} = {subject_ssa} << {};", args_ssa.join(" : "))?;
-                    },
-                    "srl" => {
-                        writeln!(self.writer, "    wire [31:0] {gs} = {subject_ssa} >> {};", args_ssa.join(" : "))?;
-                    },
+                    "add" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} + {};", args_ssa[0])?,
+                    "and" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} && {};", args_ssa[0])?,
+                    "or"  => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} || {};", args_ssa[0])?,
+                    "not" => writeln!(self.writer, "    wire {width_str} {gs} = ~{subject_ssa};")?,
+                    "eq"  => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} == {};", args_ssa[0])?,
+                    "mux" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} ? {};", args_ssa.join(" : "))?,
+                    "sll" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} << {};", args_ssa.join(" : "))?,
+                    "srl" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} >> {};", args_ssa.join(" : "))?,
                     _ => panic!("Unknown method: {}", m.method()),
                 }
                 Ok(gs)

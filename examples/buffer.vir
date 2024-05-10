@@ -1,0 +1,20 @@
+public module Top {
+    incoming clk : Clock;
+    incoming in : Word[8];
+    outgoing out : Word[8];
+
+    submodule buffer of Buffer;
+    buffer.clk := clk;
+    buffer.in := in;
+    out := buffer.out;
+}
+
+module Buffer {
+    incoming clk : Clock;
+    incoming in : Word[8];
+    outgoing out : Word[8];
+
+    reg r : Word[8] on clk;
+    r <= in;
+    out <= r;
+}

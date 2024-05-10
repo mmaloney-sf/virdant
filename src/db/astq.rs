@@ -19,16 +19,16 @@ fn package_ast(db: &dyn AstQ) -> Result<ast::Package, VirdantError> {
     parse::parse_package(&input)
 }
 
-fn moddef_ast(db: &dyn AstQ, key: Ident) -> Result<ast::ModDef, VirdantError> {
+fn moddef_ast(db: &dyn AstQ, moddef: Ident) -> Result<ast::ModDef, VirdantError> {
     let package = db.package_ast()?;
     let mut result: Option<ast::ModDef> = None;
 
     for item in &package.items {
         match item {
-            ast::Item::ModDef(moddef) => {
-                if moddef.name == key {
+            ast::Item::ModDef(moddef_ast) => {
+                if moddef_ast.name == moddef {
                     if result.is_none() {
-                        result = Some(moddef.clone());
+                        result = Some(moddef_ast.clone());
                     } else {
                         return Err(VirdantError::Other("Uh oh".into()));
                     }
@@ -40,7 +40,7 @@ fn moddef_ast(db: &dyn AstQ, key: Ident) -> Result<ast::ModDef, VirdantError> {
     if let Some(moddef) = result {
         Ok(moddef)
     } else {
-        Err(VirdantError::Unknown)
+        Err(VirdantError::Other(format!("Unknown moddef {moddef}")))
     }
 }
 

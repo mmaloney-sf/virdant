@@ -15,7 +15,8 @@ pub trait StructureQ: AstQ {
     fn package_moddef_names(&self) -> VirdantResult<Vec<Ident>>;
     fn moddef_component_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
     fn moddef_component_connects(&self, moddef: Ident, component: Ident) -> VirdantResult<Vec<ast::InlineConnect>>;
-    fn moddef_submodule_connects(&self, moddef: Ident, submodule: Ident) -> VirdantResult<Vec<ast::InlineConnect>>;
+    fn moddef_submodule_connects(&self, moddef: Ident, submodule: Ident) -> VirdantResult<Vec<ast::Connect>>;
+    fn moddef_submodule_moddef(&self, moddef: Ident, submodule: Ident) -> VirdantResult<Ident>;
 
     fn check_item_names_unique(&self) -> VirdantResult<()>;
     fn check_submodule_moddefs_exist(&self) -> VirdantResult<()>;
@@ -135,7 +136,7 @@ fn moddef_component_connects(db: &dyn StructureQ, moddef: Ident, component: Iden
     Ok(result)
 }
 
-fn moddef_submodule_connects(db: &dyn StructureQ, moddef: Ident, submodule: Ident) -> Result<Vec<ast::InlineConnect>, VirdantError> {
+fn moddef_submodule_connects(db: &dyn StructureQ, moddef: Ident, submodule: Ident) -> Result<Vec<ast::Connect>, VirdantError> {
     let moddef_ast = db.moddef_ast(moddef)?;
     let mut result = vec![];
 
@@ -143,7 +144,7 @@ fn moddef_submodule_connects(db: &dyn StructureQ, moddef: Ident, submodule: Iden
         match decl {
             ast::Decl::Connect(ast::Connect(target, connect_type, expr)) if target.is_foreign() => {
                 if target.parts()[0] == submodule.as_str() {
-                    result.push(ast::InlineConnect(*connect_type, expr.clone()));
+                    result.push(ast::Connect(target.clone(), *connect_type, expr.clone()));
                 }
 
             },
@@ -203,6 +204,15 @@ fn check_no_submodule_cycles(db: &dyn StructureQ) -> Result<(), VirdantError> {
     errors.check()
 }
 
+fn moddef_submodule_moddef(db: &dyn StructureQ, moddef: Ident, submodule: Ident) -> VirdantResult<Ident> {
+    for decl in db.moddef_ast(moddef.clone())?.decls {
+        match decl {
+            ast::Decl::Submodule(m) => return Ok(m.moddef),
+            _ => (),
+        }
+    }
+    Err(VirdantError::Other(format!("Unknown submodule: {submodule} in {moddef}")))
+}
 
 fn find_cycles(graph: &HashMap<Ident, Vec<Ident>>) -> Vec<Vec<Ident>> {
     let mut cycles = Vec::new();

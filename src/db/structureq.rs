@@ -51,6 +51,7 @@ fn moddef_component_hir(db: &dyn StructureQ, moddef: Ident, component: Ident) ->
 fn moddef_hir(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<hir::ModDef> {
     let mut components: Vec<hir::Component> = vec![];
     let mut submodules: Vec<hir::Submodule> = vec![];
+    let mut connects: Vec<hir::Connect> = vec![];
 
     for decl in db.moddef_ast(moddef.clone())?.decls {
         match decl {
@@ -60,6 +61,10 @@ fn moddef_hir(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<hir::ModDef> 
                     moddef: m.moddef,
                 }
             ),
+            ast::Decl::Connect(ast::Connect(target, connect_type, expr_ast)) => {
+                let expr = hir::Expr::from_ast(&expr_ast);
+                connects.push(hir::Connect(target.clone(), connect_type, expr));
+            },
             _ => (),
         }
     }
@@ -73,6 +78,7 @@ fn moddef_hir(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<hir::ModDef> 
         name: moddef.clone(),
         components,
         submodules,
+        connects,
     })
 }
 
@@ -142,7 +148,7 @@ fn moddef_submodule_connects(db: &dyn StructureQ, moddef: Ident, submodule: Iden
 
     for decl in &moddef_ast.decls {
         match decl {
-            ast::Decl::Connect(ast::Connect(target, connect_type, expr)) if target.is_foreign() => {
+            ast::Decl::Connect(ast::Connect(target, connect_type, expr)) if target.is_nonlocal() => {
                 if target.parts()[0] == submodule.as_str() {
                     result.push(ast::Connect(target.clone(), *connect_type, expr.clone()));
                 }

@@ -17,6 +17,7 @@ pub trait TypecheckQ: StructureQ {
     fn moddef_component_hir_typed(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Component>;
 
     fn moddef_submodule_connects_typed(&self, moddef: Ident, submodule: Ident) -> VirdantResult<Vec<hir::Connect>>;
+    fn moddef_nonlocal_port_type(&self, moddef: Ident, reference: Path) -> VirdantResult<Arc<Type>>;
 }
 
 fn moddef_component_hir_typed(db: &dyn TypecheckQ, moddef: Ident, component: Ident) -> VirdantResult<hir::Component> {
@@ -46,6 +47,7 @@ fn moddef_component_hir_typed(db: &dyn TypecheckQ, moddef: Ident, component: Ide
 fn moddef_hir_typed(db: &dyn TypecheckQ, moddef: Ident) -> VirdantResult<hir::ModDef> {
     let mut components: Vec<hir::Component> = vec![];
     let mut submodules: Vec<hir::Submodule> = vec![];
+    let mut connects: Vec<hir::Connect> = vec![];
 
     for decl in db.moddef_ast(moddef.clone())?.decls {
         match decl {
@@ -55,6 +57,17 @@ fn moddef_hir_typed(db: &dyn TypecheckQ, moddef: Ident) -> VirdantResult<hir::Mo
                     moddef: m.moddef,
                 }
             ),
+            ast::Decl::Connect(ast::Connect(target, connect_type, expr_ast)) => {
+                if target.is_nonlocal() {
+                    let ctx = db.moddef_context(moddef.clone())?;
+                    let typ = db.moddef_nonlocal_port_type(moddef.clone(), target.clone())?;
+                    let expr = hir::Expr::from_ast(&expr_ast);
+                    let expr_typed = expr.typecheck(ctx, typ)?;
+                    connects.push(hir::Connect(target.clone(), connect_type, expr_typed));
+                } else {
+                    // TODO
+                }
+            },
             _ => (),
         }
     }
@@ -68,6 +81,7 @@ fn moddef_hir_typed(db: &dyn TypecheckQ, moddef: Ident) -> VirdantResult<hir::Mo
         name: moddef.clone(),
         components,
         submodules,
+        connects,
     })
 }
 
@@ -126,4 +140,16 @@ fn moddef_submodule_connects_typed(db: &dyn TypecheckQ, moddef: Ident, submodule
         result.push(hir::Connect(target.clone(), connect_type, expr_typed));
     }
     Ok(result)
+}
+
+fn moddef_nonlocal_port_type(db: &dyn TypecheckQ, moddef: Ident, reference: Path) -> VirdantResult<Arc<Type>> {
+    dbg!(&reference);
+    let reference_parts = reference.parts();
+    let submodule_name: Ident= reference_parts[0].into();
+    let submodule_port: Ident = reference_parts[1].into();
+
+    let submodule_moddef = db.moddef_submodule_moddef(moddef.clone(), submodule_name.clone())?;
+
+    let type_ast = db.moddef_component_type(submodule_moddef, submodule_port)?;
+    Ok(Type::from_ast(&type_ast))
 }

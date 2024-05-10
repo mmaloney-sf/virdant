@@ -13,16 +13,23 @@ pub struct Elab {
 impl Elab {
     pub fn simulator(&self) -> Sim {
         let mut sim = Sim::new();
-        sim = self.add("top".into(), sim);
+        let nonlocal_connects = HashMap::new();
+        sim = self.add("top".into(), sim, nonlocal_connects);
         sim.build()
     }
 
-    fn add(&self, path: Path, mut sim: SimBuilder) -> SimBuilder {
+    fn add(&self, path: Path, mut sim: SimBuilder, nonlocal_connects: HashMap<Ident, hir::Expr>) -> SimBuilder {
+        let path_parts = path.parts();
+        let base: Path = path_parts[path_parts.len() - 1].into();
         for component in &self.moddef.components {
             let full_path: Path = path.join(&component.name().as_path());
             match component {
                 hir::Component::Incoming(_name, typ) => {
-                    sim = sim.add_input_node(full_path, typ.clone());
+                    if let Some(expr) = nonlocal_connects.get(&component.name()) {
+                        sim = sim.add_simple_node(full_path, expr.clone());
+                    } else {
+                        sim = sim.add_input_node(full_path, typ.clone());
+                    }
                 }
                 hir::Component::Outgoing(_name, typ, expr) => {
                     sim = sim.add_simple_node(full_path, expr.clone());
@@ -39,7 +46,8 @@ impl Elab {
 
         for (name, submodule) in &self.submodules {
             let submodule_path = path.join(&name.as_path());
-            sim = submodule.add(submodule_path, sim);
+            let nonlocal_connects = self.moddef.nonlocal_connects_to(name.clone());
+            sim = submodule.add(submodule_path, sim, nonlocal_connects);
         }
         sim
     }

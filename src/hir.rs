@@ -22,6 +22,7 @@ pub struct ModDef {
     pub name: Ident,
     pub components: Vec<Component>,
     pub submodules: Vec<Submodule>,
+    pub connects: Vec<Connect>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -85,10 +86,34 @@ impl Type {
 impl Package {
     pub fn elab(&self, top: Ident) -> VirdantResult<elab::Elab> {
         let moddef = self.moddefs.get(&top).ok_or(VirdantError::Other("Unknown module".into()))?.clone();
-        let submodules = HashMap::new();
+        self.elab_moddef(moddef)
+    }
+
+    fn elab_moddef(&self, moddef: Arc<ModDef>) -> VirdantResult<elab::Elab> {
+        let mut submodules = HashMap::new();
+
+        for submodule in &moddef.submodules {
+            let submodule_moddef = self.moddefs.get(&submodule.moddef).ok_or(VirdantError::Other("Unknown module".into()))?.clone();
+            let submodule_elab = self.elab_moddef(submodule_moddef)?;
+            submodules.insert(submodule.name.clone(), submodule_elab);
+        }
+
         Ok(elab::Elab {
             moddef,
             submodules,
         })
+    }
+}
+
+impl ModDef {
+    pub fn nonlocal_connects_to(&self, submodule: Ident) -> HashMap<Ident, Expr> {
+        let mut result = HashMap::new();
+        for Connect(target, _connect_type, expr) in &self.connects {
+            let port: Ident = target.parts()[1].clone().into();
+            if target.parent().as_ident().unwrap() == submodule {
+                result.insert(port, expr.clone());
+            }
+        }
+        result
     }
 }

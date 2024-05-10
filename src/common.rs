@@ -60,6 +60,12 @@ impl From<std::io::Error> for VirdantError {
     }
 }
 
+impl From<TypeError> for VirdantError {
+    fn from(err: TypeError) -> VirdantError {
+        VirdantError::TypeError(err)
+    }
+}
+
 impl ErrorReport {
     pub fn new() -> ErrorReport {
         ErrorReport {
@@ -134,7 +140,7 @@ impl Path {
         self.parts().len() == 1
     }
 
-    pub fn is_foreign(&self) -> bool {
+    pub fn is_nonlocal(&self) -> bool {
         self.parts().len() == 2
     }
 

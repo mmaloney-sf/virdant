@@ -204,8 +204,7 @@ impl<'a> Verilog<'a> {
                     },
                     _ => panic!(),
                 };
-                writeln!(self.writer, "    reg  [{max_bit}:0] {name};")?;
-                writeln!(self.writer, "    wire [31:0] {gs} = {};", w.value())?;
+                writeln!(self.writer, "    wire {width_str} {gs} = {};", w.value())?;
                 Ok(gs)
             },
             ExprNode::Cat(c) => {

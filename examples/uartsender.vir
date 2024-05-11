@@ -1,0 +1,185 @@
+module Top {
+    incoming clock      : Clock; // 12MHz
+    outgoing uart_tx    : Word[1];
+    outgoing led_0      : Word[1];
+
+    led_0 := uart_sender.ready->not();
+
+    wire data : Word[8];
+    data := 65w8;
+
+    reg counter : Word[8] on clock;
+    counter <= counter->gt(0)->mux(
+        counter->sub(1),
+        counter,
+    );
+
+    wire reset : Word[1];
+    reset := counter->eq(1);
+
+
+    submodule uart_sender of UartSender;
+    uart_sender.clock := clock;
+    uart_sender.reset := reset;
+    uart_sender.data  := data;
+    uart_sender.data_valid := 1w1;
+
+    ready := uart_sender.ready;
+    uart_tx := uart_sender.uart_tx;
+}
+
+module UartSender {
+    incoming clock      : Clock; // 12MHz
+    incoming reset      : Word[1];
+    incoming data       : Word[8];
+    incoming data_valid : Word[1];
+    outgoing ready      : Word[1];
+    outgoing uart_tx    : Word[1];
+
+    reg uart_tx_reg : Word[1] on clock;
+    uart_tx := uart_tx_reg;
+
+    reg latched_data : Word[8] on clock;
+    reg state : Word[4] on clock; // = 0;
+    reg pulse : Word[11] on clock; // = 0;
+
+    ready := state->eq(0);
+
+    state <= reset->mux(
+        0w4,
+    state->eq(0)->mux(
+        data_valid->mux(
+            1w4,
+            state,
+        ),
+    state->eq(1)->mux(
+        pulse->eq(0)->mux(
+            2w4,
+            state,
+        ),
+    state->eq(2)->mux(
+        pulse->eq(0)->mux(
+            3w4,
+            state,
+        ),
+    state->eq(3)->mux(
+        pulse->eq(0)->mux(
+            4w4,
+            state,
+        ),
+    state->eq(4)->mux(
+        pulse->eq(0)->mux(
+            5w4,
+            state,
+        ),
+    state->eq(5)->mux(
+        pulse->eq(0)->mux(
+            6w4,
+            state,
+        ),
+    state->eq(6)->mux(
+        pulse->eq(0)->mux(
+            7w4,
+            state,
+        ),
+    state->eq(7)->mux(
+        pulse->eq(0)->mux(
+            8w4,
+            state,
+        ),
+    state->eq(8)->mux(
+        pulse->eq(0)->mux(
+            9w4,
+            state,
+        ),
+    state->eq(9)->mux(
+        pulse->eq(0)->mux(
+            10w4,
+            state,
+        ),
+    state->eq(10)->mux(
+        pulse->eq(0)->mux(
+            0w4,
+            state,
+        ),
+        state,
+    ))))))))))));
+
+
+    pulse <= reset->mux(
+        0w11,
+        state->eq(0)->and(data_valid)->mux(
+            1250w11,
+            pulse->eq(0)->mux(
+                1250w11,
+                pulse->sub(1),
+            ),
+        )
+    );
+
+    latched_data := state->eq(0)->and(data_valid)->mux(
+        data,
+        latched_data,
+    );
+
+    uart_tx_reg <= reset->mux(
+        1w1,
+    state->eq(0)->mux(
+        data_valid->mux(
+            0w1,
+            uart_tx_reg,
+        ),
+    state->eq(1)->mux(
+        pulse->eq(0)->mux(
+            latched_data[0],
+            uart_tx_reg,
+        ),
+    state->eq(2)->mux(
+        pulse->eq(0)->mux(
+            latched_data[1],
+            uart_tx_reg,
+        ),
+    state->eq(3)->mux(
+        pulse->eq(0)->mux(
+            latched_data[2],
+            uart_tx_reg,
+        ),
+    state->eq(4)->mux(
+        pulse->eq(0)->mux(
+            latched_data[3],
+            uart_tx_reg,
+        ),
+    state->eq(5)->mux(
+        pulse->eq(0)->mux(
+            latched_data[4],
+            uart_tx_reg,
+        ),
+    state->eq(5)->mux(
+        pulse->eq(0)->mux(
+            latched_data[5],
+            uart_tx_reg,
+        ),
+    state->eq(6)->mux(
+        pulse->eq(0)->mux(
+            latched_data[5],
+            uart_tx_reg,
+        ),
+    state->eq(7)->mux(
+        pulse->eq(0)->mux(
+            latched_data[6],
+            uart_tx_reg,
+        ),
+    state->eq(8)->mux(
+        pulse->eq(0)->mux(
+            latched_data[7],
+            uart_tx_reg,
+        ),
+    state->eq(9)->mux(
+        pulse->eq(0)->mux(
+            1w1,
+            uart_tx_reg,
+        ),
+        uart_tx_reg,
+    ))))))))))));
+
+}

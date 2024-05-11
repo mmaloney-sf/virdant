@@ -143,7 +143,6 @@ fn moddef_submodule_connects_typed(db: &dyn TypecheckQ, moddef: Ident, submodule
 }
 
 fn moddef_nonlocal_port_type(db: &dyn TypecheckQ, moddef: Ident, reference: Path) -> VirdantResult<Arc<Type>> {
-    dbg!(&reference);
     let reference_parts = reference.parts();
     let submodule_name: Ident= reference_parts[0].into();
     let submodule_port: Ident = reference_parts[1].into();

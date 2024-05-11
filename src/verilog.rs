@@ -195,7 +195,27 @@ impl<'a> Verilog<'a> {
             },
             ExprNode::Word(w) => {
                 let gs = self.gensym();
+                let typ = expr.type_of().unwrap();
+                let width_str: String = match typ.as_ref() {
+                    Type::Word(1) => " ".to_string(),
+                    Type::Word(n) => {
+                        let max_bit = *n - 1;
+                        format!("[{max_bit}:0]")
+                    },
+                    _ => panic!(),
+                };
+                writeln!(self.writer, "    reg  [{max_bit}:0] {name};")?;
                 writeln!(self.writer, "    wire [31:0] {gs} = {};", w.value())?;
+                Ok(gs)
+            },
+            ExprNode::Cat(c) => {
+                let gs = self.gensym();
+                let mut args_ssa: Vec<SsaName> = vec![];
+                for arg in &c.subexprs() {
+                    let arg_ssa = self.verilog_expr(arg)?;
+                    args_ssa.push(arg_ssa);
+                }
+                writeln!(self.writer, "    wire {gs} = {{{}}};", args_ssa.join(", "))?;
                 Ok(gs)
             },
             ExprNode::Idx(i) => {

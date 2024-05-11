@@ -226,6 +226,7 @@ impl<'a> Verilog<'a> {
 
                 match m.method().as_str() {
                     "add" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} + {};", args_ssa[0])?,
+                    "sub" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} - {};", args_ssa[0])?,
                     "and" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} && {};", args_ssa[0])?,
                     "or"  => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} || {};", args_ssa[0])?,
                     "not" => writeln!(self.writer, "    wire {width_str} {gs} = ~{subject_ssa};")?,
@@ -233,6 +234,10 @@ impl<'a> Verilog<'a> {
                     "mux" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} ? {};", args_ssa.join(" : "))?,
                     "sll" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} << {};", args_ssa.join(" : "))?,
                     "srl" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} >> {};", args_ssa.join(" : "))?,
+                    "lt"  => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} < {};", args_ssa.join(" : "))?,
+                    "lte" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} <= {};", args_ssa.join(" : "))?,
+                    "gt"  => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} > {};", args_ssa.join(" : "))?,
+                    "gte" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} >= {};", args_ssa.join(" : "))?,
                     _ => panic!("Unknown method: {}", m.method()),
                 }
                 Ok(gs)

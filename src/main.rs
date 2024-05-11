@@ -23,6 +23,9 @@ struct Args {
     top: Option<String>,
 
     #[arg(long)]
+    delay: Option<usize>,
+
+    #[arg(long)]
     mlir: bool,
 
     #[arg(long)]
@@ -37,7 +40,7 @@ fn main() {
     } else if args.sim {
         let top = args.top.unwrap_or_else(|| "Top".into());
         let trace = args.trace.as_ref().map(|s| s.as_str());
-        sim(&args.filename, &top, trace);
+        sim(&args.filename, &top, trace, args.delay.unwrap_or(400));
     } else if args.mlir {
         let package_text = std::fs::read_to_string(args.filename).unwrap();
         db::compile_mlir(&package_text).unwrap();
@@ -46,7 +49,7 @@ fn main() {
     }
 }
 
-pub fn sim(filename: &str, top: &str, trace: Option<&str>) {
+pub fn sim(filename: &str, top: &str, trace: Option<&str>, delay: usize) {
     let package = std::fs::read_to_string(filename).unwrap();
 
     let mut sim = if let Some(trace) = trace {
@@ -72,7 +75,9 @@ pub fn sim(filename: &str, top: &str, trace: Option<&str>) {
         println!("clock");
         println!("{sim}");
 
-        std::thread::sleep(std::time::Duration::from_millis(400));
+        if delay > 0 {
+            std::thread::sleep(std::time::Duration::from_millis(delay as u64));
+        }
     }
 }
 

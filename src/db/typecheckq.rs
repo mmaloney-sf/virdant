@@ -116,7 +116,7 @@ fn typecheck_component(db: &dyn TypecheckQ, moddef: Ident, component: Ident) -> 
 }
 
 fn moddef_component_type(db: &dyn TypecheckQ, moddef: Ident, component: Ident) -> Result<ast::Type, VirdantError> {
-    let moddef_ast = db.moddef_ast(moddef)?;
+    let moddef_ast = db.moddef_ast(moddef.clone())?;
     for decl in &moddef_ast.decls {
         match decl {
             ast::Decl::Component(c) if c.name == component => return Ok(c.typ.clone()),
@@ -125,7 +125,7 @@ fn moddef_component_type(db: &dyn TypecheckQ, moddef: Ident, component: Ident) -
         }
     }
 
-    Err(VirdantError::Other("Component not found".into()))
+    Err(VirdantError::Other(format!("Component not found: {moddef} {component}")))
 }
 
 fn moddef_submodule_connects_typed(db: &dyn TypecheckQ, moddef: Ident, submodule: Ident) -> VirdantResult<Vec<hir::Connect>> {

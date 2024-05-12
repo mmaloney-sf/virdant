@@ -64,6 +64,7 @@ pub fn sim(filename: &str, top: &str, trace: Option<&str>, delay: usize) {
     println!("Initial");
     println!("{sim}");
 
+    sim.clock();
     sim.poke("top.reset".into(), Value::Word(1, 0));
     println!("################################################################################");
     println!("reset");

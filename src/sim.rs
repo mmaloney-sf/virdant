@@ -234,7 +234,7 @@ impl Sim {
 
     pub fn poke(&mut self, path: Path, value: Value) {
         let node = self.get_node(&path);
-        let cell_id = node.target_cell_id();
+        let cell_id = node.read_cell_id();
         let cell = self.get_cell_mut(cell_id);
         *cell = value;
 

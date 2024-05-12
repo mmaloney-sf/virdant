@@ -109,7 +109,7 @@ impl ModDef {
     pub fn nonlocal_connects_to(&self, submodule: Ident) -> HashMap<Ident, Expr> {
         let mut result = HashMap::new();
         for Connect(target, _connect_type, expr) in &self.connects {
-            let port: Ident = target.parts()[1].clone().into();
+            let port: Ident = target.parts()[1].into();
             if target.parent().as_ident().unwrap() == submodule {
                 result.insert(port, expr.clone());
             }

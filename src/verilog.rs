@@ -261,6 +261,23 @@ impl<'a> Verilog<'a> {
                 }
                 Ok(gs)
             },
+            ExprNode::If(ifexpr) => {
+                let gs = self.gensym();
+                let cond_ssa = self.verilog_expr(&ifexpr.condition())?;
+                let a_ssa = self.verilog_expr(ifexpr.a())?;
+                let b_ssa = self.verilog_expr(ifexpr.b())?;
+                let typ = expr.type_of().unwrap();
+                let width_str: String = match typ.as_ref() {
+                    Type::Word(1) => " ".to_string(),
+                    Type::Word(n) => {
+                        let max_bit = *n - 1;
+                        format!("[{max_bit}:0]")
+                    },
+                    _ => panic!(),
+                };
+                writeln!(self.writer, "    wire {width_str} {gs} = {cond_ssa} ? {a_ssa} : {b_ssa};")?;
+                Ok(gs)
+            },
             _ => {
                 let gs = self.gensym();
                 writeln!(self.writer, "    {gs} = ...{expr:?}")?;

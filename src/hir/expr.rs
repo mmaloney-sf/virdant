@@ -6,6 +6,7 @@ mod methodcall;
 mod idx;
 mod idxrange;
 mod cat;
+mod ifexpr;
 
 use ascription::*;
 use reference::*;
@@ -15,6 +16,7 @@ use methodcall::*;
 use idx::*;
 use idxrange::*;
 use cat::*;
+use ifexpr::*;
 
 use std::collections::HashSet;
 
@@ -47,6 +49,7 @@ pub enum ExprNode {
     Idx(ExprIdx),
     IdxRange(ExprIdxRange),
     Cat(ExprCat),
+    If(ExprIf),
 }
 
 impl Expr {
@@ -60,6 +63,7 @@ impl Expr {
             ExprNode::Idx(inner) => inner,
             ExprNode::IdxRange(inner) => inner,
             ExprNode::Cat(inner) => inner,
+            ExprNode::If(inner) => inner,
         }
     }
 }
@@ -151,6 +155,12 @@ impl Expr {
                     es_hir.push(Expr::from_ast(e));
                 }
                 ExprNode::Cat(ExprCat(es_hir))
+            },
+            ast::Expr::If(cond, a, b) => {
+                let cond_hir: Expr = Expr::from_ast(cond);
+                let a_hir: Expr = Expr::from_ast(a);
+                let b_hir: Expr = Expr::from_ast(b);
+                ExprNode::If(ExprIf(Box::new(cond_hir), Box::new(a_hir), Box::new(b_hir)))
             },
             _ => todo!(),
         };

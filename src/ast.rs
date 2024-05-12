@@ -65,6 +65,7 @@ pub enum Expr {
     Idx(Box<Expr>, StaticIndex),
     IdxRange(Box<Expr>, StaticIndex, StaticIndex),
     Cat(Vec<Expr>),
+    If(Box<Expr>, Box<Expr>, Box<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

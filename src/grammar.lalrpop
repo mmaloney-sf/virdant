@@ -106,9 +106,26 @@ Type: Box<Type> = {
 
 pub Expr: Box<Expr> = {
 //    <e:ExprLet> => e,
-//    <e:ExprIf> => e,
 //    <e:ExprMatch> => e,
+    <e:ExprIf> => e,
     <e:ExprCall> => e,
+}
+
+ExprIf: Box<Expr> = {
+    <ll:@L> "if" <cond:Expr> "{"
+        <e1:Expr>
+    <elseifs:("}" "else" "if" Expr "{" Expr)*>
+    "}" "else" "{"
+        <elseexpr:Expr>
+    "}" <rr:@R> => {
+        let mut result = elseexpr;
+
+        for (_, _, _, elseif_cond, _, elseif_body) in elseifs.into_iter().rev() {
+            result = Box::new(Expr::If(elseif_cond, elseif_body, result));
+        }
+
+        Box::new(Expr::If(cond, e1, result))
+    },
 }
 
 ExprCall: Box<Expr> = {

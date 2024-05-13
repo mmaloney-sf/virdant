@@ -11,6 +11,7 @@ pub Package: Package = {
 
 Item: Item = {
     <m:ModDef> => Item::ModDef(m),
+    <e:StructTypeDef> => Item::StructTypeDef(e),
 }
 
 Visibility: Visibility = {
@@ -34,6 +35,18 @@ ModDef: ModDef = {
       }
     },
 }
+
+StructTypeDef: StructTypeDef = {
+    "struct" "type" <name:Id> "{"
+        <fields:(Id ":" Type ";")*>
+    "}" => {
+        StructTypeDef {
+            name,
+            fields: fields.iter().map(|(name, _, typ, _)| (name.clone(), *typ.clone())).collect::<Vec<_>>(),
+        }
+    },
+}
+
 
 Decl: Decl = {
     <c:Component> => Decl::Component(c),
@@ -100,8 +113,9 @@ Submodule: Submodule = {
 }
 
 Type: Box<Type> = {
-  "Clock" => Box::new(Type::Clock),
-  "Word" "[" <w:Nat> "]" => Box::new(Type::Word(w)),
+    "Clock" => Box::new(Type::Clock),
+    "Word" "[" <w:Nat> "]" => Box::new(Type::Word(w)),
+    <id:Id> => Box::new(Type::TypeRef(id)),
 }
 
 pub Expr: Box<Expr> = {

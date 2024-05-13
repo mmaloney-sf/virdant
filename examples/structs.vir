@@ -1,0 +1,17 @@
+struct type Foo {
+    bar : Word[8];
+    baz : Word[1];
+}
+
+public module Top {
+    incoming clk : Clock;
+    incoming reset : Word[1];
+    incoming foo : Foo;
+
+//    wire foo : Foo;
+//    foo :=
+//        Foo {
+//            bar = 0w8,
+//            baz = 1w1,
+//        };
+}

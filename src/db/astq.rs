@@ -33,7 +33,8 @@ fn moddef_ast(db: &dyn AstQ, moddef: Ident) -> Result<ast::ModDef, VirdantError>
                         return Err(VirdantError::Other("Uh oh".into()));
                     }
                 }
-            }
+            },
+            ast::Item::StructTypeDef(_structtypedef) => (),
         }
     }
 

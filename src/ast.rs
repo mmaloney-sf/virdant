@@ -8,6 +8,7 @@ pub struct Package {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Item {
     ModDef(ModDef),
+    StructTypeDef(StructTypeDef),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
@@ -20,6 +21,12 @@ pub enum Visibility {
 pub struct ModDef {
     pub name: Ident,
     pub decls: Vec<Decl>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct StructTypeDef {
+    pub name: Ident,
+    pub fields: Vec<(Ident, Type)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -44,6 +51,7 @@ pub enum Type {
     Clock,
     Word(Width),
     Vec(Box<Type>, usize),
+    TypeRef(Ident),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -82,7 +90,7 @@ pub enum ConnectType {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Submodule {
-    pub name: Ident, 
+    pub name: Ident,
     pub moddef: Ident,
 }
 

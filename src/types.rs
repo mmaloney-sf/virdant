@@ -7,6 +7,7 @@ pub enum Type {
     Bool,
     Word(Width),
     Vec(Arc<Type>, usize),
+    TypeRef(Ident),
     Other(String),
 }
 
@@ -18,6 +19,7 @@ impl std::fmt::Display for Type {
             Type::Bool => write!(f, "Bool"),
             Type::Word(width) => write!(f, "Word[{width}]"),
             Type::Vec(typ, n) => write!(f, "Vec[{typ}, {n}]"),
+            Type::TypeRef(name) => write!(f, "{name}"),
             Type::Other(typename) => write!(f, "{typename}"),
         }
     }

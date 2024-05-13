@@ -79,6 +79,7 @@ impl Type {
             ast::Type::Clock => Type::Clock.into(),
             ast::Type::Word(width) => Type::Word(*width).into(),
             ast::Type::Vec(inner, len) => Type::Vec(Type::from_ast(inner), *len).into(),
+            ast::Type::TypeRef(name) => Type::TypeRef(name.clone()).into(),
         }
     }
 }

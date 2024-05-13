@@ -1,6 +1,7 @@
 pub use std::sync::Arc;
 use crate::types::Type;
 
+pub type Val = u64;
 pub type Width = u64;
 pub type Field = String;
 pub type StaticIndex = u64;

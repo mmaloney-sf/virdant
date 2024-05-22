@@ -1,0 +1,22 @@
+public module Top {
+    incoming clk : Clock;
+    incoming reset : Word[1];
+    outgoing out : Word[8];
+
+    reg buffer : Word[8] on clk;
+    buffer <= reset->mux(0w8, buffer->add(1));
+    out := buffer;
+}
+
+port Exchange {
+    mosi addr : Word[8];
+    miso data : Word[8];
+}
+
+module Master {
+    master port ex of Exchange;
+}
+
+module Slave {
+    slave port ex of Exchange;
+}

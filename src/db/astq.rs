@@ -35,6 +35,7 @@ fn moddef_ast(db: &dyn AstQ, moddef: Ident) -> Result<ast::ModDef, VirdantError>
                 }
             },
             ast::Item::StructTypeDef(_structtypedef) => (),
+            ast::Item::PortDef(_port) => (),
         }
     }
 

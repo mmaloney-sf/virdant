@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::io::Write;
 
 use crate::common::*;
@@ -20,7 +22,7 @@ impl Db {
     }
 }
 
-struct Verilog<'a> {
+pub struct Verilog<'a> {
     writer: &'a mut dyn Write,
     db: &'a Db,
     gensym: usize,
@@ -355,12 +357,12 @@ impl VerilogFile {
 
 impl VerilogModDef {
     fn write<F: Write>(&self, f: &mut F) -> std::io::Result<()> {
-        writeln!(f, "module {}(", self.name);
+        writeln!(f, "module {}(", self.name)?;
         self.write_ports(f)?;
-        writeln!(f, ");");
+        writeln!(f, ");")?;
         self.write_statements(f)?;
 
-        writeln!(f, "endmodule");
+        writeln!(f, "endmodule")?;
         Ok(())
     }
 

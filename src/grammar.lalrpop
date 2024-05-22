@@ -12,6 +12,7 @@ pub Package: Package = {
 Item: Item = {
     <m:ModDef> => Item::ModDef(m),
     <e:StructTypeDef> => Item::StructTypeDef(e),
+    <i:PortDef> => Item::PortDef(i),
 }
 
 Visibility: Visibility = {
@@ -36,6 +37,27 @@ ModDef: ModDef = {
     },
 }
 
+PortDef: PortDef = {
+    "port" <name:Id> "{"
+        <fields:(PortField ";")*>
+    "}" => {
+        PortDef {
+            name,
+            fields: fields.iter().map(|(field, _)| field.clone()).collect::<Vec<_>>(),
+        }
+    },
+}
+
+PortDir: PortDir = {
+    "mosi" => PortDir::Mosi,
+    "miso" => PortDir::Miso,
+}
+
+PortField: PortField = {
+    <dir:PortDir> <name:Id> ":" <typ:Type> => PortField { dir, name, typ: *typ },
+}
+
+
 StructTypeDef: StructTypeDef = {
     "struct" "type" <name:Id> "{"
         <fields:(Id ":" Type ";")*>
@@ -52,6 +74,7 @@ Decl: Decl = {
     <c:Component> => Decl::Component(c),
     <c:Connect> => Decl::Connect(c),
     <m:Submodule> => Decl::Submodule(m),
+    <i:Port> => Decl::Port(i),
 }
 
 Component: Component = {
@@ -110,6 +133,11 @@ InlineConnect: InlineConnect = {
 
 Submodule: Submodule = {
     "submodule" <name:Id> "of" <moddef:Id> => Submodule { name, moddef },
+}
+
+Port: Port = {
+    "master" "port" <name:Id> "of" <portname:Id> => Port { kind: PortKind::Master, name, portname },
+    "slave" "port" <name:Id> "of" <portname:Id> => Port { kind: PortKind::Slave, name, portname },
 }
 
 Type: Box<Type> = {

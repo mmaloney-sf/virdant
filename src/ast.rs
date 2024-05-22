@@ -8,10 +8,11 @@ pub struct Package {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Item {
     ModDef(ModDef),
+    PortDef(PortDef),
     StructTypeDef(StructTypeDef),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
 pub enum Visibility {
     Public,
     Private,
@@ -24,6 +25,31 @@ pub struct ModDef {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PortDef {
+    pub name: Ident,
+    pub fields: Vec<PortField>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
+pub enum PortDir {
+    Miso,
+    Mosi,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Copy, Hash)]
+pub enum PortKind {
+    Master,
+    Slave,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PortField {
+    pub dir: PortDir,
+    pub name: Ident,
+    pub typ: Type,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructTypeDef {
     pub name: Ident,
     pub fields: Vec<(Ident, Type)>,
@@ -33,6 +59,7 @@ pub struct StructTypeDef {
 pub enum Decl {
     Component(Component),
     Submodule(Submodule),
+    Port(Port),
     Connect(Connect),
 }
 
@@ -92,6 +119,13 @@ pub enum ConnectType {
 pub struct Submodule {
     pub name: Ident,
     pub moddef: Ident,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Port {
+    pub kind: PortKind,
+    pub name: Ident,
+    pub portname: Ident,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

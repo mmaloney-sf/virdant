@@ -100,6 +100,7 @@ fn package_item_names(db: &dyn StructureQ) -> Result<Vec<Ident>, VirdantError> {
         match item {
             ast::Item::ModDef(moddef) => result.push(moddef.name.clone()),
             ast::Item::StructTypeDef(structtypedef) => result.push(structtypedef.name.clone()),
+            ast::Item::PortDef(port) => result.push(port.name.clone()),
         }
     }
     Ok(result)
@@ -113,6 +114,7 @@ fn moddef_component_names(db: &dyn StructureQ, moddef: Ident) -> Result<Vec<Iden
             ast::Decl::Component(component) => result.push(component.name.clone()),
             ast::Decl::Submodule(_submodule) => (),
             ast::Decl::Connect(_connect) => (),
+            ast::Decl::Port(_port) => (),
         }
     }
     Ok(result)
@@ -129,7 +131,8 @@ fn package_moddef_names(db: &dyn StructureQ) -> Result<Vec<Ident>, VirdantError>
     for item in &package.items {
         match item {
             ast::Item::ModDef(moddef) => result.push(moddef.name.clone()),
-            ast::Item::StructTypeDef(_) => (),
+            ast::Item::StructTypeDef(_typedef) => (),
+            ast::Item::PortDef(_interface) => (),
         }
     }
     Ok(result)

@@ -36,14 +36,16 @@ fn main() {
     let args = Args::parse();
     if args.compile {
         let package_text = std::fs::read_to_string(args.filename).unwrap();
-        db::compile_verilog(&package_text).unwrap();
+        todo!()
+//        db::compile_verilog(&package_text).unwrap();
     } else if args.sim {
         let top = args.top.unwrap_or_else(|| "Top".into());
         let trace = args.trace.as_ref().map(|s| s.as_str());
         sim(&args.filename, &top, trace, args.delay.unwrap_or(400));
     } else if args.mlir {
         let package_text = std::fs::read_to_string(args.filename).unwrap();
-        db::compile_mlir(&package_text).unwrap();
+        todo!()
+//        db::compile_mlir(&package_text).unwrap();
     } else {
         eprintln!("Please specify either --sim or --compile.");
     }
@@ -110,7 +112,8 @@ pub fn verilog() {
         }
 
     ";
-    db::compile_verilog(package_text).unwrap();
+    todo!()
+//    db::compile_verilog(package_text).unwrap();
 }
 
 pub fn parse() {

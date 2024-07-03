@@ -9,17 +9,18 @@ use crate::ast;
 
 #[salsa::query_group(TypecheckQStorage)]
 pub trait TypecheckQ: StructureQ {
-    fn moddef_context(&self, moddef: Ident) -> VirdantResult<Context<Path, Arc<Type>>>;
-    fn moddef_component_type(&self, moddef: Ident, component: Ident) -> VirdantResult<ast::Type>;
+//    fn moddef_context(&self, moddef: Ident) -> VirdantResult<Context<Path, Arc<Type>>>;
+//    fn moddef_component_type(&self, moddef: Ident, component: Ident) -> VirdantResult<ast::Type>;
 
-    fn moddef_hir_typed(&self, moddef: Ident) -> VirdantResult<hir::ModDef>;
-    fn typecheck_component(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Expr>;
-    fn moddef_component_hir_typed(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Component>;
+//    fn moddef_hir_typed(&self, moddef: Ident) -> VirdantResult<hir::ModDef>;
+//    fn typecheck_component(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Expr>;
+//    fn moddef_component_hir_typed(&self, moddef: Ident, component: Ident) -> VirdantResult<hir::Component>;
 
-    fn moddef_submodule_connects_typed(&self, moddef: Ident, submodule: Ident) -> VirdantResult<Vec<hir::Connect>>;
-    fn moddef_nonlocal_port_type(&self, moddef: Ident, reference: Path) -> VirdantResult<Arc<Type>>;
+//    fn moddef_submodule_connects_typed(&self, moddef: Ident, submodule: Ident) -> VirdantResult<Vec<hir::Connect>>;
+//    fn moddef_nonlocal_port_type(&self, moddef: Ident, reference: Path) -> VirdantResult<Arc<Type>>;
 }
 
+/*
 fn moddef_component_hir_typed(db: &dyn TypecheckQ, moddef: Ident, component: Ident) -> VirdantResult<hir::Component> {
     let c = db.moddef_component_ast(moddef.clone(), component.clone())?;
     let typ = Type::from_ast(&c.typ);
@@ -152,3 +153,4 @@ fn moddef_nonlocal_port_type(db: &dyn TypecheckQ, moddef: Ident, reference: Path
     let type_ast = db.moddef_component_type(submodule_moddef, submodule_port)?;
     Ok(Type::from_ast(&type_ast))
 }
+*/

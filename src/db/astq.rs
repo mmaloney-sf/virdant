@@ -12,6 +12,9 @@ pub trait AstQ: salsa::Database {
     fn package_ast(&self) -> VirdantResult<ast::Package>;
     fn moddef_ast(&self, moddef: Ident) -> VirdantResult<ast::ModDef>;
     fn moddef_component_ast(&self, moddef: Ident, component: Ident) -> VirdantResult<ast::Component>;
+
+    fn moddef_components(&self, moddef: Ident) -> VirdantResult<Vec<ast::Component>>;
+    fn moddef_submodules(&self, moddef: Ident) -> VirdantResult<Vec<ast::Submodule>>;
 }
 
 fn package_ast(db: &dyn AstQ) -> Result<ast::Package, VirdantError> {
@@ -54,4 +57,27 @@ fn moddef_component_ast(db: &dyn AstQ, moddef: Ident, component: Ident) -> Resul
         }
     }
     Err(VirdantError::Other(format!("No such moddef {}", moddef)))
+}
+
+
+fn moddef_components(db: &dyn AstQ, moddef: Ident) -> VirdantResult<Vec<ast::Component>> {
+    let moddef_ast = db.moddef_ast(moddef)?;
+    let mut results = vec![];
+    for decl in &moddef_ast.decls {
+        if let ast::Decl::Component(component) = decl {
+            results.push(component.clone());
+        }
+    }
+    Ok(results)
+}
+
+fn moddef_submodules(db: &dyn AstQ, moddef: Ident) -> VirdantResult<Vec<ast::Submodule>> {
+    let moddef_ast = db.moddef_ast(moddef)?;
+    let mut results = vec![];
+    for decl in &moddef_ast.decls {
+        if let ast::Decl::Submodule(submodule) = decl {
+            results.push(submodule.clone());
+        }
+    }
+    Ok(results)
 }

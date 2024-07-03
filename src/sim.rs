@@ -399,10 +399,11 @@ pub fn simulator(input: &str, top: &str) -> VirdantResult<Sim> {
 
     let mut db = Db::default();
     db.set_source(Arc::new(input.to_string()));
-    let elaborated = db.elaborate(top.into())?;
+    todo!()
+//    let elaborated = db.elaborate(top.into())?;
 
-    let sim = elaborated.simulator();
-    Ok(sim)
+//    let sim = elaborated.simulator();
+//    Ok(sim)
 }
 
 pub fn simulator_with_trace(input: &str, top: &str, fout: &mut dyn std::io::Write) -> VirdantResult<Sim> {

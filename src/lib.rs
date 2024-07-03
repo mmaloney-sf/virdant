@@ -13,4 +13,4 @@ pub mod common;
 pub mod elab;
 pub mod vcd;
 pub mod mlir;
-pub mod verilog;
+// pub mod verilog;

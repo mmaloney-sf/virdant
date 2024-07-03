@@ -24,6 +24,7 @@ pub struct Db {
 
 impl salsa::Database for Db {}
 
+/*
 pub fn compile_mlir(input: &str) -> VirdantResult<()> {
     let mut db = Db::default();
     db.set_source(Arc::new(input.to_string()));
@@ -42,3 +43,4 @@ pub fn compile_verilog(input: &str) -> VirdantResult<()> {
     db.verilog(&mut stdout)?;
     Ok(())
 }
+*/

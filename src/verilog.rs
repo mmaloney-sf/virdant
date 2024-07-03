@@ -1,3 +1,4 @@
+/*
 use std::io::Write;
 
 use crate::common::*;
@@ -476,3 +477,4 @@ fn verilog_output() {
     let mut stdout = std::io::stdout();
     verilog.write(&mut stdout).unwrap();
 }
+*/

@@ -28,7 +28,11 @@ fn check(db: &dyn PackageQ) -> Result<(), VirdantError> {
 
 fn check_moddef(db: &dyn PackageQ, moddef: Ident) -> VirdantResult<()> {
     let mut errors = ErrorReport::new();
-    for component in db.moddef_components(moddef.clone())? {
+    if let Err(e) = db.moddef_typecheck(moddef) {
+        errors.add(e);
+    }
+
+//    for component in db.moddef_components(moddef.clone())? {
 //        let connects = db.moddef_component_connects(moddef.clone(), component.clone())?;
 //        if component.kind == ast::ComponentKind::Incoming {
 //            if connects.len() > 0 {
@@ -45,7 +49,7 @@ fn check_moddef(db: &dyn PackageQ, moddef: Ident) -> VirdantResult<()> {
 //                }
 //            }
 //        }
-    }
+//    }
     errors.check()
 }
 

@@ -1,14 +1,13 @@
 use std::collections::{HashSet, HashMap};
 use crate::common::*;
-use crate::hir;
 use crate::ast;
-use crate::types::Type;
 pub use super::AstQ;
 
 #[salsa::query_group(StructureQStorage)]
 pub trait StructureQ: AstQ {
     fn package_item_names(&self) -> VirdantResult<Vec<Ident>>;
     fn package_moddef_names(&self) -> VirdantResult<Vec<Ident>>;
+    fn moddef_component_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
     fn moddef_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
 
     fn check_item_names_unique(&self) -> VirdantResult<()>;
@@ -17,10 +16,7 @@ pub trait StructureQ: AstQ {
     fn check_submodule_moddefs_exist(&self) -> VirdantResult<()>;
     fn check_no_submodule_cycles(&self) -> VirdantResult<()>;
 
-//    fn moddef_component_connects(&self, moddef: Ident, component: Ident) -> VirdantResult<Vec<ast::InlineConnect>>;
-//    fn moddef_submodule_connects(&self, moddef: Ident, submodule: Ident) -> VirdantResult<Vec<ast::Connect>>;
-//    fn moddef_submodule_moddef(&self, moddef: Ident, submodule: Ident) -> VirdantResult<Ident>;
-
+    fn moddef_component_connects(&self, moddef: Ident, component: Ident) -> VirdantResult<Vec<ast::InlineConnect>>;
 }
 
 fn package_item_names(db: &dyn StructureQ) -> Result<Vec<Ident>, VirdantError> {
@@ -47,10 +43,23 @@ fn package_moddef_names(db: &dyn StructureQ) -> Result<Vec<Ident>, VirdantError>
     Ok(result)
 }
 
+fn moddef_component_names(db: &dyn StructureQ, moddef: Ident) -> Result<Vec<Ident>, VirdantError> {
+    let moddef = db.moddef_ast(moddef)?;
+    let mut result = vec![];
+    for decl in moddef.decls {
+        match decl {
+            ast::Decl::Component(component) => result.push(component.name.clone()),
+            ast::Decl::Submodule(_submodule) => (),
+            ast::Decl::Connect(_connect) => (),
+        }
+    }
+    Ok(result)
+}
+
 fn moddef_names(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<Vec<Ident>> {
     let mut results = vec![];
 
-    let component_asts = db.moddef_submodules(moddef.clone())?;
+    let component_asts = db.moddef_components(moddef.clone())?;
     results.extend(component_asts.iter().map(|component| component.name.clone()).collect::<Vec<_>>());
 
     let submodule_asts = db.moddef_submodules(moddef)?;
@@ -71,7 +80,6 @@ fn check_item_names_unique(db: &dyn StructureQ) -> Result<(), VirdantError> {
 
     errors.check()
 }
-
 
 fn check_moddef_names_unique(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<()> {
     let mut errors = ErrorReport::new();
@@ -123,7 +131,6 @@ fn check_no_submodule_cycles(db: &dyn StructureQ) -> Result<(), VirdantError> {
     errors.check()
 }
 
-/*
 fn moddef_component_connects(db: &dyn StructureQ, moddef: Ident, component: Ident) -> Result<Vec<ast::InlineConnect>, VirdantError> {
     let moddef_ast = db.moddef_ast(moddef)?;
     let mut result = vec![];
@@ -143,25 +150,6 @@ fn moddef_component_connects(db: &dyn StructureQ, moddef: Ident, component: Iden
     }
     Ok(result)
 }
-
-fn moddef_submodule_connects(db: &dyn StructureQ, moddef: Ident, submodule: Ident) -> Result<Vec<ast::Connect>, VirdantError> {
-    let moddef_ast = db.moddef_ast(moddef)?;
-    let mut result = vec![];
-
-    for decl in &moddef_ast.decls {
-        match decl {
-            ast::Decl::Connect(ast::Connect(target, connect_type, expr)) if target.is_nonlocal() => {
-                if target.parts()[0] == submodule.as_str() {
-                    result.push(ast::Connect(target.clone(), *connect_type, expr.clone()));
-                }
-
-            },
-            _ => (),
-        }
-    }
-    Ok(result)
-}
-*/
 
 fn find_cycles(graph: &HashMap<Ident, Vec<Ident>>) -> Vec<Vec<Ident>> {
     let mut cycles = Vec::new();

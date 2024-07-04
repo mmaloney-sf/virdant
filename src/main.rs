@@ -36,7 +36,15 @@ fn main() {
     let args = Args::parse();
     if args.compile {
         let package_text = std::fs::read_to_string(args.filename).unwrap();
+        let mut db = db::Db::default();
+        use db::*;
+        db.set_source(Arc::new(package_text.to_string()));
+        if let Err(e) = db.check() {
+            eprintln!("{e:?}");
+            return;
+        }
         todo!()
+
 //        db::compile_verilog(&package_text).unwrap();
     } else if args.sim {
         let top = args.top.unwrap_or_else(|| "Top".into());

@@ -1,4 +1,4 @@
-public module Top {
+pub mod Top {
     incoming clk : Clock;
     incoming reset : Word[1];
     outgoing out : Word[8];
@@ -6,13 +6,13 @@ public module Top {
     reg r : Word[8] on clk;
     r <= reset->mux(10w8, r->add(1));
 
-    submodule buffer of Buffer;
+    mod buffer of Buffer;
     buffer.clk := clk;
     buffer.in := r;
     out := buffer.out;
 }
 
-module Buffer {
+mod Buffer {
     incoming clk : Clock;
     incoming in : Word[8];
     outgoing out : Word[8];

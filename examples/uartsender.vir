@@ -1,4 +1,4 @@
-module Top {
+mod Top {
     incoming clock      : Clock; // 12MHz
     outgoing uart_tx    : Word[1];
     outgoing led_0      : Word[1];
@@ -18,7 +18,7 @@ module Top {
     reset := counter->eq(1);
 
 
-    submodule uart_sender of UartSender;
+    mod uart_sender of UartSender;
     uart_sender.clock := clock;
     uart_sender.reset := reset;
     uart_sender.data  := data;
@@ -28,7 +28,7 @@ module Top {
     uart_tx := uart_sender.uart_tx;
 }
 
-module UartSender {
+mod UartSender {
     incoming clock      : Clock; // 12MHz
     incoming reset      : Word[1];
     incoming data       : Word[8];

@@ -15,7 +15,7 @@ Item: Item = {
 }
 
 Visibility: Visibility = {
-  <v:"public"?> => {
+  <v:"pub"?> => {
     if v.is_none() {
       Visibility::Private
     } else {
@@ -25,7 +25,7 @@ Visibility: Visibility = {
 }
 
 ModDef: ModDef = {
-    <v:Visibility> "module" <name:Id> "{"
+    <v:Visibility> "mod" <name:Id> "{"
         <decls:(Decl ";")*>
     "}" => {
       let decls = decls.into_iter().map(|(decl, _semi)| decl).collect();
@@ -100,7 +100,7 @@ Connect: Connect = {
 }
 
 Submodule: Submodule = {
-    "submodule" <name:Id> "of" <moddef:Id> => Submodule { name, moddef },
+    "mod" <name:Id> "of" <moddef:Id> => Submodule { name, moddef },
 }
 
 Type: Box<Type> = {

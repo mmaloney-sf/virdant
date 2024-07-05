@@ -1,4 +1,4 @@
-public module Top {
+pub mod Top {
     incoming clk : Clock;
     incoming reset : Word[1];
     outgoing out : Word[8];

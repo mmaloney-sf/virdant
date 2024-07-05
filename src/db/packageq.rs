@@ -1,9 +1,6 @@
-use std::collections::HashMap;
 use crate::common::*;
 use super::TypecheckQ;
-use crate::hir;
-use crate::ast;
-use crate::elab;
+//use crate::elab;
 
 #[salsa::query_group(PackageQStorage)]
 pub trait PackageQ: TypecheckQ {

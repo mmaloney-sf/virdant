@@ -8,8 +8,7 @@ pub use structureq::StructureQ;
 pub use typecheckq::TypecheckQ;
 pub use packageq::PackageQ;
 
-use std::sync::Arc;
-use crate::common::*;
+//use crate::common::*;
 
 #[salsa::database(
     astq::AstQStorage,

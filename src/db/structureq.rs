@@ -129,28 +129,6 @@ fn check_no_submodule_cycles(db: &dyn StructureQ) -> Result<(), VirdantError> {
     errors.check()
 }
 
-/*
-fn moddef_component_connects(db: &dyn StructureQ, moddef: Ident, component: Ident) -> Result<Vec<ast::InlineConnect>, VirdantError> {
-    let moddef_ast = db.moddef_ast(moddef)?;
-    let mut result = vec![];
-
-    for decl in &moddef_ast.decls {
-        match decl {
-            ast::Decl::Component(c) if c.name == component => {
-                if let Some(connect) = &c.connect {
-                    result.push(connect.clone());
-                }
-            },
-            ast::Decl::Connect(ast::Connect(target, connect_type, expr)) if target == &component.as_path() => {
-                result.push(ast::InlineConnect(*connect_type, expr.clone()));
-            },
-            _ => (),
-        }
-    }
-    Ok(result)
-}
-*/
-
 fn find_cycles(graph: &HashMap<Ident, Vec<Ident>>) -> Vec<Vec<Ident>> {
     let mut cycles = Vec::new();
     let mut visited = HashSet::new();

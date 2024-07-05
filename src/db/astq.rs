@@ -15,6 +15,8 @@ pub trait AstQ: salsa::Database {
 
     fn moddef_components(&self, moddef: Ident) -> VirdantResult<Vec<ast::SimpleComponent>>;
     fn moddef_submodules(&self, moddef: Ident) -> VirdantResult<Vec<ast::Submodule>>;
+
+    fn moddef_wire(&self, moddef: Ident, target: Path) -> VirdantResult<ast::Wire>;
 }
 
 fn package_ast(db: &dyn AstQ) -> Result<ast::Package, VirdantError> {
@@ -80,4 +82,25 @@ fn moddef_submodules(db: &dyn AstQ, moddef: Ident) -> VirdantResult<Vec<ast::Sub
         }
     }
     Ok(results)
+}
+
+fn moddef_wire(db: &dyn AstQ, moddef: Ident, target: Path) -> VirdantResult<ast::Wire> {
+    let moddef_ast = db.moddef_ast(moddef.clone())?;
+    let mut wire_asts = vec![];
+
+    for decl in &moddef_ast.decls {
+        if let ast::Decl::Wire(wire @ ast::Wire(wire_target, _wire_type, _expr)) = decl {
+            if wire_target == &target {
+                wire_asts.push(wire.clone());
+            }
+        }
+    }
+
+    if wire_asts.len() < 1 {
+        Err(VirdantError::Other(format!("No wire for: {target} in {moddef}")))
+    } else if wire_asts.len() > 1 {
+        Err(VirdantError::Other(format!("Multiple wires for: {target} in {moddef}")))
+    } else {
+        Ok(wire_asts[0].clone())
+    }
 }

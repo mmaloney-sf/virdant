@@ -15,8 +15,6 @@ pub trait StructureQ: AstQ {
 
     fn check_submodule_moddefs_exist(&self) -> VirdantResult<()>;
     fn check_no_submodule_cycles(&self) -> VirdantResult<()>;
-
-//    fn moddef_component_connects(&self, moddef: Ident, component: Ident) -> VirdantResult<Vec<ast::InlineConnect>>;
 }
 
 fn package_item_names(db: &dyn StructureQ) -> Result<Vec<Ident>, VirdantError> {

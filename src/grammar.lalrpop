@@ -73,9 +73,9 @@ SimpleComponent: SimpleComponent = {
             reset: None,
         }
     },
-    "wire" <name:Id> ":" <typ:Type> => {
+    "node" <name:Id> ":" <typ:Type> => {
         SimpleComponent {
-            kind: SimpleComponentKind::Wire,
+            kind: SimpleComponentKind::Node,
             name,
             typ: *typ,
             clock: None,

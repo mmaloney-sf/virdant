@@ -5,7 +5,7 @@ mod Top {
 
     led_0 := uart_sender.ready->not();
 
-    wire data : Word[8];
+    node data : Word[8];
     data := 65w8;
 
     reg counter : Word[8] on clock;
@@ -14,7 +14,7 @@ mod Top {
         counter,
     );
 
-    wire reset : Word[1];
+    node reset : Word[1];
     reset := counter->eq(1);
 
 

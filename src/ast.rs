@@ -57,7 +57,7 @@ pub enum Type {
 pub enum SimpleComponentKind {
     Incoming,
     Outgoing,
-    Wire,
+    Node,
     Reg,
 }
 

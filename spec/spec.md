@@ -15,7 +15,7 @@ These include:
 * type definitions
 
 ```
-public module Foo {
+pub mod Foo {
     incoming clk : Clock;
     incoming in : Word[8];
     outgoing out : Word[8];
@@ -27,44 +27,54 @@ public module Foo {
 }
 ```
 
-A module definition consists of a list of declarations.
-Declarations are considered in-scope everywhere within the module.
-Thus, the order of declarations is not significant.
+A module definition consists of a list of statements.
+The order of statements is not significant.
 
-**Component** declarations represent a simple piece of hardware that exists in a module.
-A component has a name and a type.
-
-Virdant has four **kinds** of components:
+The following statements declare a **component**.
+A component represents a simple piece of hardware that exists in a module.
 
 * `incoming`
 * `outgoing`
-* `wire`
+* `node`
 * `reg`
+* `mod`
 
 The `incoming` and `outgoing` components represent ports in towards and out from the module respectively.
-The `wire` component represents a named value, used for clarity or to create an alias to a complex expression.
+The `node` component represents a named value, used for clarity or to create an alias to a complex expression.
 The `reg` component represents a stateful value.
+The `mod` component represents a submodule instance.
 
-Note, we do not confuse the kind of a component with its type, since types.
-The type indicates the type of data that flows through the component.
+Of these, `incoming` `outgoing` `node` and `reg` are called **simple components**.
+Each simple component has a **type**.
+At simulation time, each one will have a signal associated with it.
 
-A **submodule** declaration nests an instance of one module inside another.
-
+A `mod` component is where one module is nested inside of another.
 A submodule is declared with a name and a module definition.
-Note, we do not confuse the module definition with its type.
-Submodules are not expressions, and so they do not have a type.
 
-A **target** is a component which we may connect to.
+In addition to declarations, there are **wire** statements, which supply a value to a simple component.
+These are written as `TARGET := EXPR` or `TARGET <= EXPR`.
 
-Inside of a module definition, each `outgoing`, `wire`, and `reg` component introduces a **local target**,
+The left hand side of a wire statement is the **target**.
+
+Inside of a module definition, each `outgoing`, `node`, and `reg` component introduces a **local target**,
 and each `incoming` component of a submodule, as defined by its module definition, introduces a **non-local target**.
 
-A **connect** is an unnamed statement which associate the expression on the right hand side to the target on the left hand side.
+The right hand side of a wire statement is an expression.
+This expression will determine the values the target receives at runtime.
 
-There are two kinds of connections:
+There are two kinds of wires:
 
 * `:=` (continuous)
 * `<=` (latched)
+
+Continuous wires are used to connect to `incoming` `outgoing` and `node` components.
+They continuously supply a value to the component.
+This means that during simulation, the value of the target changes as soon as the value of the expression changes.
+
+Latched wires are used to connect to `reg` components.
+They supply a new value to the component on each tick of that register's associated clock.
+You can think of them as being a wire to the register's data pin ("D" pin) in the underlying hardware.
+This is in contrast to when a `reg` is used as an expression, which evaluates to the the register's output pin ("Q" pin).
 
 Continuous connects, written `:=`, are always in effect.
 This is used with `incoming`, `outgoing`, and `wire` components.
@@ -90,6 +100,8 @@ Any expression may reference any `incoming`, `wire`, `reg` of the defining modul
 
 For clarity, when referencing a `reg`, you read the current value (the value that was latched on the previous cycle)
 rather than the value which is about to be latched.
+
+Submodules are not expressions, and so they do not have a type.
 
 ### Literals
 
@@ -158,80 +170,3 @@ For words, the higher index goes on the left.
 
 The upper index is non-inclusive.
 For example, if `x : Word[8]`, then `x` is the same as `x[8..0]`.
-
-
-## Grammar
-
-```
-Package := Item*
-
-Item := ModDef
-
-Visibility := "public"?
-
-ModDef :=
-    Visibility "module" Id "{"
-        (Decl ";")*
-    "}"
-
-Decl :=
-    Component |
-    Connect |
-    Submodule
-
-Component  :=
-    "incoming" Id ":" Type |
-    "outgoing" Id ":" Type> InlineConnect? |
-    "wire" Id ":" Type InlineConnect? |
-    "reg" Id ":" Type "on" Expr ("reset" Expr)? InlineConnect?
-
-Connect :=
-    Path ":=" Expr |
-    Path "<=" Expr
-
-InlineConnect :=
-    ":=" Expr |
-    "<=" Expr
-
-Submodule := "submodule" Id "of" Id
-
-Type :=
-    "Clock" |
-    "Word" "[" Nat "]"
-
-Expr :=
-    ExprCall
-
-ExprCall :=
-    "cat" "(" ExprList ")" |
-    ExprCall "->" Id "(" ExprList ")" |
-    ExprCall "->" "as" "(" Type ")" |
-    ExprIdx,
-
-ExprIdx :=
-    ExprIdx "[" Nat "]" |
-    ExprBase
-
-ExprBase :=
-    ExprVec |
-    ExprLit |
-    ExprReference |
-    "(" Expr ")"
-
-FieldExprList :=
-    (Id "=" Expr ("," Id "=" Expr)* ","?)?
-
-ExprVec :=
-    "[" ExprList "]" |
-    "[" Expr ";" Nat "]"
-
-ExprList :=
-    (Expr ("," Expr)* ","?)?
-
-ExprLit :=
-     WordLit
-
-ExprReference := Path
-
-Path := Id ("." Id)*
-```

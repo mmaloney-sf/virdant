@@ -1,4 +1,5 @@
 use std::collections::{HashSet, HashMap};
+use crate::ast::SimpleComponentKind;
 use crate::common::*;
 use crate::ast;
 pub use super::AstQ;
@@ -9,6 +10,8 @@ pub trait StructureQ: AstQ {
     fn package_moddef_names(&self) -> VirdantResult<Vec<Ident>>;
     fn moddef_component_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
     fn moddef_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
+
+    fn moddef_targets(&self, moddef: Ident) -> VirdantResult<Vec<Path>>;
 
     fn check_item_names_unique(&self) -> VirdantResult<()>;
     fn check_moddef_names_unique(&self, moddef: Ident) -> VirdantResult<()>;
@@ -64,6 +67,37 @@ fn moddef_names(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<Vec<Ident>>
     results.extend(submodule_asts.iter().map(|submodule| submodule.name.clone()).collect::<Vec<_>>());
 
     Ok(results)
+}
+
+fn moddef_targets(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<Vec<Path>> {
+    let mut result: Vec<Path> = vec![];
+    let moddef_ast = db.moddef_ast(moddef.clone())?;
+
+    for decl in &moddef_ast.decls {
+        match decl {
+            ast::Decl::SimpleComponent(component) => {
+                if component.kind != SimpleComponentKind::Incoming {
+                    result.push(component.name.clone().into());
+                }
+            },
+            ast::Decl::Submodule(submodule) => {
+                let submodule_moddef_ast = db.moddef_ast(submodule.moddef.clone())?;
+                for decl in &submodule_moddef_ast.decls {
+                    if let ast::Decl::SimpleComponent(component) = decl {
+                        if component.kind == SimpleComponentKind::Incoming {
+                            let submodule_path: Path = submodule.name.clone().into();
+                            let component_path: Path = component.name.clone().into();
+                            result.push(submodule_path.join(&component_path));
+                        }
+                    }
+                }
+            },
+            ast::Decl::Wire(_) => (),
+        }
+
+    }
+
+    Ok(result)
 }
 
 fn check_item_names_unique(db: &dyn StructureQ) -> Result<(), VirdantError> {

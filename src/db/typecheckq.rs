@@ -28,7 +28,10 @@ fn typecheck(db: &dyn TypecheckQ) -> VirdantResult<()> {
 }
 
 fn moddef_typecheck(db: &dyn TypecheckQ, moddef: Ident) -> VirdantResult<()> {
-    db.moddef_context(moddef.clone())?;
+    let ctx = db.moddef_context(moddef.clone())?;
+    let targets = db.moddef_targets(moddef.clone())?;
+//    dbg!(&targets);
+//    moddef_wire(&self, moddef: Ident, target: Path)
     Ok(())
 }
 

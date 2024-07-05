@@ -114,6 +114,12 @@ impl<S> From<S> for Path where S: Into<String> {
     }
 }
 
+impl From<Ident> for Path {
+    fn from(ident: Ident) -> Path {
+        Path(Intern::new(ident.0.to_string()))
+    }
+}
+
 impl Ident {
     pub fn as_str(&self) -> &str {
         &self.0

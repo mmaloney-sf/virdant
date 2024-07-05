@@ -8,8 +8,10 @@ use crate::common::*;
 
 
 
-pub fn parse_expr(expr_text: &str) -> Result<Expr, VirdantError> {
-    let result: Result<Expr, ParseError<usize, Token<'_>, &'static str>> = grammar::ExprParser::new().parse(expr_text).map(|expr| *expr);
+pub fn parse_expr(expr_text: &str) -> Result<Arc<Expr>, VirdantError> {
+    let result: Result<Arc<Expr>, ParseError<usize, Token<'_>, &'static str>> =
+        grammar::ExprParser::new().parse(expr_text).map(|expr| expr);
+
     match result {
         Ok(expr) => Ok(expr),
         Err(err) => Err(VirdantError::ParseError(format!("{err:?}"))),

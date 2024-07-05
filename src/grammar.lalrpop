@@ -42,7 +42,7 @@ StructTypeDef: StructTypeDef = {
     "}" => {
         StructTypeDef {
             name,
-            fields: fields.iter().map(|(name, _, typ, _)| (name.clone(), *typ.clone())).collect::<Vec<_>>(),
+            fields: fields.iter().map(|(name, _, typ, _)| (name.clone(), typ.clone())).collect::<Vec<_>>(),
         }
     },
 }
@@ -59,7 +59,7 @@ SimpleComponent: SimpleComponent = {
         SimpleComponent {
             kind: SimpleComponentKind::Incoming,
             name,
-            typ: *typ,
+            typ: typ,
             clock: None,
             reset: None,
         }
@@ -68,7 +68,7 @@ SimpleComponent: SimpleComponent = {
         SimpleComponent {
             kind: SimpleComponentKind::Outgoing,
             name,
-            typ: *typ,
+            typ: typ,
             clock: None,
             reset: None,
         }
@@ -77,17 +77,17 @@ SimpleComponent: SimpleComponent = {
         SimpleComponent {
             kind: SimpleComponentKind::Node,
             name,
-            typ: *typ,
+            typ: typ,
             clock: None,
             reset: None,
         }
     },
     "reg" <name:Id> ":" <typ:Type> "on" <clock:Path> => {
-//        let reset = rst.map(|s| *s.1); // .1 ignores the "reset" keyword
+//        let reset = rst.map(|s| s.1); // .1 ignores the "reset" keyword
         SimpleComponent {
             kind: SimpleComponentKind::Reg,
             name,
-            typ: *typ,
+            typ,
             clock: Some(clock),
             reset: None,
         }
@@ -95,28 +95,28 @@ SimpleComponent: SimpleComponent = {
 }
 
 Wire: Wire = {
-    <target:Path> ":=" <e:Expr> => Wire(target, WireType::Continuous, *e),
-    <target:Path> "<=" <e:Expr> => Wire(target, WireType::Latched, *e),
+    <target:Path> ":=" <e:Expr> => Wire(target, WireType::Continuous, e),
+    <target:Path> "<=" <e:Expr> => Wire(target, WireType::Latched, e),
 }
 
 Submodule: Submodule = {
     "mod" <name:Id> "of" <moddef:Id> => Submodule { name, moddef },
 }
 
-Type: Box<Type> = {
-    "Clock" => Box::new(Type::Clock),
-    "Word" "[" <w:Nat> "]" => Box::new(Type::Word(w)),
-    <id:Id> => Box::new(Type::TypeRef(id)),
+Type: Arc<Type> = {
+    "Clock" => Arc::new(Type::Clock),
+    "Word" "[" <w:Nat> "]" => Arc::new(Type::Word(w)),
+    <id:Id> => Arc::new(Type::TypeRef(id)),
 }
 
-pub Expr: Box<Expr> = {
+pub Expr: Arc<Expr> = {
 //    <e:ExprLet> => e,
 //    <e:ExprMatch> => e,
     <e:ExprIf> => e,
     <e:ExprCall> => e,
 }
 
-ExprIf: Box<Expr> = {
+ExprIf: Arc<Expr> = {
     <ll:@L> "if" <cond:Expr> "{"
         <e1:Expr>
     <elseifs:("}" "else" "if" Expr "{" Expr)*>
@@ -126,41 +126,41 @@ ExprIf: Box<Expr> = {
         let mut result = elseexpr;
 
         for (_, _, _, elseif_cond, _, elseif_body) in elseifs.into_iter().rev() {
-            result = Box::new(Expr::If(elseif_cond, elseif_body, result));
+            result = Arc::new(Expr::If(elseif_cond, elseif_body, result));
         }
 
-        Box::new(Expr::If(cond, e1, result))
+        Arc::new(Expr::If(cond, e1, result))
     },
 }
 
-ExprCall: Box<Expr> = {
-//    <ll:@L> <name:Ctor> <rr:@R> =>  Box::new(Expr::Call(name, vec![], vec![])),
-//    <ll:@L> <name:Ctor> "(" <es:ExprList> ")" <rr:@R> =>  Box::new(Expr::Call(name, vec![], es)),
+ExprCall: Arc<Expr> = {
+//    <ll:@L> <name:Ctor> <rr:@R> =>  Arc::new(Expr::Call(name, vec![], vec![])),
+//    <ll:@L> <name:Ctor> "(" <es:ExprList> ")" <rr:@R> =>  Arc::new(Expr::Call(name, vec![], es)),
 
     "cat" "(" <es:ExprList> ")" => {
-        Box::new(Expr::Cat(es))
+        Arc::new(Expr::Cat(es))
     },
 
 //    <ll:@L> <name:Id> "(" <es:ExprList> ")" <rr:@R> => {
-//        Box::new(Expr::FnCall(name, es))
+//        Arc::new(Expr::FnCall(name, es))
 //    },
     <ll:@L> <s:ExprCall> "->" <name:Id> "(" <es:ExprList> ")" <rr:@R> => {
-        Box::new(Expr::MethodCall(s, name, es))
+        Arc::new(Expr::MethodCall(s, name, es))
     },
     <ll:@L> <s:ExprCall> "->" "as" "(" <typ:Type> ")" <rr:@R> => {
-        Box::new(Expr::As(s, *typ))
+        Arc::new(Expr::As(s, typ))
     },
     <e:ExprIdx> => e,
 }
 
-ExprIdx: Box<Expr> = {
-//    <ll:@L> <e:ExprIdx> "->" <field:Id> <rr:@R> => Box::new(Expr::IdxField(e, field.clone())),
-    <e:ExprIdx> "[" <i:Nat> "]" => Box::new(Expr::Idx(e, i)),
-    <ll:@L> <e:ExprIdx> "[" <j:Nat> ".." <i:Nat> "]" <rr:@R> => Box::new(Expr::IdxRange(e, j, i)),
+ExprIdx: Arc<Expr> = {
+//    <ll:@L> <e:ExprIdx> "->" <field:Id> <rr:@R> => Arc::new(Expr::IdxField(e, field.clone())),
+    <e:ExprIdx> "[" <i:Nat> "]" => Arc::new(Expr::Idx(e, i)),
+    <ll:@L> <e:ExprIdx> "[" <j:Nat> ".." <i:Nat> "]" <rr:@R> => Arc::new(Expr::IdxRange(e, j, i)),
     <e:ExprBase> => e,
 }
 
-ExprBase: Box<Expr> = {
+ExprBase: Arc<Expr> = {
     <e:ExprVec> => e,
 //    <e:ExprStruct> => e,
 //    <e:ExprWith> => e,
@@ -170,21 +170,12 @@ ExprBase: Box<Expr> = {
     "(" <e:Expr> ")" => e,
 }
 
-/*
-ExprStruct: Box<Expr> = {
-    <ll:@L> "struct" <name:Id> "{" <fields:FieldExprList> "}" <rr:@R> => {
-        let fields = fields.iter().map(|(name, e)| (name.to_string(), Box::new(e.clone()))).collect();
-        Box::new(Expr::Struct(fields))
-    },
-}
-*/
-
-FieldExprList: Vec<(String, Expr)> = {
+FieldExprList: Vec<(String, Arc<Expr>)> = {
     <fields:((Id "=" Expr ("," Id "=" Expr)* ","?)?)> => {
         if let Some((name, _eqsign, expr, fields, _comma)) = fields {
-            let mut results = vec![(name.to_string(), *expr)];
+            let mut results = vec![(name.to_string(), expr)];
             for (_comma, name, _eqsign, expr) in fields {
-                results.push((name.to_string(), *expr));
+                results.push((name.to_string(), expr));
             }
             results
         } else {
@@ -194,11 +185,11 @@ FieldExprList: Vec<(String, Expr)> = {
 }
 
 /*
-ExprWith: Box<Expr> = {
+ExprWith: Arc<Expr> = {
   "with" <e:Expr> "{"
     <edits:ExprWidthEdit*>
   "}" => {
-    Box::new(Expr::With(e, edits))
+    Arc::new(Expr::With(e, edits))
   }
 }
 
@@ -208,17 +199,17 @@ ExprWidthEdit: WithEdit = {
 }
 */
 
-ExprVec: Box<Expr> = {
-    <ll:@L> "[" <es:ExprList> "]" <rr:@R> => Box::new(Expr::Vec(es)),
-    <ll:@L> "[" <e:Expr> ";" <n:Nat> "]" <rr:@R> => Box::new(Expr::Vec(vec![*e; n as usize])),
+ExprVec: Arc<Expr> = {
+    <ll:@L> "[" <es:ExprList> "]" <rr:@R> => Arc::new(Expr::Vec(es)),
+    <ll:@L> "[" <e:Expr> ";" <n:Nat> "]" <rr:@R> => Arc::new(Expr::Vec(vec![e; n as usize])),
 }
 
-ExprList: Vec<Expr> = {
+ExprList: Vec<Arc<Expr>> = {
     <exprs:((Expr ("," Expr)* ","?)?)> => {
         if let Some((expr, exprs, _comma)) = exprs {
-            let mut results = vec![*expr];
+            let mut results = vec![expr];
             for (_comma, expr) in exprs {
-                results.push(*expr);
+                results.push(expr);
             }
             results
         } else {
@@ -227,17 +218,17 @@ ExprList: Vec<Expr> = {
     },
 }
 
-ExprLit: Box<Expr> = {
+ExprLit: Arc<Expr> = {
     <ll:@L> <lit:WordLit> <rr:@R> => {
-        Box::new(Expr::Word(lit))
+        Arc::new(Expr::Word(lit))
     },
 
-//    "true" => Box::new(Expr::Bool(true)),
-//    "false" => Box::new(Expr::Bool(false)),
+//    "true" => Arc::new(Expr::Bool(true)),
+//    "false" => Arc::new(Expr::Bool(false)),
 }
 
-ExprReference: Box<Expr> = {
-  <path: Path> => Box::new(Expr::Reference(path))
+ExprReference: Arc<Expr> = {
+  <path: Path> => Arc::new(Expr::Reference(path))
 }
 
 

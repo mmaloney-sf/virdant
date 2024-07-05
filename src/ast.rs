@@ -26,7 +26,7 @@ pub struct ModDef {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructTypeDef {
     pub name: Ident,
-    pub fields: Vec<(Ident, Type)>,
+    pub fields: Vec<(Ident, Arc<Type>)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -40,16 +40,16 @@ pub enum Decl {
 pub struct SimpleComponent {
     pub name: Ident,
     pub kind: SimpleComponentKind,
-    pub typ: Type,
+    pub typ: Arc<Type>,
     pub clock: Option<Path>,
-    pub reset: Option<Expr>,
+    pub reset: Option<Arc<Expr>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Type {
     Clock,
     Word(Width),
-    Vec(Box<Type>, usize),
+    Vec(Arc<Type>, usize),
     TypeRef(Ident),
 }
 
@@ -65,18 +65,18 @@ pub enum SimpleComponentKind {
 pub enum Expr {
     Reference(Path),
     Word(WordLit),
-    Vec(Vec<Expr>),
-    Struct(Ident, Vec<(Field, Box<Expr>)>),
-    MethodCall(Box<Expr>, Ident, Vec<Expr>),
-    As(Box<Expr>, Type),
-    Idx(Box<Expr>, StaticIndex),
-    IdxRange(Box<Expr>, StaticIndex, StaticIndex),
-    Cat(Vec<Expr>),
-    If(Box<Expr>, Box<Expr>, Box<Expr>),
+    Vec(Vec<Arc<Expr>>),
+    Struct(Ident, Vec<(Field, Arc<Expr>)>),
+    MethodCall(Arc<Expr>, Ident, Vec<Arc<Expr>>),
+    As(Arc<Expr>, Arc<Type>),
+    Idx(Arc<Expr>, StaticIndex),
+    IdxRange(Arc<Expr>, StaticIndex, StaticIndex),
+    Cat(Vec<Arc<Expr>>),
+    If(Arc<Expr>, Arc<Expr>, Arc<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Wire(pub Path, pub WireType, pub Expr);
+pub struct Wire(pub Path, pub WireType, pub Arc<Expr>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum WireType {
@@ -98,6 +98,6 @@ pub struct WordLit {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum WithEdit {
-    Idx(u64, Box<Expr>),
-    Field(Field, Box<Expr>),
+    Idx(u64, Arc<Expr>),
+    Field(Field, Arc<Expr>),
 }

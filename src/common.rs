@@ -1,3 +1,4 @@
+pub use internment::Intern;
 pub use std::sync::Arc;
 use crate::types::Type;
 
@@ -7,7 +8,7 @@ pub type Field = String;
 pub type StaticIndex = u64;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct Ident(String);
+pub struct Ident(Intern<String>);
 
 impl std::borrow::Borrow<str> for Ident {
     fn borrow(&self) -> &str {
@@ -103,7 +104,7 @@ impl std::fmt::Display for Path {
 
 impl<S> From<S> for Ident where S: Into<String> {
     fn from(s: S) -> Ident {
-        Ident(s.into())
+        Ident(Intern::new(s.into()))
     }
 }
 

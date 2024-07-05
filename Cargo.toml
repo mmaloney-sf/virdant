@@ -15,6 +15,7 @@ lalrpop = "0.20.2"
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
+internment = "0.8.4"
 lalrpop = "0.20.2"
 lalrpop-util = "0.20.2"
 salsa = "0.16.1"

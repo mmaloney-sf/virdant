@@ -164,3 +164,18 @@ impl Path {
         }
     }
 }
+
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct ExprPath(Vec<usize>);
+
+impl ExprPath {
+    pub fn walk(&self) -> &[usize] {
+        &self.0
+    }
+}
+
+impl Default for ExprPath {
+    fn default() -> Self {
+        ExprPath(vec![])
+    }
+}

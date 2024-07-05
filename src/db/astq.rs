@@ -17,6 +17,7 @@ pub trait AstQ: salsa::Database {
     fn moddef_submodules(&self, moddef: Ident) -> VirdantResult<Vec<ast::Submodule>>;
 
     fn moddef_wire(&self, moddef: Ident, target: Path) -> VirdantResult<ast::Wire>;
+    fn moddef_wire_exprinst(&self, moddef: Ident, target: Path, subexpr_path: ExprPath) -> VirdantResult<Arc<ast::Expr>>;
 }
 
 fn package_ast(db: &dyn AstQ) -> Result<ast::Package, VirdantError> {
@@ -102,5 +103,70 @@ fn moddef_wire(db: &dyn AstQ, moddef: Ident, target: Path) -> VirdantResult<ast:
         Err(VirdantError::Other(format!("Multiple wires for: {target} in {moddef}")))
     } else {
         Ok(wire_asts[0].clone())
+    }
+}
+
+fn moddef_wire_exprinst(
+    db: &dyn AstQ,
+    moddef: Ident,
+    target: Path,
+    expr_path: ExprPath,
+) -> VirdantResult<Arc<ast::Expr>> {
+    let ast::Wire(_target, _wire_type, expr) = db.moddef_wire(moddef, target)?;
+    let expr = get_subexpr(expr, &expr_path);
+    Ok(expr)
+}
+
+pub fn get_subexpr(expr: Arc<ast::Expr>, path: &ExprPath) -> Arc<ast::Expr> {
+    let mut result = expr.clone();
+
+    for idx in path.walk() {
+        result = result.subexpr(*idx);
+    }
+
+    result
+}
+
+impl ast::Expr {
+    fn subexpr(&self, i: usize) -> Arc<ast::Expr> {
+        match self {
+            ast::Expr::Reference(_path) => unreachable!(),
+            ast::Expr::Word(_lit) => unreachable!(),
+            ast::Expr::Vec(_) => todo!(),
+            ast::Expr::Struct(_, _) => todo!(),
+            ast::Expr::MethodCall(subject, _method, args) => {
+                if i == 0 {
+                    subject.clone()
+                } else {
+                    args[i-1].clone()
+                }
+            },
+            ast::Expr::As(e, _typ) => {
+                assert_eq!(i, 0);
+                e.clone()
+            },
+            ast::Expr::Idx(e, _i) => {
+                assert_eq!(i, 0);
+                e.clone()
+            }
+            ast::Expr::IdxRange(e, _j, _i) => {
+                assert_eq!(i, 0);
+                e.clone()
+            }
+            ast::Expr::Cat(es) => {
+                es[i].clone()
+            },
+            ast::Expr::If(c, a, b) => {
+                if i == 0 {
+                    c.clone()
+                } else if i == 1 {
+                    a.clone()
+                } else if i == 1 {
+                    b.clone()
+                } else {
+                    unreachable!()
+                }
+            }
+        }
     }
 }

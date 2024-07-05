@@ -79,7 +79,7 @@ fn test_parse_exprs() {
     ];
     for expr_str in expr_strs {
         eprintln!("Testing {expr_str:?}");
-        let _expr: ast::Expr = parse_expr(expr_str).unwrap();
+        let _expr = parse_expr(expr_str).unwrap();
     }
 }
 

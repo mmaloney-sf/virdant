@@ -19,6 +19,11 @@ fn check(db: &dyn PackageQ) -> Result<(), VirdantError> {
         if let Err(err) = db.check_moddef(moddef.clone()) {
             errors.add(err);
         }
+
+        // TODO
+//        if let Err(err) = db.check_moddef_wire_targets_unique(moddef.clone()) {
+//            errors.add(err);
+//        }
     }
     errors.check()
 }

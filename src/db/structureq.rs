@@ -11,10 +11,12 @@ pub trait StructureQ: AstQ {
     fn moddef_component_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
     fn moddef_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
 
-    fn moddef_targets(&self, moddef: Ident) -> VirdantResult<Vec<Path>>;
+    fn moddef_required_targets(&self, moddef: Ident) -> VirdantResult<Vec<Path>>;
+    fn moddef_wire_targets(&self, moddef: Ident) -> VirdantResult<Vec<Path>>;
 
     fn check_item_names_unique(&self) -> VirdantResult<()>;
-    fn check_moddef_names_unique(&self, moddef: Ident) -> VirdantResult<()>;
+    fn check_moddef_component_names_unique(&self, moddef: Ident) -> VirdantResult<()>;
+    fn check_moddef_wire_targets_unique(&self, moddef: Ident) -> VirdantResult<()>;
 
     fn check_submodule_moddefs_exist(&self) -> VirdantResult<()>;
     fn check_no_submodule_cycles(&self) -> VirdantResult<()>;
@@ -69,7 +71,7 @@ fn moddef_names(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<Vec<Ident>>
     Ok(results)
 }
 
-fn moddef_targets(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<Vec<Path>> {
+fn moddef_required_targets(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<Vec<Path>> {
     let mut result: Vec<Path> = vec![];
     let moddef_ast = db.moddef_ast(moddef.clone())?;
 
@@ -100,6 +102,21 @@ fn moddef_targets(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<Vec<Path>
     Ok(result)
 }
 
+fn moddef_wire_targets(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<Vec<Path>> {
+    let mut result: Vec<Path> = vec![];
+    let moddef_ast = db.moddef_ast(moddef.clone())?;
+
+    for decl in &moddef_ast.decls {
+        match decl {
+            ast::Decl::Wire(ast::Wire(target, _wire_type, _expr)) => result.push(target.clone()),
+            _ => (),
+        }
+
+    }
+
+    Ok(result)
+}
+
 fn check_item_names_unique(db: &dyn StructureQ) -> Result<(), VirdantError> {
     let mut errors = ErrorReport::new();
     let mut item_names = HashSet::new();
@@ -113,7 +130,7 @@ fn check_item_names_unique(db: &dyn StructureQ) -> Result<(), VirdantError> {
     errors.check()
 }
 
-fn check_moddef_names_unique(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<()> {
+fn check_moddef_component_names_unique(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<()> {
     let mut errors = ErrorReport::new();
     let mut item_names = HashSet::new();
 
@@ -124,6 +141,11 @@ fn check_moddef_names_unique(db: &dyn StructureQ, moddef: Ident) -> VirdantResul
     }
 
     errors.check()
+}
+
+
+fn check_moddef_wire_targets_unique(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<()> {
+    todo!()
 }
 
 fn check_submodule_moddefs_exist(db: &dyn StructureQ) -> Result<(), VirdantError> {

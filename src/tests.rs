@@ -214,24 +214,3 @@ fn test_typecheck_exprs() {
         expr.eval(ctx);
     }
 }
-
-#[test]
-fn test_checker() {
-    let mut db = Db::default();
-    db.set_source(Arc::new("
-        public module Top {
-            incoming clk : Clock;
-            incoming in : Word[8];
-            outgoing out : Word[8];
-            reg r : Word[8] on clk <= in;
-            out := in->add(1w8);
-            submodule foo of Foo;
-        }
-
-        module Foo {
-            wire w : Word[8] := 0;
-        }
-    ".to_string()));
-
-    db.check().unwrap();
-}

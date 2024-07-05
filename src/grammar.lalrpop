@@ -60,38 +60,34 @@ Component: Component = {
             kind: ComponentKind::Incoming,
             name,
             typ: *typ,
-            connect: None,
             clock: None,
             reset: None,
         }
     },
-    "outgoing" <name:Id> ":" <typ:Type> <connect:InlineConnect?> => {
+    "outgoing" <name:Id> ":" <typ:Type> => {
         Component {
             kind: ComponentKind::Outgoing,
             name,
             typ: *typ,
-            connect,
             clock: None,
             reset: None,
         }
     },
-    "wire" <name:Id> ":" <typ:Type> <connect:InlineConnect?> => {
+    "wire" <name:Id> ":" <typ:Type> => {
         Component {
             kind: ComponentKind::Wire,
             name,
             typ: *typ,
-            connect,
             clock: None,
             reset: None,
         }
     },
-    "reg" <name:Id> ":" <typ:Type> "on" <clock:Path> <connect:InlineConnect?> => {
+    "reg" <name:Id> ":" <typ:Type> "on" <clock:Path> => {
 //        let reset = rst.map(|s| *s.1); // .1 ignores the "reset" keyword
         Component {
             kind: ComponentKind::Reg,
             name,
             typ: *typ,
-            connect,
             clock: Some(clock),
             reset: None,
         }
@@ -101,11 +97,6 @@ Component: Component = {
 Connect: Connect = {
     <target:Path> ":=" <e:Expr> => Connect(target, ConnectType::Continuous, *e),
     <target:Path> "<=" <e:Expr> => Connect(target, ConnectType::Latched, *e),
-}
-
-InlineConnect: InlineConnect = {
-    ":=" <e:Expr> => InlineConnect(ConnectType::Continuous, *e),
-    "<=" <e:Expr> => InlineConnect(ConnectType::Latched, *e),
 }
 
 Submodule: Submodule = {

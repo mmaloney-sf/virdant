@@ -16,7 +16,7 @@ pub trait StructureQ: AstQ {
     fn check_submodule_moddefs_exist(&self) -> VirdantResult<()>;
     fn check_no_submodule_cycles(&self) -> VirdantResult<()>;
 
-    fn moddef_component_connects(&self, moddef: Ident, component: Ident) -> VirdantResult<Vec<ast::InlineConnect>>;
+//    fn moddef_component_connects(&self, moddef: Ident, component: Ident) -> VirdantResult<Vec<ast::InlineConnect>>;
 }
 
 fn package_item_names(db: &dyn StructureQ) -> Result<Vec<Ident>, VirdantError> {
@@ -131,6 +131,7 @@ fn check_no_submodule_cycles(db: &dyn StructureQ) -> Result<(), VirdantError> {
     errors.check()
 }
 
+/*
 fn moddef_component_connects(db: &dyn StructureQ, moddef: Ident, component: Ident) -> Result<Vec<ast::InlineConnect>, VirdantError> {
     let moddef_ast = db.moddef_ast(moddef)?;
     let mut result = vec![];
@@ -150,6 +151,7 @@ fn moddef_component_connects(db: &dyn StructureQ, moddef: Ident, component: Iden
     }
     Ok(result)
 }
+*/
 
 fn find_cycles(graph: &HashMap<Ident, Vec<Ident>>) -> Vec<Vec<Ident>> {
     let mut cycles = Vec::new();

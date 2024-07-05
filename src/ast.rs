@@ -41,7 +41,6 @@ pub struct Component {
     pub name: Ident,
     pub kind: ComponentKind,
     pub typ: Type,
-    pub connect: Option<InlineConnect>,
     pub clock: Option<Path>,
     pub reset: Option<Expr>,
 }
@@ -78,9 +77,6 @@ pub enum Expr {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Connect(pub Path, pub ConnectType, pub Expr);
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct InlineConnect(pub ConnectType, pub Expr);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum ConnectType {

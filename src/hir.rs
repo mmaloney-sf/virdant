@@ -46,13 +46,6 @@ pub struct InlineConnect(pub ConnectType, pub Expr);
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Connect(pub Path, pub ConnectType, pub Expr);
 
-impl InlineConnect {
-    pub fn from_ast(connect: &ast::InlineConnect) -> InlineConnect {
-        let ast::InlineConnect(connect_type, expr) = connect;
-        InlineConnect(*connect_type, Expr::from_ast(expr))
-    }
-}
-
 impl Component {
     pub fn name(&self) -> Ident {
         match self {

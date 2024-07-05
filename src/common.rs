@@ -17,7 +17,7 @@ impl std::borrow::Borrow<str> for Ident {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct Path(String);
+pub struct Path(Intern<String>);
 
 impl std::fmt::Debug for Ident {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
@@ -110,7 +110,7 @@ impl<S> From<S> for Ident where S: Into<String> {
 
 impl<S> From<S> for Path where S: Into<String> {
     fn from(s: S) -> Path {
-        Path(s.into())
+        Path(Intern::new(s.into()))
     }
 }
 
@@ -152,7 +152,7 @@ impl Path {
 
     pub fn as_ident(&self) -> Option<Ident> {
         if self.is_local() {
-            Some(self.0.clone().into())
+            Some(self.0.as_ref().clone().into())
         } else {
             None
         }

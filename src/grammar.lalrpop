@@ -49,15 +49,15 @@ StructTypeDef: StructTypeDef = {
 
 
 Decl: Decl = {
-    <c:Component> => Decl::Component(c),
-    <c:Connect> => Decl::Connect(c),
+    <c:SimpleComponent> => Decl::SimpleComponent(c),
+    <c:Wire> => Decl::Wire(c),
     <m:Submodule> => Decl::Submodule(m),
 }
 
-Component: Component = {
+SimpleComponent: SimpleComponent = {
     "incoming" <name:Id> ":" <typ:Type> => {
-        Component {
-            kind: ComponentKind::Incoming,
+        SimpleComponent {
+            kind: SimpleComponentKind::Incoming,
             name,
             typ: *typ,
             clock: None,
@@ -65,8 +65,8 @@ Component: Component = {
         }
     },
     "outgoing" <name:Id> ":" <typ:Type> => {
-        Component {
-            kind: ComponentKind::Outgoing,
+        SimpleComponent {
+            kind: SimpleComponentKind::Outgoing,
             name,
             typ: *typ,
             clock: None,
@@ -74,8 +74,8 @@ Component: Component = {
         }
     },
     "wire" <name:Id> ":" <typ:Type> => {
-        Component {
-            kind: ComponentKind::Wire,
+        SimpleComponent {
+            kind: SimpleComponentKind::Wire,
             name,
             typ: *typ,
             clock: None,
@@ -84,8 +84,8 @@ Component: Component = {
     },
     "reg" <name:Id> ":" <typ:Type> "on" <clock:Path> => {
 //        let reset = rst.map(|s| *s.1); // .1 ignores the "reset" keyword
-        Component {
-            kind: ComponentKind::Reg,
+        SimpleComponent {
+            kind: SimpleComponentKind::Reg,
             name,
             typ: *typ,
             clock: Some(clock),
@@ -94,9 +94,9 @@ Component: Component = {
     },
 }
 
-Connect: Connect = {
-    <target:Path> ":=" <e:Expr> => Connect(target, ConnectType::Continuous, *e),
-    <target:Path> "<=" <e:Expr> => Connect(target, ConnectType::Latched, *e),
+Wire: Wire = {
+    <target:Path> ":=" <e:Expr> => Wire(target, WireType::Continuous, *e),
+    <target:Path> "<=" <e:Expr> => Wire(target, WireType::Latched, *e),
 }
 
 Submodule: Submodule = {

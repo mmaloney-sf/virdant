@@ -48,9 +48,9 @@ fn moddef_component_names(db: &dyn StructureQ, moddef: Ident) -> Result<Vec<Iden
     let mut result = vec![];
     for decl in moddef.decls {
         match decl {
-            ast::Decl::Component(component) => result.push(component.name.clone()),
+            ast::Decl::SimpleComponent(component) => result.push(component.name.clone()),
             ast::Decl::Submodule(_submodule) => (),
-            ast::Decl::Connect(_connect) => (),
+            ast::Decl::Wire(_connect) => (),
         }
     }
     Ok(result)

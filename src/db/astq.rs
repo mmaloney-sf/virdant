@@ -11,9 +11,9 @@ pub trait AstQ: salsa::Database {
 
     fn package_ast(&self) -> VirdantResult<ast::Package>;
     fn moddef_ast(&self, moddef: Ident) -> VirdantResult<ast::ModDef>;
-    fn moddef_component_ast(&self, moddef: Ident, component: Ident) -> VirdantResult<ast::Component>;
+    fn moddef_component_ast(&self, moddef: Ident, component: Ident) -> VirdantResult<ast::SimpleComponent>;
 
-    fn moddef_components(&self, moddef: Ident) -> VirdantResult<Vec<ast::Component>>;
+    fn moddef_components(&self, moddef: Ident) -> VirdantResult<Vec<ast::SimpleComponent>>;
     fn moddef_submodules(&self, moddef: Ident) -> VirdantResult<Vec<ast::Submodule>>;
 }
 
@@ -48,11 +48,11 @@ fn moddef_ast(db: &dyn AstQ, moddef: Ident) -> Result<ast::ModDef, VirdantError>
     }
 }
 
-fn moddef_component_ast(db: &dyn AstQ, moddef: Ident, component: Ident) -> Result<ast::Component, VirdantError> {
+fn moddef_component_ast(db: &dyn AstQ, moddef: Ident, component: Ident) -> Result<ast::SimpleComponent, VirdantError> {
     let moddef_ast = db.moddef_ast(moddef.clone())?;
     for decl in &moddef_ast.decls {
         match decl {
-            ast::Decl::Component(c) if c.name == component => return Ok(c.clone()),
+            ast::Decl::SimpleComponent(c) if c.name == component => return Ok(c.clone()),
             _ => (),
         }
     }
@@ -60,11 +60,11 @@ fn moddef_component_ast(db: &dyn AstQ, moddef: Ident, component: Ident) -> Resul
 }
 
 
-fn moddef_components(db: &dyn AstQ, moddef: Ident) -> VirdantResult<Vec<ast::Component>> {
+fn moddef_components(db: &dyn AstQ, moddef: Ident) -> VirdantResult<Vec<ast::SimpleComponent>> {
     let moddef_ast = db.moddef_ast(moddef)?;
     let mut results = vec![];
     for decl in &moddef_ast.decls {
-        if let ast::Decl::Component(component) = decl {
+        if let ast::Decl::SimpleComponent(component) = decl {
             results.push(component.clone());
         }
     }

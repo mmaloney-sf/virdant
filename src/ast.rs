@@ -31,15 +31,15 @@ pub struct StructTypeDef {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Decl {
-    Component(Component),
+    SimpleComponent(SimpleComponent),
     Submodule(Submodule),
-    Connect(Connect),
+    Wire(Wire),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Component {
+pub struct SimpleComponent {
     pub name: Ident,
-    pub kind: ComponentKind,
+    pub kind: SimpleComponentKind,
     pub typ: Type,
     pub clock: Option<Path>,
     pub reset: Option<Expr>,
@@ -54,7 +54,7 @@ pub enum Type {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum ComponentKind {
+pub enum SimpleComponentKind {
     Incoming,
     Outgoing,
     Wire,
@@ -76,10 +76,10 @@ pub enum Expr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Connect(pub Path, pub ConnectType, pub Expr);
+pub struct Wire(pub Path, pub WireType, pub Expr);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
-pub enum ConnectType {
+pub enum WireType {
     Continuous,
     Latched,
 }

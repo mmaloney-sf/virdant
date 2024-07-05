@@ -44,12 +44,12 @@ fn moddef_context(db: &dyn TypecheckQ, moddef: Ident) -> Result<Context<Path, Ar
     for submodule in db.moddef_submodules(moddef.clone())? {
         for component in &db.moddef_component_names(submodule.moddef.clone())? {
             let component_ast = db.moddef_component_ast(submodule.moddef.clone(), component.clone())?;
-            if let ast::ComponentKind::Incoming = component_ast.kind {
+            if let ast::SimpleComponentKind::Incoming = component_ast.kind {
                 let path = submodule.name.as_path().join(&component_ast.name.as_path());
                 let typ_ast = db.moddef_component_type(submodule.moddef.clone(), component.clone())?;
                 let typ = db.resolve_type(typ_ast)?;
                 ctx = ctx.extend(path, typ);
-            } else if let ast::ComponentKind::Outgoing = component_ast.kind {
+            } else if let ast::SimpleComponentKind::Outgoing = component_ast.kind {
                 let path = submodule.name.as_path().join(&component_ast.name.as_path());
                 let typ_ast = db.moddef_component_type(submodule.moddef.clone(), component.clone())?;
                 let typ = db.resolve_type(typ_ast)?;
@@ -65,7 +65,7 @@ fn moddef_component_type(db: &dyn TypecheckQ, moddef: Ident, component: Ident) -
     let moddef_ast = db.moddef_ast(moddef.clone())?;
     for decl in &moddef_ast.decls {
         match decl {
-            ast::Decl::Component(c) if c.name == component => return Ok(c.typ.clone()),
+            ast::Decl::SimpleComponent(c) if c.name == component => return Ok(c.typ.clone()),
             ast::Decl::Submodule(submodule) if submodule.name == component => return Err(VirdantError::Other("Submodules have no types".into())),
             _ => (),
         }

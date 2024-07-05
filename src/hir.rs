@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::common::*;
 use crate::ast;
 use crate::types::Type;
-use crate::ast::ConnectType;
+use crate::ast::WireType;
 use crate::elab;
 
 pub use expr::Expr;
@@ -41,10 +41,10 @@ pub enum Component {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct InlineConnect(pub ConnectType, pub Expr);
+pub struct InlineConnect(pub WireType, pub Expr);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Connect(pub Path, pub ConnectType, pub Expr);
+pub struct Connect(pub Path, pub WireType, pub Expr);
 
 impl Component {
     pub fn name(&self) -> Ident {

@@ -4,6 +4,7 @@ use crate::ast::SimpleComponentKind;
 use crate::common::*;
 use crate::types::Type;
 use crate::db::*;
+use crate::ast;
 
 type SsaName = String;
 
@@ -44,16 +45,13 @@ impl<'a> Verilog<'a> {
         }
         writeln!(self.writer, ");")?;
 
-        /*
-        * TODO
-        for submodule in &moddef.submodules {
-            self.verilog_submodule(moddef, submodule)?;
+        for submodule_ast in self.db.moddef_submodules(moddef.clone())? {
+            self.verilog_submodule(moddef.clone(), submodule_ast)?;
         }
 
-        for component in &moddef.components {
-            self.verilog_component(component)?;
+        for component in self.db.moddef_component_names(moddef.clone())? {
+            self.verilog_component(moddef.clone(), component)?;
         }
-*/
 
         writeln!(self.writer, "endmodule")?;
         writeln!(self.writer)?;
@@ -93,45 +91,39 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
-    /*
-    fn verilog_component(&mut self, component: &Component) -> VirdantResult<()> {
-        match component {
-            Component::Incoming(_name, _typ) => (),
-            Component::Outgoing(name, _typ, expr) => {
-                let ssa = self.verilog_expr(&expr)?;
-                writeln!(self.writer, "    assign {name} = {ssa};")?;
+    fn verilog_component(&mut self, moddef: Ident, component: Ident) -> VirdantResult<()> {
+        let component_ast = self.db.moddef_component_ast(moddef.clone(), component.clone())?;
+        let expr: Arc<TypedExpr> = TypedExpr::Word(Type::Word(1), ast::WordLit { width: Some(1), value: 0 }).into();
+        match component_ast.kind {
+            SimpleComponentKind::Incoming => (),
+            SimpleComponentKind::Outgoing => {
+                let ssa = self.verilog_expr(expr)?;
+                writeln!(self.writer, "    assign {component} = {ssa};")?;
             },
-            Component::Wire(name, _typ, expr) => {
-                let ssa = self.verilog_expr(&expr)?;
-                writeln!(self.writer, "    wire [31:0] {name};")?;
-                writeln!(self.writer, "    assign {name} = {ssa};")?;
+            SimpleComponentKind::Node => {
+                let ssa = self.verilog_expr(expr)?;
+                writeln!(self.writer, "    wire [31:0] {component};")?;
+                writeln!(self.writer, "    assign {component} = {ssa};")?;
             },
-            Component::Reg(name, typ, clk, /* rst, */ expr) => {
+            SimpleComponentKind::Reg => {
+                let clk: String = todo!();
                 //let clock_ssa = self.verilog_expr(clk)?;
-                let connect_ssa = self.verilog_expr(&expr)?;
-                let width = if let Type::Word(n) = typ.as_ref() { n } else { panic!() };
+                let connect_ssa = self.verilog_expr(expr)?;
+                let width = if let Type::Word(n) = expr.typ() { n } else { panic!() };
                 let max_bit = width - 1;
-                writeln!(self.writer, "    reg  [{max_bit}:0] {name};")?;
+                writeln!(self.writer, "    reg  [{max_bit}:0] {component};")?;
                 writeln!(self.writer, "    always @(posedge {clk}) begin")?;
-                writeln!(self.writer, "        {name} <= {connect_ssa};")?;
+                writeln!(self.writer, "        {component} <= {connect_ssa};")?;
                 writeln!(self.writer, "    end")?;
             },
         }
         Ok(())
     }
 
-    fn verilog_submodule(&mut self, moddef: &ModDef, submodule: &Submodule) -> VirdantResult<()> {
-        let mut ports = vec![];
+    fn verilog_submodule(&mut self, moddef: Ident, submodule: ast::Submodule) -> VirdantResult<()> {
+        let mut ports = self.db.moddef_port_names(submodule.moddef.clone())?;
 
-        let moddef_hir = self.db.moddef_hir(submodule.moddef.clone())?;
-        for component in &moddef_hir.components {
-            match component {
-                Component::Outgoing(name, _typ, _expr) => ports.push(name.clone()),
-                Component::Incoming(name, _typ) => ports.push(name.clone()),
-                _ => (),
-            }
-        }
-
+        /*
         for Connect(path, _connect_type, expr) in &self.db.moddef_submodule_connects_typed(moddef.name.clone(), submodule.name.clone())? {
             let gs = self.verilog_expr(&expr)?;
             let parts = path.parts();
@@ -143,6 +135,7 @@ impl<'a> Verilog<'a> {
         for port in &ports {
             writeln!(self.writer, "    wire [31:0] __TEMP_{sm}_{port};", sm = submodule.name)?;
         }
+*/
 
         writeln!(self.writer, "    {} {}(", submodule.moddef, submodule.name)?;
         for (i, port) in ports.iter().enumerate() {
@@ -157,7 +150,6 @@ impl<'a> Verilog<'a> {
         writeln!(self.writer, "    );")?;
         Ok(())
     }
-    */
 
     /*
     fn verilog_type(&mut self, typ: Arc<Type>) -> VirdantResult<()> {

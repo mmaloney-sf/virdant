@@ -4,4 +4,15 @@ pub mod Top {
     outgoing out : Word[1];
 
     out := reset;
+
+    mod foo of Foo;
+}
+
+mod Foo {
+    incoming in : Word[1];
+    incoming out : Word[1];
+
+    node tmp : Word[1];
+    tmp := in;
+    out := tmp;
 }

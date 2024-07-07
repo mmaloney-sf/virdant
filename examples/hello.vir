@@ -1,9 +1,7 @@
 pub mod Top {
     incoming clk : Clock;
     incoming reset : Word[1];
-    outgoing out : Word[8];
+    outgoing out : Word[1];
 
-    reg buffer : Word[8] on clk;
-    buffer <= if reset { 0w8 } else { buffer->add(1w8) };
-    out := buffer;
+    out := reset;
 }

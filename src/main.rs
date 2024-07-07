@@ -53,12 +53,9 @@ fn main() {
 
 //        db::compile_verilog(&package_text).unwrap();
     } else if args.sim {
-        todo!()
-        /*
         let top = args.top.unwrap_or_else(|| "Top".into());
         let trace = args.trace.as_ref().map(|s| s.as_str());
         sim(&args.filename, &top, trace, args.delay.unwrap_or(400));
-        */
     } else if args.mlir {
         /*
         let package_text = std::fs::read_to_string(args.filename).unwrap();
@@ -70,13 +67,13 @@ fn main() {
     }
 }
 
-/*
 pub fn sim(filename: &str, top: &str, trace: Option<&str>, delay: usize) {
     let package = std::fs::read_to_string(filename).unwrap();
 
     let mut sim = if let Some(trace) = trace {
     let mut fout = std::fs::File::create(trace).unwrap();
-        virdant::sim::simulator_with_trace(&package, top, &mut fout).unwrap()
+        todo!()
+//        virdant::sim::simulator_with_trace(&package, top, &mut fout).unwrap()
     } else {
         virdant::sim::simulator(&package, top).unwrap()
     };
@@ -104,6 +101,7 @@ pub fn sim(filename: &str, top: &str, trace: Option<&str>, delay: usize) {
     }
 }
 
+/*
 pub fn verilog() {
     let package_text = "
 

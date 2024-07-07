@@ -1,4 +1,6 @@
+use std::collections::HashSet;
 use crate::common::*;
+use crate::value::Value;
 
 pub use super::StructureQ;
 
@@ -36,10 +38,15 @@ fn typecheck(db: &dyn TypecheckQ) -> VirdantResult<()> {
 }
 
 fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ: Type) -> VirdantResult<Arc<TypedExpr>> {
+    eprintln!("expr_typecheck {expr:?} as {typ} in {moddef}");
     match expr.as_ref() {
         ast::Expr::Reference(path) => {
-            let typ = db.moddef_reference_type(moddef, path.clone())?;
-            Ok(TypedExpr::Reference(typ, path.clone()).into())
+            let actual_typ = db.moddef_reference_type(moddef, path.clone())?;
+            if typ != actual_typ {
+                Err(VirdantError::Other("Wrong types".into()))
+            } else {
+                Ok(TypedExpr::Reference(typ, path.clone()).into())
+            }
         },
         ast::Expr::Word(lit) => {
             match (typ.clone(), lit.width) {
@@ -91,6 +98,7 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
 }
 
 fn expr_typeinfer(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>) -> VirdantResult<Arc<TypedExpr>> {
+    eprintln!("expr_typeinfer {expr:?} in {moddef}");
     match expr.as_ref() {
         ast::Expr::Reference(path) => {
             let typ = db.moddef_reference_type(moddef, path.clone())?;
@@ -303,6 +311,42 @@ impl TypedExpr {
             TypedExpr::IdxRange(typ, _, _, _) => typ.clone(),
             TypedExpr::Cat(typ, _) => typ.clone(),
             TypedExpr::If(typ, _, _, _) => typ.clone(),
+        }
+    }
+
+    pub fn references(&self) -> HashSet<Path> {
+        match self {
+            TypedExpr::Reference(_typ, path) => vec![path.clone()].into_iter().collect(),
+            TypedExpr::Word(_typ, _) => HashSet::new(),
+            TypedExpr::Vec(_typ, _) => HashSet::new(),
+            TypedExpr::Struct(_typ, _, _) => HashSet::new(),
+            TypedExpr::MethodCall(_typ, _, _, _) => HashSet::new(),
+            TypedExpr::As(_typ, _, _) => HashSet::new(),
+            TypedExpr::Idx(_typ, _, _) => HashSet::new(),
+            TypedExpr::IdxRange(_typ, _, _, _) => HashSet::new(),
+            TypedExpr::Cat(_typ, _) => HashSet::new(),
+            TypedExpr::If(_typ, _, _, _) => HashSet::new(),
+        }
+    }
+
+    pub fn eval(&self, ctx: Context<Path, Value>) -> Value {
+        match self {
+            TypedExpr::Reference(_typ, path) => ctx.lookup(path).unwrap(),
+            TypedExpr::Word(typ, lit) => {
+                if let Type::Word(n) = typ {
+                    Value::Word(*n, lit.value)
+                } else {
+                    panic!()
+                }
+            },
+            TypedExpr::Vec(_typ, _) => todo!(),
+            TypedExpr::Struct(_typ, _, _) => todo!(),
+            TypedExpr::MethodCall(_typ, _, _, _) => todo!(),
+            TypedExpr::As(_typ, _, _) => todo!(),
+            TypedExpr::Idx(_typ, _, _) => todo!(),
+            TypedExpr::IdxRange(_typ, _, _, _) => todo!(),
+            TypedExpr::Cat(_typ, _) => todo!(),
+            TypedExpr::If(_typ, _, _, _) => todo!(),
         }
     }
 }

@@ -106,8 +106,6 @@ impl SimBuilder {
 
         for node in &mut self.sim.nodes {
             let is_internal_input = node.is_internal_input();
-            todo!()
-            /*
             if let Some(update) = node.update_mut() {
                 let sensitivities: Vec<CellId> = update
                     .expr
@@ -120,7 +118,6 @@ impl SimBuilder {
                     .collect();
                 update.sensitivities = sensitivities;
             }
-*/
         }
     }
 
@@ -209,8 +206,6 @@ impl Sim {
     fn eval(&self, comb: &Comb) -> Value {
         // TODO associate values with free variables
         let mut ctx: Context<Path, Value> = Context::empty();
-        todo!()
-/*
         for reference in comb.expr.references() {
             let full_path: Path = comb.rel.join(&reference);
             let cell_id = self.get_node(&full_path).read_cell_id();
@@ -218,7 +213,6 @@ impl Sim {
             ctx = ctx.extend(reference, value);
         }
         comb.expr.eval(ctx)
-*/
     }
 
     fn get_node(&self, path: &Path) -> &Node {
@@ -405,11 +399,10 @@ pub fn simulator(input: &str, top: &str) -> VirdantResult<Sim> {
 
     let mut db = Db::default();
     db.set_source(Arc::new(input.to_string()));
-    todo!()
-//    let elaborated = db.elaborate(top.into())?;
+    let elaborated = db.elaborate(top.into())?;
 
-//    let sim = elaborated.simulator();
-//    Ok(sim)
+    let sim = elaborated.simulator(&db);
+    Ok(sim)
 }
 
 /*

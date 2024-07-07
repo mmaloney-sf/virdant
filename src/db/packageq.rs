@@ -56,5 +56,10 @@ fn check_moddef(db: &dyn PackageQ, moddef: Ident) -> VirdantResult<()> {
 }
 
 fn elaborate(db: &dyn PackageQ, moddef: Ident) -> VirdantResult<elab::Elab> {
-    todo!()
+    db.check()?;
+    let elab = elab::Elab {
+        moddef,
+        submodules: vec![].into_iter().collect(),
+    };
+    Ok(elab)
 }

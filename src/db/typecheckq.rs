@@ -22,6 +22,8 @@ pub trait TypecheckQ: StructureQ {
 
     fn method_sig(&self, typ: Type, method: Ident) -> VirdantResult<MethodSig>;
 
+    fn bitwidth(&self, typ: Type) -> VirdantResult<Width>;
+
     fn moddef_typecheck_wire(&self, moddef: Ident, target: Path) -> VirdantResult<Arc<TypedExpr>>;
     fn moddef_typecheck(&self, moddef: Ident) -> VirdantResult<()>;
     fn typecheck(&self) -> VirdantResult<()>;
@@ -38,7 +40,6 @@ fn typecheck(db: &dyn TypecheckQ) -> VirdantResult<()> {
 }
 
 fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ: Type) -> VirdantResult<Arc<TypedExpr>> {
-    eprintln!("expr_typecheck {expr:?} as {typ} in {moddef}");
     match expr.as_ref() {
         ast::Expr::Reference(path) => {
             let actual_typ = db.moddef_reference_type(moddef, path.clone())?;
@@ -98,7 +99,6 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
 }
 
 fn expr_typeinfer(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>) -> VirdantResult<Arc<TypedExpr>> {
-    eprintln!("expr_typeinfer {expr:?} in {moddef}");
     match expr.as_ref() {
         ast::Expr::Reference(path) => {
             let typ = db.moddef_reference_type(moddef, path.clone())?;
@@ -135,6 +135,18 @@ fn method_sig(db: &dyn TypecheckQ, typ: Type, method: Ident) -> VirdantResult<Me
     }
 }
 
+fn bitwidth(db: &dyn TypecheckQ, typ: Type) -> VirdantResult<Width> {
+    match typ {
+        Type::Unknown => todo!(),
+        Type::Clock => Ok(1),
+        Type::Bool => Ok(1),
+        Type::Word(n) => Ok(n.into()),
+        Type::Vec(_, _) => todo!(),
+        Type::TypeRef(_) => todo!(),
+        Type::Other(_) => todo!(),
+    }
+}
+
 fn moddef_typecheck_wire(db: &dyn TypecheckQ, moddef: Ident, target: Path) -> VirdantResult<Arc<TypedExpr>> {
     let ast::Wire(target, _wire_type, expr) = db.moddef_wire(moddef.clone(), target)?;
     let typ = db.moddef_target_type(moddef.clone(), target)?;
@@ -146,7 +158,6 @@ fn moddef_typecheck(db: &dyn TypecheckQ, moddef: Ident) -> VirdantResult<()> {
     let targets = db.moddef_wire_targets(moddef.clone())?;
 
     for target in &targets {
-        eprintln!("typechecking {target}");
         if let Err(e) = db.moddef_typecheck_wire(moddef.clone(), target.clone()) {
             errors.add(e);
         }
@@ -222,7 +233,6 @@ fn typecheck_wire(db: &dyn TypecheckQ, moddef: Ident, target: Path) -> VirdantRe
     let ast::Wire(target, _wire_type, expr) = db.moddef_wire(moddef.clone(), target)?;
     let expected_type = db.moddef_target_type(moddef.clone(), target.clone())?;
     let ctx = db.moddef_full_context(moddef.clone())?;
-    dbg!(&ctx);
     match &*expr {
         ast::Expr::Reference(path) => {
             if let Some(actual_type) = ctx.lookup(path) {

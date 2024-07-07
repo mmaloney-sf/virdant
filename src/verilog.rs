@@ -93,25 +93,31 @@ impl<'a> Verilog<'a> {
 
     fn verilog_component(&mut self, moddef: Ident, component: Ident) -> VirdantResult<()> {
         let component_ast = self.db.moddef_component_ast(moddef.clone(), component.clone())?;
-        let expr: Arc<TypedExpr> = TypedExpr::Word(Type::Word(1), ast::WordLit { width: Some(1), value: 0 }).into();
         match component_ast.kind {
             SimpleComponentKind::Incoming => (),
             SimpleComponentKind::Outgoing => {
+                let expr = self.db.moddef_typecheck_wire(moddef.clone(), component.clone().as_path())?;
                 let ssa = self.verilog_expr(expr)?;
                 writeln!(self.writer, "    assign {component} = {ssa};")?;
             },
             SimpleComponentKind::Node => {
+                let expr = self.db.moddef_typecheck_wire(moddef.clone(), component.clone().as_path())?;
+                let typ = expr.typ();
                 let ssa = self.verilog_expr(expr)?;
-                writeln!(self.writer, "    wire [31:0] {component};")?;
+                let width_str = make_width_str(self.db, typ);
+                writeln!(self.writer, "    wire {width_str} {component};")?;
                 writeln!(self.writer, "    assign {component} = {ssa};")?;
             },
             SimpleComponentKind::Reg => {
+                let expr = self.db.moddef_typecheck_wire(moddef.clone(), component.clone().as_path())?;
+                let typ = expr.typ();
+                let width_str = make_width_str(self.db, typ);
                 let clk: String = todo!();
                 //let clock_ssa = self.verilog_expr(clk)?;
                 let connect_ssa = self.verilog_expr(expr)?;
                 let width = if let Type::Word(n) = expr.typ() { n } else { panic!() };
                 let max_bit = width - 1;
-                writeln!(self.writer, "    reg  [{max_bit}:0] {component};")?;
+                writeln!(self.writer, "    reg  {width_str} {component};")?;
                 writeln!(self.writer, "    always @(posedge {clk}) begin")?;
                 writeln!(self.writer, "        {component} <= {connect_ssa};")?;
                 writeln!(self.writer, "    end")?;
@@ -121,21 +127,23 @@ impl<'a> Verilog<'a> {
     }
 
     fn verilog_submodule(&mut self, moddef: Ident, submodule: ast::Submodule) -> VirdantResult<()> {
-        let mut ports = self.db.moddef_port_names(submodule.moddef.clone())?;
+        let ports = self.db.moddef_port_names(submodule.moddef.clone())?;
 
-        /*
-        for Connect(path, _connect_type, expr) in &self.db.moddef_submodule_connects_typed(moddef.name.clone(), submodule.name.clone())? {
-            let gs = self.verilog_expr(&expr)?;
-            let parts = path.parts();
-            let name = parts[1];
-            writeln!(self.writer, "    assign __TEMP_{sm}_{name} = {gs};", sm = submodule.name)?;
-        }
-
-//        let width = todo!(); // TODO
         for port in &ports {
-            writeln!(self.writer, "    wire [31:0] __TEMP_{sm}_{port};", sm = submodule.name)?;
+            let typ = self.db.moddef_component_type(submodule.moddef.clone(), port.clone())?;
+            let width_str = make_width_str(self.db, typ);
+            writeln!(self.writer, "    wire {width_str} __TEMP_{sm}_{port};", sm = submodule.name)?;
         }
-*/
+
+//        for Wire(path, _wire_type, expr) in &self.db.moddef_typecheck_wire(moddef.name.clone(), submodule.name.clone())? {
+
+        for port in &ports {
+            if let Ok(expr) = self.db.moddef_typecheck_wire(moddef.clone(), submodule.name.as_path().join(&port.clone().as_path())) {
+                let gs = self.verilog_expr(expr)?;
+                writeln!(self.writer, "    assign __TEMP_{sm}_{port} = {gs};", sm = submodule.name)?;
+            }
+        }
+
 
         writeln!(self.writer, "    {} {}(", submodule.moddef, submodule.name)?;
         for (i, port) in ports.iter().enumerate() {
@@ -150,22 +158,6 @@ impl<'a> Verilog<'a> {
         writeln!(self.writer, "    );")?;
         Ok(())
     }
-
-    /*
-    fn verilog_type(&mut self, typ: Arc<Type>) -> VirdantResult<()> {
-        match typ.as_ref() {
-            Type::Clock => write!(self.writer, "!virdant.clock")?,
-            Type::Word(n) => write!(self.writer, "!virdant.word<{n}>")?,
-            Type::Vec(typ, n) => {
-                write!(self.writer, "!virdant.vec<")?;
-                self.verilog_type(typ.clone())?;
-                write!(self.writer, ", {n}>")?;
-            },
-            _ => todo!(),
-        }
-        Ok(())
-    }
-    */
 
     fn verilog_expr(&mut self, expr: Arc<TypedExpr>) -> VirdantResult<SsaName> {
         match expr.as_ref() {
@@ -442,4 +434,14 @@ fn verilog_output() {
     };
     let mut stdout = std::io::stdout();
     verilog.write(&mut stdout).unwrap();
+}
+
+fn make_width_str(db: &Db, typ: Type) -> String {
+    let n = db.bitwidth(typ.clone()).unwrap();
+    if n == 1 {
+        "".to_string()
+    } else {
+        let max_bit = n - 1;
+        format!("[{max_bit}:0]")
+    }
 }

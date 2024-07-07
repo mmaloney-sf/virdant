@@ -6,6 +6,7 @@ pub mod Top {
     out := reset;
 
     mod foo of Foo;
+    foo.in := reset;
 }
 
 mod Foo {

@@ -1,19 +1,24 @@
 pub mod Top {
     incoming clk : Clock;
     incoming reset : Word[1];
-    outgoing out : Word[1];
+    outgoing out : Word[3];
 
-    out := reset;
+    out := buffer.out;
 
-    mod foo of Foo;
-    foo.in := reset;
+    reg counter : Word[3] on clk;
+    counter <= if reset { 0 } else { counter->add(1) };
+
+    mod buffer of Buffer;
+    buffer.clk := clk;
+    buffer.in := counter;
 }
 
-mod Foo {
-    incoming in : Word[1];
-    incoming out : Word[1];
+mod Buffer {
+    incoming clk : Clock;
+    incoming in : Word[3];
+    outgoing out : Word[3];
 
-    node tmp : Word[1];
-    tmp := in;
-    out := tmp;
+    reg buffer : Word[3] on clk;
+    buffer <= in;
+    out := buffer;
 }

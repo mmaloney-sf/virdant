@@ -111,12 +111,9 @@ impl<'a> Verilog<'a> {
             SimpleComponentKind::Reg => {
                 let expr = self.db.moddef_typecheck_wire(moddef.clone(), component.clone().as_path())?;
                 let typ = expr.typ();
-                let width_str = make_width_str(self.db, typ);
-                let clk: String = todo!();
-                //let clock_ssa = self.verilog_expr(clk)?;
-                let connect_ssa = self.verilog_expr(expr)?;
-                let width = if let Type::Word(n) = expr.typ() { n } else { panic!() };
-                let max_bit = width - 1;
+                let clk = component_ast.clock.unwrap();
+                let connect_ssa = self.verilog_expr(expr.clone())?;
+                let width_str = make_width_str(self.db, typ.clone());
                 writeln!(self.writer, "    reg  {width_str} {component};")?;
                 writeln!(self.writer, "    always @(posedge {clk}) begin")?;
                 writeln!(self.writer, "        {component} <= {connect_ssa};")?;

@@ -1,9 +1,8 @@
-/*
 use std::io::Write;
 
+use crate::ast::SimpleComponentKind;
 use crate::common::*;
 use crate::types::Type;
-use crate::hir::*;
 use crate::db::*;
 
 type SsaName = String;
@@ -29,26 +28,24 @@ struct Verilog<'a> {
 
 impl<'a> Verilog<'a> {
     fn verilog_package(&mut self) -> VirdantResult<()> {
-        let package = self.db.package_hir()?;
-        for moddef in package.moddefs.values() {
+        let moddef_names = self.db.package_moddef_names()?;
+        for moddef in moddef_names {
             self.verilog_moddef(moddef)?;
         }
         Ok(())
     }
 
-    fn verilog_moddef(&mut self, moddef: &ModDef) -> VirdantResult<()> {
-        writeln!(self.writer, "module {}(", moddef.name)?;
-        let ports = moddef.ports();
+    fn verilog_moddef(&mut self, moddef: Ident) -> VirdantResult<()> {
+        writeln!(self.writer, "module {}(", moddef.clone())?;
+        let ports = self.db.moddef_port_names(moddef.clone())?;
         for (i, port) in ports.iter().enumerate() {
             let is_last = i + 1 == ports.len();
-            match port {
-                Component::Incoming(..) => self.verilog_port(port, is_last)?,
-                Component::Outgoing(..) => self.verilog_port(port, is_last)?,
-                _ => (),
-            }
+            self.verilog_port(moddef.clone(), port.clone(), is_last)?;
         }
         writeln!(self.writer, ");")?;
 
+        /*
+        * TODO
         for submodule in &moddef.submodules {
             self.verilog_submodule(moddef, submodule)?;
         }
@@ -56,43 +53,35 @@ impl<'a> Verilog<'a> {
         for component in &moddef.components {
             self.verilog_component(component)?;
         }
+*/
 
         writeln!(self.writer, "endmodule")?;
         writeln!(self.writer)?;
         Ok(())
     }
 
-    fn verilog_port(&mut self, component: &Component, is_last_port: bool) -> VirdantResult<()> {
-        match component {
-            Component::Incoming(name, typ) => {
-                if let Type::Word(1) = typ.as_ref() {
-                    write!(self.writer, "    input  wire            {name}")?;
-                } else if let Type::Word(n) = typ.as_ref() {
-                    let max_bit = n - 1;
-                    let width_str = format!("[{max_bit}:0]");
-                    let padded_width_str = format!("{width_str: >8}");
-                    write!(self.writer, "    input  wire  {padded_width_str} {name}")?;
-                } else if let Type::Clock = typ.as_ref() {
-                    write!(self.writer, "    input  wire            {name}")?;
-                } else {
-                    todo!()
-                }
-            },
-            Component::Outgoing(name, typ, _expr) => {
-                if let Type::Word(1) = typ.as_ref() {
-                    write!(self.writer, "    output wire            {name}")?;
-                } else if let Type::Word(n) = typ.as_ref() {
-                    let max_bit = n - 1;
-                    let width_str = format!("[{max_bit}:0]");
-                    let padded_width_str = format!("{width_str: >8}");
-                    write!(self.writer, "    output wire {padded_width_str} {name}")?;
-                } else if let Type::Clock = typ.as_ref() {
-                    write!(self.writer, "    output wire          {name}")?;
-                } else {
-                    todo!()
-                }
-            },
-            _ => panic!(),
+    fn verilog_port(&mut self, moddef: Ident, port: Ident, is_last_port: bool) -> VirdantResult<()> {
+        let port_ast = self.db.moddef_component_ast(moddef.clone(), port.clone())?;
+        let typ = self.db.moddef_component_type(moddef.clone(), port.clone())?;
+//            Component::Incoming(name, typ) => {
+        //
+        let direction = match port_ast.kind {
+            SimpleComponentKind::Incoming => "input  ",
+            SimpleComponentKind::Outgoing => "output ",
+            _ => unreachable!(),
+        };
+
+        if let Type::Word(1) = typ {
+            write!(self.writer, "    {direction} wire            {port}")?;
+        } else if let Type::Word(n) = typ {
+            let max_bit = n - 1;
+            let width_str = format!("[{max_bit}:0]");
+            let padded_width_str = format!("{width_str: >8}");
+            write!(self.writer, "    {direction} wire  {padded_width_str} {port}")?;
+        } else if let Type::Clock = typ {
+            write!(self.writer, "    {direction} wire            {port}")?;
+        } else {
+            todo!()
         }
 
         if is_last_port {
@@ -104,6 +93,7 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
+    /*
     fn verilog_component(&mut self, component: &Component) -> VirdantResult<()> {
         match component {
             Component::Incoming(_name, _typ) => (),
@@ -167,6 +157,7 @@ impl<'a> Verilog<'a> {
         writeln!(self.writer, "    );")?;
         Ok(())
     }
+    */
 
     /*
     fn verilog_type(&mut self, typ: Arc<Type>) -> VirdantResult<()> {
@@ -184,66 +175,65 @@ impl<'a> Verilog<'a> {
     }
     */
 
-    fn verilog_expr(&mut self, expr: &Expr) -> VirdantResult<SsaName> {
-        match expr.as_node() {
-            ExprNode::Reference(r) if r.path().is_local()  => Ok(format!("{}", r.path())),
-            ExprNode::Reference(r) => {
-                let parts = r.path().parts();
+    fn verilog_expr(&mut self, expr: Arc<TypedExpr>) -> VirdantResult<SsaName> {
+        match expr.as_ref() {
+            TypedExpr::Reference(typ, path) if path.is_local()  => Ok(format!("{}", path)),
+            TypedExpr::Reference(typ, path) => {
+                let parts = path.parts();
                 let sm = &parts[0];
                 let port = &parts[1];
                 Ok(format!("__TEMP_{sm}_{port}"))
             },
-            ExprNode::Word(w) => {
+            TypedExpr::Word(typ, w) => {
                 let gs = self.gensym();
-                let typ = expr.type_of().unwrap();
-                let width_str: String = match typ.as_ref() {
+                let typ = expr.typ();
+                let width_str: String = match typ {
                     Type::Word(1) => " ".to_string(),
                     Type::Word(n) => {
-                        let max_bit = *n - 1;
+                        let max_bit = n - 1;
                         format!("[{max_bit}:0]")
                     },
                     _ => panic!(),
                 };
-                writeln!(self.writer, "    wire {width_str} {gs} = {};", w.value())?;
+                writeln!(self.writer, "    wire {width_str} {gs} = {};", w.value)?;
                 Ok(gs)
             },
-            ExprNode::Cat(c) => {
+            TypedExpr::Cat(typ, args) => {
                 let gs = self.gensym();
                 let mut args_ssa: Vec<SsaName> = vec![];
-                for arg in &c.subexprs() {
-                    let arg_ssa = self.verilog_expr(arg)?;
+                for arg in args {
+                    let arg_ssa = self.verilog_expr(arg.clone())?;
                     args_ssa.push(arg_ssa);
                 }
                 writeln!(self.writer, "    wire {gs} = {{{}}};", args_ssa.join(", "))?;
                 Ok(gs)
             },
-            ExprNode::Idx(i) => {
+            TypedExpr::Idx(typ, subject, index) => {
                 let gs = self.gensym();
-                let subject_ssa = self.verilog_expr(&i.subject())?;
-                let index = i.index();
+                let subject_ssa = self.verilog_expr(subject.clone())?;
                 writeln!(self.writer, "    wire {gs} = {subject_ssa}[{index}];")?;
                 Ok(gs)
             },
-            ExprNode::MethodCall(m) => {
+            TypedExpr::MethodCall(typ, subject, method, args) => {
                 let gs = self.gensym();
-                let subject_ssa = self.verilog_expr(&m.subject())?;
+                let subject_ssa = self.verilog_expr(subject.clone())?;
                 let mut args_ssa: Vec<SsaName> = vec![];
-                self.verilog_expr(&m.subject())?;
-                for arg in &m.args() {
-                    let arg_ssa = self.verilog_expr(arg)?;
+                self.verilog_expr(subject.clone())?;
+                for arg in args {
+                    let arg_ssa = self.verilog_expr(arg.clone())?;
                     args_ssa.push(arg_ssa);
                 }
-                let typ = expr.type_of().unwrap();
-                let width_str: String = match typ.as_ref() {
+                let typ = expr.typ();
+                let width_str: String = match typ {
                     Type::Word(1) => " ".to_string(),
                     Type::Word(n) => {
-                        let max_bit = *n - 1;
+                        let max_bit = n - 1;
                         format!("[{max_bit}:0]")
                     },
                     _ => panic!(),
                 };
 
-                match m.method().as_str() {
+                match method.as_str() {
                     "add" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} + {};", args_ssa[0])?,
                     "sub" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} - {};", args_ssa[0])?,
                     "and" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} & {};", args_ssa[0])?,
@@ -257,20 +247,20 @@ impl<'a> Verilog<'a> {
                     "lte" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} <= {};", args_ssa.join(" : "))?,
                     "gt"  => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} > {};", args_ssa.join(" : "))?,
                     "gte" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} >= {};", args_ssa.join(" : "))?,
-                    _ => panic!("Unknown method: {}", m.method()),
+                    _ => panic!("Unknown method: {}", method),
                 }
                 Ok(gs)
             },
-            ExprNode::If(ifexpr) => {
+            TypedExpr::If(typ, c, a, b) => {
                 let gs = self.gensym();
-                let cond_ssa = self.verilog_expr(&ifexpr.condition())?;
-                let a_ssa = self.verilog_expr(ifexpr.a())?;
-                let b_ssa = self.verilog_expr(ifexpr.b())?;
-                let typ = expr.type_of().unwrap();
-                let width_str: String = match typ.as_ref() {
+                let cond_ssa = self.verilog_expr(c.clone())?;
+                let a_ssa = self.verilog_expr(a.clone())?;
+                let b_ssa = self.verilog_expr(b.clone())?;
+                let typ = expr.typ();
+                let width_str: String = match typ {
                     Type::Word(1) => " ".to_string(),
                     Type::Word(n) => {
-                        let max_bit = *n - 1;
+                        let max_bit = n - 1;
                         format!("[{max_bit}:0]")
                     },
                     _ => panic!(),
@@ -289,22 +279,6 @@ impl<'a> Verilog<'a> {
     fn gensym(&mut self) -> SsaName {
         self.gensym += 1;
         format!("__TEMP_{}", self.gensym)
-    }
-}
-
-impl ModDef {
-    fn ports(&self) -> Vec<&Component> {
-        let mut result = vec![];
-
-        for component in &self.components {
-            match component {
-                Component::Incoming(..) => result.push(component),
-                Component::Outgoing(..) => result.push(component),
-                _ => (),
-            }
-        }
-
-        result
     }
 }
 
@@ -477,4 +451,3 @@ fn verilog_output() {
     let mut stdout = std::io::stdout();
     verilog.write(&mut stdout).unwrap();
 }
-*/

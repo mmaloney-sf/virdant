@@ -3,12 +3,16 @@ mod structureq;
 mod typecheckq;
 mod packageq;
 
+use std::sync::Arc;
+
 pub use astq::AstQ;
 pub use structureq::StructureQ;
 pub use typecheckq::TypecheckQ;
 pub use packageq::PackageQ;
 
 pub use typecheckq::TypedExpr;
+
+use crate::common::VirdantResult;
 //use crate::common::*;
 
 #[salsa::database(
@@ -34,6 +38,7 @@ pub fn compile_mlir(input: &str) -> VirdantResult<()> {
     package.mlir(&mut stdout).map_err(|_err| VirdantError::Other("EEK".to_string()))?;
     Ok(())
 }
+*/
 
 pub fn compile_verilog(input: &str) -> VirdantResult<()> {
     let mut db = Db::default();
@@ -43,4 +48,3 @@ pub fn compile_verilog(input: &str) -> VirdantResult<()> {
     db.verilog(&mut stdout)?;
     Ok(())
 }
-*/

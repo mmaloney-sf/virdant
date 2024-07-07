@@ -43,15 +43,7 @@ fn main() {
             return;
         }
 
-//        let expr = db.moddef_wire_expr("Top".into(), "buffer".into()).unwrap();
-//        dbg!(expr);
-//
-//        let type_tree = db.moddef_typecheck_wire("Top".into(), "buffer".into()).unwrap();
-//        dbg!(&type_tree);
-
-        todo!()
-
-//        db::compile_verilog(&package_text).unwrap();
+        db::compile_verilog(&package_text).unwrap();
     } else if args.sim {
         let top = args.top.unwrap_or_else(|| "Top".into());
         let trace = args.trace.as_ref().map(|s| s.as_str());
@@ -101,7 +93,6 @@ pub fn sim(filename: &str, top: &str, trace: Option<&str>, delay: usize) {
     }
 }
 
-/*
 pub fn verilog() {
     let package_text = "
 
@@ -132,7 +123,6 @@ pub fn verilog() {
     ";
     db::compile_verilog(package_text).unwrap();
 }
-*/
 
 pub fn parse() {
     let package = parse_package("

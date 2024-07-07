@@ -12,4 +12,4 @@ pub mod elab;
 pub mod sim;
 // pub mod vcd;
 // pub mod mlir;
-// pub mod verilog;
+pub mod verilog;

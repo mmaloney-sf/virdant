@@ -10,6 +10,7 @@ pub trait StructureQ: AstQ {
     fn package_moddef_names(&self) -> VirdantResult<Vec<Ident>>;
     fn moddef_component_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
     fn moddef_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
+    fn moddef_port_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
 
     fn moddef_required_targets(&self, moddef: Ident) -> VirdantResult<Vec<Path>>;
     fn moddef_wire_targets(&self, moddef: Ident) -> VirdantResult<Vec<Path>>;
@@ -67,6 +68,19 @@ fn moddef_names(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<Vec<Ident>>
 
     let submodule_asts = db.moddef_submodules(moddef)?;
     results.extend(submodule_asts.iter().map(|submodule| submodule.name.clone()).collect::<Vec<_>>());
+
+    Ok(results)
+}
+
+fn moddef_port_names(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<Vec<Ident>> {
+    let mut results = vec![];
+
+    let component_asts = db.moddef_components(moddef.clone())?;
+    results.extend(component_asts
+        .iter()
+        .filter(|component| component.kind == SimpleComponentKind::Incoming || component.kind == SimpleComponentKind::Outgoing)
+        .map(|component| component.name.clone())
+        .collect::<Vec<_>>());
 
     Ok(results)
 }

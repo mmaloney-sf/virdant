@@ -8,6 +8,7 @@ pub use structureq::StructureQ;
 pub use typecheckq::TypecheckQ;
 pub use packageq::PackageQ;
 
+pub use typecheckq::TypedExpr;
 //use crate::common::*;
 
 #[salsa::database(

@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use crate::common::*;
-use crate::hir::*;
 use crate::types::Type;
+use crate::db::TypedExpr;
 use crate::value::Value;
 use crate::context::*;
-use crate::vcd::Vcd;
+//use crate::vcd::Vcd;
 
 type CellId = usize;
 type ClockId = usize;
@@ -30,8 +30,8 @@ impl SimBuilder {
         self.sim
     }
 
-    pub fn add_simple_node(mut self, path: Path, expr: Expr, is_internal_input: bool) -> Self {
-        let typ = expr.type_of().unwrap();
+    pub fn add_simple_node(mut self, path: Path, expr: Arc<TypedExpr>, is_internal_input: bool) -> Self {
+        let typ = expr.typ();
         let cell_id = self.sim.cells.len();
 
         let rel = if is_internal_input {
@@ -49,17 +49,17 @@ impl SimBuilder {
         let node = Node::Simple {
             cell_id,
             path: path.clone(),
-            typ: typ.clone(),
+            typ: typ.clone().into(),
             update,
             is_internal_input,
         };
 
         self.sim.nodes.push(node);
-        self.sim.cells.push(Value::X(typ.clone()));
+        self.sim.cells.push(Value::X(typ.into()));
         self
     }
 
-    pub fn add_reg_node(mut self, path: Path, typ: Arc<Type>, clock: Path, reset: Option<Value>, expr: Expr) -> Self {
+    pub fn add_reg_node(mut self, path: Path, typ: Arc<Type>, clock: Path, reset: Option<Value>, expr: Arc<TypedExpr>) -> Self {
         let set_cell_id = self.sim.cells.len();
         let val_cell_id = self.sim.cells.len() + 1;
 
@@ -106,6 +106,8 @@ impl SimBuilder {
 
         for node in &mut self.sim.nodes {
             let is_internal_input = node.is_internal_input();
+            todo!()
+            /*
             if let Some(update) = node.update_mut() {
                 let sensitivities: Vec<CellId> = update
                     .expr
@@ -118,6 +120,7 @@ impl SimBuilder {
                     .collect();
                 update.sensitivities = sensitivities;
             }
+*/
         }
     }
 
@@ -206,6 +209,8 @@ impl Sim {
     fn eval(&self, comb: &Comb) -> Value {
         // TODO associate values with free variables
         let mut ctx: Context<Path, Value> = Context::empty();
+        todo!()
+/*
         for reference in comb.expr.references() {
             let full_path: Path = comb.rel.join(&reference);
             let cell_id = self.get_node(&full_path).read_cell_id();
@@ -213,6 +218,7 @@ impl Sim {
             ctx = ctx.extend(reference, value);
         }
         comb.expr.eval(ctx)
+*/
     }
 
     fn get_node(&self, path: &Path) -> &Node {
@@ -267,15 +273,15 @@ impl std::fmt::Display for Sim {
         for node in &self.nodes {
             match node {
                 Node::Simple { cell_id, .. } => {
-                    write!(f, "{} : {} = ", node.path(), node.type_of())?;
+                    write!(f, "{} : {} = ", node.path(), node.typ())?;
                     writeln!(f, "{}", *self.get_cell(*cell_id))?;
                 },
                 Node::Reg { set_cell_id, val_cell_id, .. } => {
-                    write!(f, "{} : {} = ", node.path(), node.type_of())?;
+                    write!(f, "{} : {} = ", node.path(), node.typ())?;
                     writeln!(f, "{} <= {}", *self.get_cell(*val_cell_id), *self.get_cell(*set_cell_id))?;
                 },
                 Node::Input { cell_id, .. } => {
-                    write!(f, "{} : {} = ", node.path(), node.type_of())?;
+                    write!(f, "{} : {} = ", node.path(), node.typ())?;
                     writeln!(f, "{}", *self.get_cell(*cell_id))?;
                 },
             }
@@ -313,7 +319,7 @@ enum Node {
 }
 
 impl Node {
-    pub fn type_of(&self) -> Arc<Type> {
+    pub fn typ(&self) -> Arc<Type> {
         match self {
             Node::Simple { typ, .. } => typ.clone(),
             Node::Reg { typ, .. } => typ.clone(),
@@ -372,7 +378,7 @@ impl Node {
 #[derive(Debug, Clone)]
 struct Comb {
     rel: Path,
-    expr: Expr,
+    expr: Arc<TypedExpr>,
     sensitivities: Vec<CellId>,
 }
 
@@ -406,6 +412,7 @@ pub fn simulator(input: &str, top: &str) -> VirdantResult<Sim> {
 //    Ok(sim)
 }
 
+/*
 pub fn simulator_with_trace(input: &str, top: &str, fout: &mut dyn std::io::Write) -> VirdantResult<Sim> {
     let mut vcd = Vcd::new(fout);
 //    vcd.header().unwrap();
@@ -420,3 +427,4 @@ pub fn simulator_with_trace(input: &str, top: &str, fout: &mut dyn std::io::Writ
 //    sim.set_vcd
     Ok(sim)
 }
+*/

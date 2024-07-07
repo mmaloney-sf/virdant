@@ -1,12 +1,12 @@
 use crate::common::*;
 use super::TypecheckQ;
-//use crate::elab;
+use crate::elab;
 
 #[salsa::query_group(PackageQStorage)]
 pub trait PackageQ: TypecheckQ {
     fn check_moddef(&self, moddef: Ident) -> VirdantResult<()>;
     fn check(&self) -> VirdantResult<()>;
-//    fn elaborate(&self, moddef: Ident) -> VirdantResult<elab::Elab>;
+    fn elaborate(&self, moddef: Ident) -> VirdantResult<elab::Elab>;
 }
 
 fn check(db: &dyn PackageQ) -> Result<(), VirdantError> {
@@ -55,9 +55,6 @@ fn check_moddef(db: &dyn PackageQ, moddef: Ident) -> VirdantResult<()> {
     errors.check()
 }
 
-/*
 fn elaborate(db: &dyn PackageQ, moddef: Ident) -> VirdantResult<elab::Elab> {
-    let package = db.package_hir()?;
-    package.elab(moddef.into())
+    todo!()
 }
-*/

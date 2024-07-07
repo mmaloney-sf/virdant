@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use crate::common::*;
-use crate::hir;
 use crate::sim::{Sim, SimBuilder};
+pub use crate::db::TypedExpr;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Elab {
-    pub moddef: Arc<hir::ModDef>,
+    pub moddef: Ident,
     pub submodules: HashMap<Ident, Elab>,
 }
 
@@ -18,7 +18,9 @@ impl Elab {
         sim.build()
     }
 
-    fn add(&self, path: Path, mut sim: SimBuilder, nonlocal_connects: HashMap<Ident, hir::Expr>) -> SimBuilder {
+    fn add(&self, path: Path, mut sim: SimBuilder, nonlocal_connects: HashMap<Ident, Arc<TypedExpr>>) -> SimBuilder {
+        todo!()
+        /*
         let path_parts = path.parts();
         let base: Path = path_parts[path_parts.len() - 1].into();
         for component in &self.moddef.components {
@@ -50,5 +52,6 @@ impl Elab {
             sim = submodule.add(submodule_path, sim, nonlocal_connects);
         }
         sim
+    */
     }
 }

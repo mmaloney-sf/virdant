@@ -42,7 +42,12 @@ fn main() {
             eprintln!("{e:?}");
             return;
         }
-        todo!()
+
+        let expr = db.moddef_wire_expr("Top".into(), "buffer".into()).unwrap();
+        dbg!(expr);
+
+        let type_tree = db.moddef_typecheck_wire("Top".into(), "buffer".into()).unwrap();
+        dbg!(&type_tree);
 
 //        db::compile_verilog(&package_text).unwrap();
     } else if args.sim {

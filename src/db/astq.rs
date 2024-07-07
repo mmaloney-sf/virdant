@@ -18,6 +18,8 @@ pub trait AstQ: salsa::Database {
 
     fn moddef_wire(&self, moddef: Ident, target: Path) -> VirdantResult<ast::Wire>;
     fn moddef_wire_exprinst(&self, moddef: Ident, target: Path, subexpr_path: ExprPath) -> VirdantResult<Arc<ast::Expr>>;
+
+    fn moddef_wire_expr(&self, moddef: Ident, target: Path) -> VirdantResult<Arc<ast::Expr>>;
 }
 
 fn package_ast(db: &dyn AstQ) -> Result<ast::Package, VirdantError> {
@@ -114,6 +116,11 @@ fn moddef_wire_exprinst(
 ) -> VirdantResult<Arc<ast::Expr>> {
     let ast::Wire(_target, _wire_type, expr) = db.moddef_wire(moddef, target)?;
     let expr = get_subexpr(expr, &expr_path);
+    Ok(expr)
+}
+
+fn moddef_wire_expr(db: &dyn AstQ, moddef: Ident, target: Path) -> VirdantResult<Arc<ast::Expr>> {
+    let ast::Wire(_target, _wire_type, expr) = db.moddef_wire(moddef, target)?;
     Ok(expr)
 }
 

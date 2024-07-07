@@ -18,7 +18,9 @@ pub trait TypecheckQ: StructureQ {
     fn expr_typecheck(&self, moddef: Ident, expr: Arc<ast::Expr>, typ: Type) -> VirdantResult<TypeTree>;
     fn expr_typeinfer(&self, moddef: Ident, expr: Arc<ast::Expr>) -> VirdantResult<TypeTree>;
 
-    fn moddef_typecheck_wire(&self, moddef: Ident, target: Path) -> VirdantResult<()>;
+    fn method_sig(&self, typ: Type, method: Ident) -> VirdantResult<MethodSig>;
+
+    fn moddef_typecheck_wire(&self, moddef: Ident, target: Path) -> VirdantResult<TypeTree>;
     fn moddef_typecheck(&self, moddef: Ident) -> VirdantResult<()>;
     fn typecheck(&self) -> VirdantResult<()>;
 }
@@ -58,17 +60,15 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
         ast::Expr::MethodCall(subject, method, args) => {
             let mut type_tree = TypeTree::new(typ.clone());
             let subject_typ = db.expr_typeinfer(moddef.clone(), subject.clone())?;
-            eprintln!("expr is a call with subject {subject:?} found to have type {subject_typ:?}");
+            let method_sig = db.method_sig(typ.clone(), method.clone())?;
             if method == &Ident::from("mux") {
-                type_tree = type_tree.add(subject_typ);
-                type_tree = type_tree.add(db.expr_typecheck(moddef.clone(), args[0].clone(), typ.clone())?);
-                type_tree = type_tree.add(db.expr_typecheck(moddef.clone(), args[1].clone(), typ)?);
-                dbg!(&type_tree);
+                 type_tree.add(subject_typ);
+                 type_tree.add(db.expr_typecheck(moddef.clone(), args[0].clone(), typ.clone())?);
+                 type_tree.add(db.expr_typecheck(moddef.clone(), args[1].clone(), typ)?);
                 Ok(type_tree)
             } else if method == &Ident::from("add") {
-                type_tree = type_tree.add(subject_typ);
-                type_tree = type_tree.add(db.expr_typecheck(moddef.clone(), args[0].clone(), typ.clone())?);
-                dbg!(&type_tree);
+                 type_tree.add(subject_typ);
+                 type_tree.add(db.expr_typecheck(moddef.clone(), args[0].clone(), typ.clone())?);
                 Ok(type_tree)
             } else {
                 Err(VirdantError::Other(format!("Unknown method: {method}")))
@@ -78,7 +78,13 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
         ast::Expr::Idx(_, _) => todo!(),
         ast::Expr::IdxRange(_, _, _) => todo!(),
         ast::Expr::Cat(_) => todo!(),
-        ast::Expr::If(_, _, _) => todo!(),
+        ast::Expr::If(c, a, b) => {
+            let mut type_tree = TypeTree::new(typ.clone());
+            type_tree.add(db.expr_typecheck(moddef.clone(), c.clone(), Type::Word(1))?);
+            type_tree.add(db.expr_typecheck(moddef.clone(), a.clone(), typ.clone())?);
+            type_tree.add(db.expr_typecheck(moddef.clone(), b.clone(), typ.clone())?);
+            Ok(type_tree)
+        },
     }
 }
 
@@ -103,11 +109,23 @@ fn expr_typeinfer(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>) -> V
     }
 }
 
-fn moddef_typecheck_wire(db: &dyn TypecheckQ, moddef: Ident, target: Path) -> VirdantResult<()> {
+fn method_sig(db: &dyn TypecheckQ, typ: Type, method: Ident) -> VirdantResult<MethodSig> {
+    match typ {
+        Type::Word(n) => {
+            if method == "add".into() {
+                Ok(MethodSig(vec![typ.clone()], typ.clone()))
+            } else {
+                Err(VirdantError::Other(format!("No such method {method} for type {typ}")))
+            }
+        },
+        _ => Err(VirdantError::Other(format!("No such method {method} for type {typ}"))),
+    }
+}
+
+fn moddef_typecheck_wire(db: &dyn TypecheckQ, moddef: Ident, target: Path) -> VirdantResult<TypeTree> {
     let ast::Wire(target, _wire_type, expr) = db.moddef_wire(moddef.clone(), target)?;
     let typ = db.moddef_target_type(moddef.clone(), target)?;
-    db.expr_typecheck(moddef, expr, typ)?;
-    Ok(())
+    Ok(db.expr_typecheck(moddef, expr, typ)?)
 }
 
 fn moddef_typecheck(db: &dyn TypecheckQ, moddef: Ident) -> VirdantResult<()> {
@@ -233,9 +251,8 @@ impl TypeTree {
         }
     }
 
-    pub fn add(mut self, type_tree: TypeTree) -> TypeTree {
+    pub fn add(&mut self, type_tree: TypeTree) {
         self.children.push(Arc::new(type_tree));
-        self
     }
 
     pub fn typ(&self) -> Type {
@@ -250,3 +267,6 @@ fn pow(n: u64, k: u64) -> u64 {
     }
     p
 }
+
+#[derive(Clone, Hash, PartialEq, Eq, Debug)]
+pub struct MethodSig(Vec<Type>, Type);

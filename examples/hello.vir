@@ -4,6 +4,6 @@ pub mod Top {
     outgoing out : Word[8];
 
     reg buffer : Word[8] on clk;
-    buffer <= reset->mux(0w8, buffer->add(1));
+    buffer <= if reset { 0w8 } else { buffer->add(1w8) };
     out := buffer;
 }

@@ -4,7 +4,7 @@ pub use super::StructureQ;
 
 use crate::types::Type;
 use crate::context::Context;
-use crate::ast;
+use crate::ast::{self, WordLit};
 
 #[salsa::query_group(TypecheckQStorage)]
 pub trait TypecheckQ: StructureQ {
@@ -15,12 +15,12 @@ pub trait TypecheckQ: StructureQ {
     fn moddef_reference_type(&self, moddef: Ident, path: Path) -> VirdantResult<Type>;
     fn moddef_target_type(&self, moddef: Ident, target: Path) -> VirdantResult<Type>;
 
-    fn expr_typecheck(&self, moddef: Ident, expr: Arc<ast::Expr>, typ: Type) -> VirdantResult<TypeTree>;
-    fn expr_typeinfer(&self, moddef: Ident, expr: Arc<ast::Expr>) -> VirdantResult<TypeTree>;
+    fn expr_typecheck(&self, moddef: Ident, expr: Arc<ast::Expr>, typ: Type) -> VirdantResult<Arc<TypedExpr>>;
+    fn expr_typeinfer(&self, moddef: Ident, expr: Arc<ast::Expr>) -> VirdantResult<Arc<TypedExpr>>;
 
     fn method_sig(&self, typ: Type, method: Ident) -> VirdantResult<MethodSig>;
 
-    fn moddef_typecheck_wire(&self, moddef: Ident, target: Path) -> VirdantResult<TypeTree>;
+    fn moddef_typecheck_wire(&self, moddef: Ident, target: Path) -> VirdantResult<Arc<TypedExpr>>;
     fn moddef_typecheck(&self, moddef: Ident) -> VirdantResult<()>;
     fn typecheck(&self) -> VirdantResult<()>;
 }
@@ -35,19 +35,19 @@ fn typecheck(db: &dyn TypecheckQ) -> VirdantResult<()> {
     errors.check()
 }
 
-fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ: Type) -> VirdantResult<TypeTree> {
+fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ: Type) -> VirdantResult<Arc<TypedExpr>> {
     match expr.as_ref() {
         ast::Expr::Reference(path) => {
             let typ = db.moddef_reference_type(moddef, path.clone())?;
-            Ok(TypeTree::new(typ))
+            Ok(TypedExpr::Reference(typ, path.clone()).into())
         },
         ast::Expr::Word(lit) => {
             match (typ.clone(), lit.width) {
-                (Type::Word(n), Some(m)) if n == m => Ok(TypeTree::new(typ)),
+                (Type::Word(n), Some(m)) if n == m => Ok(TypedExpr::Word(typ, lit.clone()).into()),
                 (Type::Word(n), Some(m)) => Err(VirdantError::Other(format!("Does not match: {n} and {m}"))),
                 (Type::Word(n), None) => {
                     if lit.value < pow(2, n) {
-                        Ok(TypeTree::new(typ))
+                        Ok(TypedExpr::Word(typ, lit.clone()).into())
                     } else {
                         Err(VirdantError::Other("Doesn't fit".to_string()))
                     }
@@ -58,42 +58,47 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
         ast::Expr::Vec(_) => todo!(),
         ast::Expr::Struct(_, _) => todo!(),
         ast::Expr::MethodCall(subject, method, args) => {
-            let mut type_tree = TypeTree::new(typ.clone());
-            let subject_typ = db.expr_typeinfer(moddef.clone(), subject.clone())?;
-            let method_sig = db.method_sig(typ.clone(), method.clone())?;
-            if method == &Ident::from("mux") {
-                 type_tree.add(subject_typ);
-                 type_tree.add(db.expr_typecheck(moddef.clone(), args[0].clone(), typ.clone())?);
-                 type_tree.add(db.expr_typecheck(moddef.clone(), args[1].clone(), typ)?);
-                Ok(type_tree)
-            } else if method == &Ident::from("add") {
-                 type_tree.add(subject_typ);
-                 type_tree.add(db.expr_typecheck(moddef.clone(), args[0].clone(), typ.clone())?);
-                Ok(type_tree)
-            } else {
-                Err(VirdantError::Other(format!("Unknown method: {method}")))
+            let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone())?;
+            let MethodSig(arg_types, ret_type) = db.method_sig(typed_subject.typ(), method.clone())?;
+
+            if ret_type != typ {
+                return Err(VirdantError::Unknown);
             }
+
+            if args.len() != arg_types.len() {
+                return Err(VirdantError::Unknown);
+            }
+
+            let mut typed_args = vec![];
+            for (arg, arg_type) in args.iter().zip(arg_types) {
+                let typed_arg = db.expr_typecheck(moddef.clone(), arg.clone(), arg_type)?;
+                typed_args.push(typed_arg);
+            }
+
+            Ok(TypedExpr::MethodCall(typ, typed_subject, method.clone(), typed_args).into())
         },
         ast::Expr::As(_, _) => todo!(),
         ast::Expr::Idx(_, _) => todo!(),
         ast::Expr::IdxRange(_, _, _) => todo!(),
         ast::Expr::Cat(_) => todo!(),
         ast::Expr::If(c, a, b) => {
-            let mut type_tree = TypeTree::new(typ.clone());
-            type_tree.add(db.expr_typecheck(moddef.clone(), c.clone(), Type::Word(1))?);
-            type_tree.add(db.expr_typecheck(moddef.clone(), a.clone(), typ.clone())?);
-            type_tree.add(db.expr_typecheck(moddef.clone(), b.clone(), typ.clone())?);
-            Ok(type_tree)
+            let typed_c = db.expr_typecheck(moddef.clone(), c.clone(), Type::Word(1))?;
+            let typed_a = db.expr_typecheck(moddef.clone(), a.clone(), typ.clone())?;
+            let typed_b = db.expr_typecheck(moddef.clone(), b.clone(), typ.clone())?;
+            Ok(TypedExpr::If(typ, typed_c, typed_a, typed_b).into())
         },
     }
 }
 
-fn expr_typeinfer(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>) -> VirdantResult<TypeTree> {
+fn expr_typeinfer(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>) -> VirdantResult<Arc<TypedExpr>> {
     match expr.as_ref() {
-        ast::Expr::Reference(path) => Ok(TypeTree::new(db.moddef_reference_type(moddef, path.clone())?)),
+        ast::Expr::Reference(path) => {
+            let typ = db.moddef_reference_type(moddef, path.clone())?;
+            Ok(TypedExpr::Reference(typ, path.clone()).into())
+        },
         ast::Expr::Word(lit) => {
             if let Some(n) = lit.width {
-                Ok(TypeTree::new(Type::Word(n)))
+                Ok(TypedExpr::Word(Type::Word(n), lit.clone()).into())
             } else {
                 Err(VirdantError::Unknown)
             }
@@ -122,7 +127,7 @@ fn method_sig(db: &dyn TypecheckQ, typ: Type, method: Ident) -> VirdantResult<Me
     }
 }
 
-fn moddef_typecheck_wire(db: &dyn TypecheckQ, moddef: Ident, target: Path) -> VirdantResult<TypeTree> {
+fn moddef_typecheck_wire(db: &dyn TypecheckQ, moddef: Ident, target: Path) -> VirdantResult<Arc<TypedExpr>> {
     let ast::Wire(target, _wire_type, expr) = db.moddef_wire(moddef.clone(), target)?;
     let typ = db.moddef_target_type(moddef.clone(), target)?;
     Ok(db.expr_typecheck(moddef, expr, typ)?)
@@ -270,3 +275,34 @@ fn pow(n: u64, k: u64) -> u64 {
 
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub struct MethodSig(Vec<Type>, Type);
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum TypedExpr {
+    Reference(Type, Path),
+    Word(Type, WordLit),
+    Vec(Type, Vec<Arc<TypedExpr>>),
+    Struct(Type, Ident, Vec<(Field, Arc<TypedExpr>)>),
+    MethodCall(Type, Arc<TypedExpr>, Ident, Vec<Arc<TypedExpr>>),
+    As(Type, Arc<TypedExpr>, Arc<Type>),
+    Idx(Type, Arc<TypedExpr>, StaticIndex),
+    IdxRange(Type, Arc<TypedExpr>, StaticIndex, StaticIndex),
+    Cat(Type, Vec<Arc<TypedExpr>>),
+    If(Type, Arc<TypedExpr>, Arc<TypedExpr>, Arc<TypedExpr>),
+}
+
+impl TypedExpr {
+    pub fn typ(&self) -> Type {
+        match self {
+            TypedExpr::Reference(typ, _) => typ.clone(),
+            TypedExpr::Word(typ, _) => typ.clone(),
+            TypedExpr::Vec(typ, _) => typ.clone(),
+            TypedExpr::Struct(typ, _, _) => typ.clone(),
+            TypedExpr::MethodCall(typ, _, _, _) => typ.clone(),
+            TypedExpr::As(typ, _, _) => typ.clone(),
+            TypedExpr::Idx(typ, _, _) => typ.clone(),
+            TypedExpr::IdxRange(typ, _, _, _) => typ.clone(),
+            TypedExpr::Cat(typ, _) => typ.clone(),
+            TypedExpr::If(typ, _, _, _) => typ.clone(),
+        }
+    }
+}

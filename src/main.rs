@@ -43,11 +43,13 @@ fn main() {
             return;
         }
 
-        let expr = db.moddef_wire_expr("Top".into(), "buffer".into()).unwrap();
-        dbg!(expr);
+//        let expr = db.moddef_wire_expr("Top".into(), "buffer".into()).unwrap();
+//        dbg!(expr);
+//
+//        let type_tree = db.moddef_typecheck_wire("Top".into(), "buffer".into()).unwrap();
+//        dbg!(&type_tree);
 
-        let type_tree = db.moddef_typecheck_wire("Top".into(), "buffer".into()).unwrap();
-        dbg!(&type_tree);
+        todo!()
 
 //        db::compile_verilog(&package_text).unwrap();
     } else if args.sim {

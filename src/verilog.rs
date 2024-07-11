@@ -96,19 +96,24 @@ impl<'a> Verilog<'a> {
         match component_ast.kind {
             SimpleComponentKind::Incoming => (),
             SimpleComponentKind::Outgoing => {
+                writeln!(self.writer, "    // outgoing {component}")?;
                 let expr = self.db.moddef_typecheck_wire(moddef.clone(), component.clone().as_path())?;
                 let ssa = self.verilog_expr(expr)?;
                 writeln!(self.writer, "    assign {component} = {ssa};")?;
+                writeln!(self.writer)?;
             },
             SimpleComponentKind::Node => {
+                writeln!(self.writer, "    // node {component}")?;
                 let expr = self.db.moddef_typecheck_wire(moddef.clone(), component.clone().as_path())?;
                 let typ = expr.typ();
                 let ssa = self.verilog_expr(expr)?;
                 let width_str = make_width_str(self.db, typ);
                 writeln!(self.writer, "    wire {width_str} {component};")?;
                 writeln!(self.writer, "    assign {component} = {ssa};")?;
+                writeln!(self.writer)?;
             },
             SimpleComponentKind::Reg => {
+                writeln!(self.writer, "    // reg {component}")?;
                 let expr = self.db.moddef_typecheck_wire(moddef.clone(), component.clone().as_path())?;
                 let typ = expr.typ();
                 let clk = component_ast.clock.unwrap();
@@ -118,6 +123,7 @@ impl<'a> Verilog<'a> {
                 writeln!(self.writer, "    always @(posedge {clk}) begin")?;
                 writeln!(self.writer, "        {component} <= {connect_ssa};")?;
                 writeln!(self.writer, "    end")?;
+                writeln!(self.writer)?;
             },
         }
         Ok(())

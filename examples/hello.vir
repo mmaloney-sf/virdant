@@ -15,6 +15,9 @@ pub mod Top {
     node state : State;
     state := @Idle();
 
+    node foo : State;
+    foo := @Idle2();
+
     reg counter : Word[32] on clock;
     counter <= counter->inc();
 

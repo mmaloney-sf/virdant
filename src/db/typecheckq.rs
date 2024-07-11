@@ -85,7 +85,15 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
 
             Ok(TypedExpr::MethodCall(typ, typed_subject, method.clone(), typed_args).into())
         },
-        ast::Expr::As(_, _) => todo!(),
+        ast::Expr::As(subject, expected_typ) => {
+            let expected_type_resolved = db.resolve_type(expected_typ.clone())?;
+            let typed_subject = db.expr_typecheck(moddef.clone(), subject.clone(), expected_type_resolved.clone())?;
+            if expected_type_resolved != typ {
+                return Err(VirdantError::Unknown);
+            } else {
+                Ok(TypedExpr::As(expected_type_resolved, typed_subject.clone(), expected_typ.clone()).into())
+            }
+        },
         ast::Expr::Idx(_, _) => todo!(),
         ast::Expr::IdxRange(_, _, _) => todo!(),
         ast::Expr::Cat(_) => todo!(),
@@ -113,12 +121,27 @@ fn expr_typeinfer(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>) -> V
         },
         ast::Expr::Vec(_) => todo!(),
         ast::Expr::Struct(_, _) => todo!(),
-        ast::Expr::MethodCall(_, _, _) => todo!(),
+        ast::Expr::MethodCall(subject, method, args) => {
+            let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone())?;
+            let MethodSig(arg_types, ret_typ) = db.method_sig(typed_subject.typ(), method.clone())?;
+
+            if args.len() != arg_types.len() {
+                return Err(VirdantError::Unknown);
+            }
+
+            let mut typed_args = vec![];
+            for (arg, arg_type) in args.iter().zip(arg_types) {
+                let typed_arg = db.expr_typecheck(moddef.clone(), arg.clone(), arg_type)?;
+                typed_args.push(typed_arg);
+            }
+
+            Ok(TypedExpr::MethodCall(ret_typ, typed_subject, method.clone(), typed_args).into())
+        },
         ast::Expr::As(_, _) => todo!(),
         ast::Expr::Idx(_, _) => todo!(),
         ast::Expr::IdxRange(_, _, _) => todo!(),
         ast::Expr::Cat(_) => todo!(),
-        ast::Expr::If(_, _, _) => todo!(),
+        ast::Expr::If(_, _, _) => Err(VirdantError::Other("Can't infer".to_string())),
     }
 }
 
@@ -127,6 +150,14 @@ fn method_sig(_db: &dyn TypecheckQ, typ: Type, method: Ident) -> VirdantResult<M
         Type::Word(_n) => {
             if method == "add".into() {
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))
+            } else if method == "sub".into() {
+                Ok(MethodSig(vec![typ.clone()], typ.clone()))
+            } else if method == "and".into() {
+                Ok(MethodSig(vec![typ.clone()], typ.clone()))
+            } else if method == "or".into() {
+                Ok(MethodSig(vec![typ.clone()], typ.clone()))
+            } else if method == "not".into() {
+                Ok(MethodSig(vec![], typ.clone()))
             } else {
                 Err(VirdantError::Other(format!("No such method {method} for type {typ}")))
             }
@@ -257,7 +288,7 @@ pub enum TypedExpr {
     Vec(Type, Vec<Arc<TypedExpr>>),
     Struct(Type, Ident, Vec<(Field, Arc<TypedExpr>)>),
     MethodCall(Type, Arc<TypedExpr>, Ident, Vec<Arc<TypedExpr>>),
-    As(Type, Arc<TypedExpr>, Arc<Type>),
+    As(Type, Arc<TypedExpr>, Arc<ast::Type>),
     Idx(Type, Arc<TypedExpr>, StaticIndex),
     IdxRange(Type, Arc<TypedExpr>, StaticIndex, StaticIndex),
     Cat(Type, Vec<Arc<TypedExpr>>),

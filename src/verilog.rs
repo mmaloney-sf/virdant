@@ -232,6 +232,9 @@ impl<'a> Verilog<'a> {
                 }
                 Ok(gs)
             },
+            TypedExpr::As(_typ, subject, _typ_ast) => {
+                self.verilog_expr(subject.clone())
+            },
             TypedExpr::If(_typ, c, a, b) => {
                 let gs = self.gensym();
                 let cond_ssa = self.verilog_expr(c.clone())?;

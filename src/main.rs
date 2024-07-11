@@ -40,7 +40,7 @@ fn main() {
         db.set_source(Arc::new(package_text.to_string()));
         if let Err(e) = db.check() {
             eprintln!("{e:?}");
-            return;
+            std::process::exit(-1);
         }
 
         db::compile_verilog(&package_text).unwrap();

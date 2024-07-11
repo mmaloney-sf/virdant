@@ -3,7 +3,7 @@ pub mod Top {
     incoming reset : Word[1];
     outgoing out : Word[3];
 
-    out := buffer.out;
+    out := buffer.out->not()->and(0b100)->as(Word[3]);
 
     reg counter : Word[3] on clk;
     counter <= if reset { 0 } else { counter->add(1) };

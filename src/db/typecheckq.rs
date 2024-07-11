@@ -1,7 +1,8 @@
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use crate::common::*;
 use crate::value::Value;
 
+use super::structureq::ResolveTypeQuery;
 pub use super::StructureQ;
 
 use crate::types::Type;
@@ -21,8 +22,10 @@ pub trait TypecheckQ: StructureQ {
     fn method_sig(&self, typ: Type, method: Ident) -> VirdantResult<MethodSig>;
 
     fn bitwidth(&self, typ: Type) -> VirdantResult<Width>;
-    fn alttypedef_tag_bitwidth(&self, typ: Type) -> VirdantResult<Width>;
+
     fn alttypedef_ctor_tag(&self, typ: Type, ctor: Ident) -> VirdantResult<u64>;
+
+    fn alttype_layout(&self, typ: Type) -> VirdantResult<AltTypeLayout>;
 
     fn moddef_typecheck_wire(&self, moddef: Ident, target: Path) -> VirdantResult<Arc<TypedExpr>>;
     fn moddef_typecheck(&self, moddef: Ident) -> VirdantResult<()>;
@@ -89,9 +92,15 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
             //todo!();
             // Is the ctor valid?
             // What is the signature of the ctor?
+            // asdf
+            let arg_types = db.alttypedef_ctor_argtypes(typ.name(), ctor.clone())?;
+            if args.len() != arg_types.len() {
+                return Err(VirdantError::Other("Wrong number of args".into()));
+            }
             let mut typed_args = vec![];
-            for arg in args {
-                // todo!
+            for (arg, arg_typ) in args.iter().zip(arg_types) {
+                let typed_arg = db.expr_typecheck(moddef.clone(), arg.clone(), arg_typ.clone())?;
+                typed_args.push(typed_arg);
             }
             Ok(TypedExpr::Ctor(typ, ctor.clone(), typed_args).into())
         },
@@ -243,13 +252,37 @@ fn bitwidth(db: &dyn TypecheckQ, typ: Type) -> VirdantResult<Width> {
                     payload_width = width;
                 }
             }
-            let tag_width = db.alttypedef_tag_bitwidth(typ.clone())?;
-            let width = tag_width + payload_width;
-            eprintln!("Bitwidth for {typ} was found to be {width}");
+            //let tag_width = db.alttypedef_tag_bitwidth(typ.clone())?;
+            let layout = db.alttype_layout(typ.clone())?;
+            let width = layout.tag_width + payload_width;
             Ok(width)
         },
         Type::Other(_) => todo!(),
     }
+}
+
+fn alttype_layout(db: &dyn TypecheckQ, typ: Type) -> VirdantResult<AltTypeLayout> {
+    let alttypedef_ast = db.alttypedef_ast(typ.name())?;
+    let tag_width = clog2(alttypedef_ast.alts.len() as u64);
+
+    let mut slots_by_ctor: Vec<(Ident, CtorSlots)> = vec![];
+    for (ctor, arg_typs) in &alttypedef_ast.alts {
+        let mut slots = CtorSlots::default();
+        for arg_typ in arg_typs {
+            let resolved_arg_typ = db.resolve_type(arg_typ.clone())?;
+            let arg_typ_bitwidth = db.bitwidth(resolved_arg_typ)?;
+            slots.add(arg_typ_bitwidth);
+        }
+        slots_by_ctor.push((ctor.clone(), slots))
+    }
+
+    let slots_by_ctor = slots_by_ctor.into_iter().collect();
+
+    let layout = AltTypeLayout {
+        tag_width,
+        slots: slots_by_ctor,
+    };
+    Ok(layout)
 }
 
 fn alttypedef_tag_bitwidth(db: &dyn TypecheckQ, typ: Type) -> VirdantResult<Width> {
@@ -457,5 +490,39 @@ impl TypedExpr {
             TypedExpr::Cat(_typ, _) => todo!(),
             TypedExpr::If(_typ, _, _, _) => todo!(),
         }
+    }
+}
+
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+pub struct AltTypeLayout {
+    tag_width: Width,
+    slots: Vec<(Ident, CtorSlots)>,
+}
+
+impl AltTypeLayout {
+    pub fn tag_width(&self) -> Width {
+        self.tag_width
+    }
+
+    pub fn ctor_slot(&self, ctor: Ident, slot: usize) -> (Offset, Width) {
+        for (i, (ctor_name, slots)) in self.slots.iter().enumerate() {
+            if ctor_name == &ctor {
+                let mut offset = self.tag_width;
+                for i in 0..slot {
+                    offset += slots.0[i];
+                }
+                return (offset, slots.0[slot]);
+            }
+        }
+        panic!("No ctor found: {ctor}")
+    }
+}
+
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Default)]
+pub struct CtorSlots(Vec<Width>);
+
+impl CtorSlots {
+    fn add(&mut self, width: Width) {
+        self.0.push(width)
     }
 }

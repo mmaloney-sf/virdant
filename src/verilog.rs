@@ -96,30 +96,31 @@ impl<'a> Verilog<'a> {
         match component_ast.kind {
             SimpleComponentKind::Incoming => (),
             SimpleComponentKind::Outgoing => {
-                writeln!(self.writer, "    // outgoing {component}")?;
                 let expr = self.db.moddef_typecheck_wire(moddef.clone(), component.clone().as_path())?;
+                let typ = expr.typ();
+                writeln!(self.writer, "    // outgoing {component} : {typ}")?;
                 let ssa = self.verilog_expr(expr)?;
                 writeln!(self.writer, "    assign {component} = {ssa};")?;
                 writeln!(self.writer)?;
             },
             SimpleComponentKind::Node => {
-                writeln!(self.writer, "    // node {component}")?;
                 let expr = self.db.moddef_typecheck_wire(moddef.clone(), component.clone().as_path())?;
                 let typ = expr.typ();
-                let ssa = self.verilog_expr(expr)?;
-                let width_str = make_width_str(self.db, typ);
+                let width_str = make_width_str(self.db, typ.clone());
+                writeln!(self.writer, "    // node {component} : {typ}")?;
                 writeln!(self.writer, "    wire {width_str} {component};")?;
+                let ssa = self.verilog_expr(expr)?;
                 writeln!(self.writer, "    assign {component} = {ssa};")?;
                 writeln!(self.writer)?;
             },
             SimpleComponentKind::Reg => {
-                writeln!(self.writer, "    // reg {component}")?;
                 let expr = self.db.moddef_typecheck_wire(moddef.clone(), component.clone().as_path())?;
                 let typ = expr.typ();
+                let width_str = make_width_str(self.db, typ.clone());
+                writeln!(self.writer, "    // reg {component} : {typ}")?;
+                writeln!(self.writer, "    reg  {width_str} {component};")?;
                 let clk = component_ast.clock.unwrap();
                 let connect_ssa = self.verilog_expr(expr.clone())?;
-                let width_str = make_width_str(self.db, typ.clone());
-                writeln!(self.writer, "    reg  {width_str} {component};")?;
                 writeln!(self.writer, "    always @(posedge {clk}) begin")?;
                 writeln!(self.writer, "        {component} <= {connect_ssa};")?;
                 writeln!(self.writer, "    end")?;
@@ -236,8 +237,7 @@ impl<'a> Verilog<'a> {
             TypedExpr::Ctor(typ, ctor, args) => {
                 let gs = self.gensym();
 
-                let tag_width = self.db.alttypedef_tag_bitwidth(typ.clone())?;
-                let ctor_argtypes = self.db.alttypedef_ctor_argtypes(typ.name(), ctor.clone())?;
+                let layout = self.db.alttype_layout(typ.clone())?;
 
                 let mut args_ssa: Vec<SsaName> = vec![];
                 for arg in args {
@@ -249,18 +249,19 @@ impl<'a> Verilog<'a> {
                 writeln!(self.writer, "    wire {width_str} {gs};")?;
 
                 let tag = self.db.alttypedef_ctor_tag(typ.clone(), ctor.clone())?;
-                let top_bit = tag_width - 1;
+                let top_bit = layout.tag_width() - 1;
                 writeln!(self.writer, "    // assign ctor tag: {ctor} is tag {tag}")?;
                 writeln!(self.writer, "    assign {gs}[{top_bit}:0] = {tag};")?;
 
+                let ctor_argtypes = self.db.alttypedef_ctor_argtypes(typ.name(), ctor.clone())?;
                 for (i, arg_ssa) in args_ssa.into_iter().enumerate() {
-                    let top_bit = 0;
-                    let bot_bit = 0;
-                    writeln!(self.writer, "    // assign field {i}")?;
+                    let typ = &ctor_argtypes[i];
+                    let (offset, width) = layout.ctor_slot(ctor.clone(), i);
+                    let bot_bit = offset;
+                    let top_bit = offset + width - 1; // TODO mind 0-width types
+                    writeln!(self.writer, "    // assign slot {i} of type {typ}")?;
                     writeln!(self.writer, "    assign {gs}[{top_bit}:{bot_bit}] = {arg_ssa};")?;
                 }
-
-                // writeln!(self.writer, "    assign {component} = {ssa};")?;
 
                 Ok(gs)
             },

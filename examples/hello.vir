@@ -1,7 +1,8 @@
 alt type State {
     Idle();
+    Running(Word[2], Word[4]);
     Idle2();
-    Running(Word[2]);
+    OhNo(Word[2], Word[4]);
 }
 
 pub mod Top {
@@ -16,7 +17,7 @@ pub mod Top {
     state := @Idle();
 
     node foo : State;
-    foo := @Idle2();
+    foo := @Running(0w2, 15);
 
     reg counter : Word[32] on clock;
     counter <= counter->inc();

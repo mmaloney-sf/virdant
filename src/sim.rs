@@ -51,7 +51,7 @@ impl SimBuilder {
             path: path.clone(),
             typ: typ.clone().into(),
             update,
-            is_internal_input,
+//            is_internal_input,
         };
 
         self.sim.nodes.push(node);
@@ -59,7 +59,7 @@ impl SimBuilder {
         self
     }
 
-    pub fn add_reg_node(mut self, path: Path, typ: Arc<Type>, clock: Path, reset: Option<Value>, expr: Arc<TypedExpr>) -> Self {
+    pub fn add_reg_node(mut self, path: Path, typ: Arc<Type>, _clock: Path, reset: Option<Value>, expr: Arc<TypedExpr>) -> Self {
         let set_cell_id = self.sim.cells.len();
         let val_cell_id = self.sim.cells.len() + 1;
 
@@ -105,7 +105,7 @@ impl SimBuilder {
         }
 
         for node in &mut self.sim.nodes {
-            let is_internal_input = node.is_internal_input();
+//            let is_internal_input = node.is_internal_input();
             if let Some(update) = node.update_mut() {
                 let sensitivities: Vec<CellId> = update
                     .expr
@@ -295,7 +295,7 @@ enum Node {
         typ: Arc<Type>,
         cell_id: CellId,
         update: Comb,
-        is_internal_input: bool,
+//        is_internal_input: bool,
     },
     Reg {
         path: Path,
@@ -361,12 +361,14 @@ impl Node {
         }
     }
 
+    /*
     fn is_internal_input(&self) -> bool {
         match self {
             Node::Simple { is_internal_input, .. } => *is_internal_input,
             _ => false,
         }
     }
+    */
 }
 
 #[derive(Debug, Clone)]

@@ -62,10 +62,10 @@ fn main() {
 pub fn sim(filename: &str, top: &str, trace: Option<&str>, delay: usize) {
     let package = std::fs::read_to_string(filename).unwrap();
 
-    let mut sim = if let Some(trace) = trace {
-    let mut fout = std::fs::File::create(trace).unwrap();
+    let mut sim = if let Some(_trace) = trace {
+//    let mut fout = std::fs::File::create(trace).unwrap();
+//    virdant::sim::simulator_with_trace(&package, top, &mut fout).unwrap()
         todo!()
-//        virdant::sim::simulator_with_trace(&package, top, &mut fout).unwrap()
     } else {
         virdant::sim::simulator(&package, top).unwrap()
     };

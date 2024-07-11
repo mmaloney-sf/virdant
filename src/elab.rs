@@ -22,8 +22,6 @@ impl Elab {
     }
 
     fn add(&self, db: &Db, path: Path, mut sim: SimBuilder, nonlocal_connects: HashMap<Ident, Arc<TypedExpr>>) -> SimBuilder {
-        let path_parts = path.parts();
-        let base: Path = path_parts[path_parts.len() - 1].into();
         let components = db.moddef_components(self.moddef.clone()).unwrap();
         for component in &components {
             let full_path: Path = path.join(&component.name.as_path());

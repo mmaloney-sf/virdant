@@ -122,9 +122,9 @@ fn expr_typeinfer(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>) -> V
     }
 }
 
-fn method_sig(db: &dyn TypecheckQ, typ: Type, method: Ident) -> VirdantResult<MethodSig> {
+fn method_sig(_db: &dyn TypecheckQ, typ: Type, method: Ident) -> VirdantResult<MethodSig> {
     match typ {
-        Type::Word(n) => {
+        Type::Word(_n) => {
             if method == "add".into() {
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))
             } else {
@@ -135,7 +135,7 @@ fn method_sig(db: &dyn TypecheckQ, typ: Type, method: Ident) -> VirdantResult<Me
     }
 }
 
-fn bitwidth(db: &dyn TypecheckQ, typ: Type) -> VirdantResult<Width> {
+fn bitwidth(_db: &dyn TypecheckQ, typ: Type) -> VirdantResult<Width> {
     match typ {
         Type::Unknown => todo!(),
         Type::Clock => Ok(1),
@@ -229,27 +229,6 @@ fn moddef_target_type(db: &dyn TypecheckQ, moddef: Ident, target: Path) -> Virda
     Err(VirdantError::Other(format!("Component not found: `{target}` in `{moddef}`")))
 }
 
-fn typecheck_wire(db: &dyn TypecheckQ, moddef: Ident, target: Path) -> VirdantResult<()> {
-    let ast::Wire(target, _wire_type, expr) = db.moddef_wire(moddef.clone(), target)?;
-    let expected_type = db.moddef_target_type(moddef.clone(), target.clone())?;
-    let ctx = db.moddef_full_context(moddef.clone())?;
-    match &*expr {
-        ast::Expr::Reference(path) => {
-            if let Some(actual_type) = ctx.lookup(path) {
-                if actual_type == expected_type {
-                    return Ok(());
-                } else {
-                    todo!()
-                }
-            } else {
-                todo!()
-            }
-        },
-//        ast::Expr::MethodCall(subject, , )
-        _ => todo!(),
-    }
-}
-
 fn resolve_type(db: &dyn TypecheckQ, typ: Arc<ast::Type>) -> VirdantResult<Type> {
     let typ = match &*typ {
         ast::Type::Clock => Type::Clock.into(),
@@ -258,29 +237,6 @@ fn resolve_type(db: &dyn TypecheckQ, typ: Arc<ast::Type>) -> VirdantResult<Type>
         ast::Type::TypeRef(name) => Type::TypeRef(name.clone()).into(),
     };
     Ok(typ)
-}
-
-#[derive(Clone, Hash, PartialEq, Eq, Debug)]
-pub struct TypeTree {
-    typ: Type,
-    children: Vec<Arc<TypeTree>>,
-}
-
-impl TypeTree {
-    pub fn new(typ: Type) -> TypeTree {
-        TypeTree {
-            typ,
-            children: vec![],
-        }
-    }
-
-    pub fn add(&mut self, type_tree: TypeTree) {
-        self.children.push(Arc::new(type_tree));
-    }
-
-    pub fn typ(&self) -> Type {
-        self.typ.clone()
-    }
 }
 
 fn pow(n: u64, k: u64) -> u64 {

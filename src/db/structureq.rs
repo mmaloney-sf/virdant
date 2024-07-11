@@ -158,7 +158,7 @@ fn check_moddef_component_names_unique(db: &dyn StructureQ, moddef: Ident) -> Vi
 }
 
 
-fn check_moddef_wire_targets_unique(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<()> {
+fn check_moddef_wire_targets_unique(_db: &dyn StructureQ, _moddef: Ident) -> VirdantResult<()> {
     todo!()
 }
 

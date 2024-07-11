@@ -158,14 +158,14 @@ impl<'a> Verilog<'a> {
 
     fn verilog_expr(&mut self, expr: Arc<TypedExpr>) -> VirdantResult<SsaName> {
         match expr.as_ref() {
-            TypedExpr::Reference(typ, path) if path.is_local()  => Ok(format!("{}", path)),
-            TypedExpr::Reference(typ, path) => {
+            TypedExpr::Reference(_typ, path) if path.is_local()  => Ok(format!("{}", path)),
+            TypedExpr::Reference(_typ, path) => {
                 let parts = path.parts();
                 let sm = &parts[0];
                 let port = &parts[1];
                 Ok(format!("__TEMP_{sm}_{port}"))
             },
-            TypedExpr::Word(typ, w) => {
+            TypedExpr::Word(_typ, w) => {
                 let gs = self.gensym();
                 let typ = expr.typ();
                 let width_str: String = match typ {
@@ -179,7 +179,7 @@ impl<'a> Verilog<'a> {
                 writeln!(self.writer, "    wire {width_str} {gs} = {};", w.value)?;
                 Ok(gs)
             },
-            TypedExpr::Cat(typ, args) => {
+            TypedExpr::Cat(_typ, args) => {
                 let gs = self.gensym();
                 let mut args_ssa: Vec<SsaName> = vec![];
                 for arg in args {
@@ -189,13 +189,13 @@ impl<'a> Verilog<'a> {
                 writeln!(self.writer, "    wire {gs} = {{{}}};", args_ssa.join(", "))?;
                 Ok(gs)
             },
-            TypedExpr::Idx(typ, subject, index) => {
+            TypedExpr::Idx(_typ, subject, index) => {
                 let gs = self.gensym();
                 let subject_ssa = self.verilog_expr(subject.clone())?;
                 writeln!(self.writer, "    wire {gs} = {subject_ssa}[{index}];")?;
                 Ok(gs)
             },
-            TypedExpr::MethodCall(typ, subject, method, args) => {
+            TypedExpr::MethodCall(_typ, subject, method, args) => {
                 let gs = self.gensym();
                 let subject_ssa = self.verilog_expr(subject.clone())?;
                 let mut args_ssa: Vec<SsaName> = vec![];
@@ -232,7 +232,7 @@ impl<'a> Verilog<'a> {
                 }
                 Ok(gs)
             },
-            TypedExpr::If(typ, c, a, b) => {
+            TypedExpr::If(_typ, c, a, b) => {
                 let gs = self.gensym();
                 let cond_ssa = self.verilog_expr(c.clone())?;
                 let a_ssa = self.verilog_expr(a.clone())?;
@@ -263,6 +263,17 @@ impl<'a> Verilog<'a> {
     }
 }
 
+fn make_width_str(db: &Db, typ: Type) -> String {
+    let n = db.bitwidth(typ.clone()).unwrap();
+    if n == 1 {
+        "".to_string()
+    } else {
+        let max_bit = n - 1;
+        format!("[{max_bit}:0]")
+    }
+}
+
+/*
 struct VerilogFile {
     moddefs: Vec<VerilogModDef>,
 }
@@ -311,12 +322,12 @@ impl VerilogFile {
 
 impl VerilogModDef {
     fn write<F: Write>(&self, f: &mut F) -> std::io::Result<()> {
-        writeln!(f, "module {}(", self.name);
+        writeln!(f, "module {}(", self.name)?;
         self.write_ports(f)?;
-        writeln!(f, ");");
+        writeln!(f, ");")?;
         self.write_statements(f)?;
 
-        writeln!(f, "endmodule");
+        writeln!(f, "endmodule")?;
         Ok(())
     }
 
@@ -432,13 +443,4 @@ fn verilog_output() {
     let mut stdout = std::io::stdout();
     verilog.write(&mut stdout).unwrap();
 }
-
-fn make_width_str(db: &Db, typ: Type) -> String {
-    let n = db.bitwidth(typ.clone()).unwrap();
-    if n == 1 {
-        "".to_string()
-    } else {
-        let max_bit = n - 1;
-        format!("[{max_bit}:0]")
-    }
-}
+*/

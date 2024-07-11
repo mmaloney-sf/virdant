@@ -140,9 +140,44 @@ Type: Arc<Type> = {
 
 pub Expr: Arc<Expr> = {
 //    <e:ExprLet> => e,
-//    <e:ExprMatch> => e,
+    <e:ExprMatch> => e,
     <e:ExprIf> => e,
     <e:ExprCall> => e,
+}
+
+ExprMatch: Arc<Expr> = {
+    <ll:@L> "match" <e:Expr> "{"
+        <arms:MatchArm*>
+    "}" <rr:@R> => {
+        Arc::new(Expr::Match(e, arms))
+    },
+}
+
+MatchArm: MatchArm = {
+    <pat:Pat> "=>" <e:Expr> ";" => MatchArm(pat, e),
+}
+
+Pat: Pat = {
+    <id:Ctor> => Pat::At(id.as_str()[1..].into(), vec![]),
+    <id:Ctor> "(" <subpats:PatList> ")" => {
+        Pat::At(id.as_str()[1..].into(), subpats)
+    },
+    <id:Id> => Pat::Bind(id.into()),
+    "otherwise" => Pat::Otherwise,
+}
+
+PatList: Vec<Pat> = {
+    <pats:((Pat ("," Pat)* ","?)?)> => {
+        if let Some((pat, pats, _comma)) = pats {
+            let mut results = vec![pat];
+            for (_comma, pat) in pats {
+                results.push(pat);
+            }
+            results
+        } else {
+            vec![]
+        }
+    },
 }
 
 ExprIf: Arc<Expr> = {

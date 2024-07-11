@@ -201,7 +201,10 @@ impl ast::Expr {
                 } else {
                     unreachable!()
                 }
-            }
+            },
+            ast::Expr::Match(_subject, _arms) => {
+                todo!()
+            },
         }
     }
 }

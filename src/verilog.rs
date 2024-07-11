@@ -274,16 +274,17 @@ impl<'a> Verilog<'a> {
                 let a_ssa = self.verilog_expr(a.clone())?;
                 let b_ssa = self.verilog_expr(b.clone())?;
                 let typ = expr.typ();
-                let width_str: String = match typ {
-                    Type::Word(1) => " ".to_string(),
-                    Type::Word(n) => {
-                        let max_bit = n - 1;
-                        format!("[{max_bit}:0]")
-                    },
-                    _ => panic!(),
-                };
+                let width_str = make_width_str(self.db, typ.clone());
                 writeln!(self.writer, "    wire {width_str} {gs} = {cond_ssa} ? {a_ssa} : {b_ssa};")?;
                 Ok(gs)
+            },
+            TypedExpr::Match(_typ, subject, arms) => {
+                let gs = self.gensym();
+                let subject_ssa = self.verilog_expr(subject.clone())?;
+                let typ = expr.typ();
+                let width_str = make_width_str(self.db, typ.clone());
+                writeln!(self.writer, "    wire {width_str} {gs} = 0;")?;
+                todo!()
             },
             _ => {
                 let gs = self.gensym();

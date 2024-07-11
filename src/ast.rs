@@ -81,6 +81,17 @@ pub enum Expr {
     IdxRange(Arc<Expr>, StaticIndex, StaticIndex),
     Cat(Vec<Arc<Expr>>),
     If(Arc<Expr>, Arc<Expr>, Arc<Expr>),
+    Match(Arc<Expr>, Vec<MatchArm>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MatchArm(pub Pat, pub Arc<Expr>);
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Pat {
+    At(Ident, Vec<Pat>),
+    Bind(Ident),
+    Otherwise,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

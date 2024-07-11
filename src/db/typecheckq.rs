@@ -1,4 +1,4 @@
-use std::collections::{HashSet, HashMap};
+use std::collections::HashSet;
 use crate::common::*;
 use crate::value::Value;
 
@@ -136,6 +136,10 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
             let typed_b = db.expr_typecheck(moddef.clone(), b.clone(), typ.clone())?;
             Ok(TypedExpr::If(typ, typed_c, typed_a, typed_b).into())
         },
+        ast::Expr::Match(subject, arms) => {
+            let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone())?;
+            todo!()
+        },
     }
 }
 
@@ -186,6 +190,7 @@ fn expr_typeinfer(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>) -> V
         },
         ast::Expr::Cat(_) => todo!(),
         ast::Expr::If(_, _, _) => Err(VirdantError::Other("Can't infer".to_string())),
+        ast::Expr::Match(_subject, _arms) => Err(TypeError::CantInfer.into()),
     }
 }
 
@@ -283,12 +288,6 @@ fn alttype_layout(db: &dyn TypecheckQ, typ: Type) -> VirdantResult<AltTypeLayout
         slots: slots_by_ctor,
     };
     Ok(layout)
-}
-
-fn alttypedef_tag_bitwidth(db: &dyn TypecheckQ, typ: Type) -> VirdantResult<Width> {
-    let alttypedef_ast = db.alttypedef_ast(typ.name())?;
-    let tag_width = clog2(alttypedef_ast.alts.len() as u64);
-    Ok(tag_width)
 }
 
 fn alttypedef_ctor_tag(db: &dyn TypecheckQ, typ: Type, ctor: Ident) -> VirdantResult<u64> {
@@ -429,7 +428,11 @@ pub enum TypedExpr {
     IdxRange(Type, Arc<TypedExpr>, StaticIndex, StaticIndex),
     Cat(Type, Vec<Arc<TypedExpr>>),
     If(Type, Arc<TypedExpr>, Arc<TypedExpr>, Arc<TypedExpr>),
+    Match(Type, Arc<TypedExpr>, Vec<TypedMatchArm>),
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypedMatchArm(pub ast::Pat, pub Arc<TypedExpr>);
 
 impl TypedExpr {
     pub fn typ(&self) -> Type {
@@ -445,6 +448,7 @@ impl TypedExpr {
             TypedExpr::IdxRange(typ, _, _, _) => typ.clone(),
             TypedExpr::Cat(typ, _) => typ.clone(),
             TypedExpr::If(typ, _, _, _) => typ.clone(),
+            TypedExpr::Match(typ, _subject, _arms) => typ.clone(),
         }
     }
 
@@ -467,6 +471,7 @@ impl TypedExpr {
             TypedExpr::IdxRange(_typ, _, _, _) => HashSet::new(),
             TypedExpr::Cat(_typ, _) => HashSet::new(),
             TypedExpr::If(_typ, _, _, _) => HashSet::new(),
+            TypedExpr::Match(_typ, _subject, _arms) => todo!(),
         }
     }
 
@@ -489,6 +494,7 @@ impl TypedExpr {
             TypedExpr::IdxRange(_typ, _, _, _) => todo!(),
             TypedExpr::Cat(_typ, _) => todo!(),
             TypedExpr::If(_typ, _, _, _) => todo!(),
+            TypedExpr::Match(_typ, _subject, _arms) => todo!(),
         }
     }
 }

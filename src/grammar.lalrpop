@@ -328,7 +328,7 @@ Nat: u64 = {
 
 Ctor: Ident = {
     <rr:@R> <id:r"@[_A-Za-z][_A-Za-z0-9]*"> <ll:@L> => {
-        id.into()
+        id[1..].into()
     },
 }
 

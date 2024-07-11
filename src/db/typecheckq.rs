@@ -10,8 +10,6 @@ use crate::ast::{self, WordLit};
 
 #[salsa::query_group(TypecheckQStorage)]
 pub trait TypecheckQ: StructureQ {
-    fn resolve_type(&self, typ: Arc<ast::Type>) -> VirdantResult<Type>;
-
     fn moddef_full_context(&self, moddef: Ident) -> VirdantResult<Context<Path, Type>>;
     fn moddef_component_type(&self, moddef: Ident, component: Ident) -> VirdantResult<Type>;
     fn moddef_reference_type(&self, moddef: Ident, path: Path) -> VirdantResult<Type>;
@@ -23,6 +21,8 @@ pub trait TypecheckQ: StructureQ {
     fn method_sig(&self, typ: Type, method: Ident) -> VirdantResult<MethodSig>;
 
     fn bitwidth(&self, typ: Type) -> VirdantResult<Width>;
+    fn alttypedef_tag_bitwidth(&self, typ: Type) -> VirdantResult<Width>;
+    fn alttypedef_ctor_tag(&self, typ: Type, ctor: Ident) -> VirdantResult<u64>;
 
     fn moddef_typecheck_wire(&self, moddef: Ident, target: Path) -> VirdantResult<Arc<TypedExpr>>;
     fn moddef_typecheck(&self, moddef: Ident) -> VirdantResult<()>;
@@ -243,13 +243,29 @@ fn bitwidth(db: &dyn TypecheckQ, typ: Type) -> VirdantResult<Width> {
                     payload_width = width;
                 }
             }
-            let tag_width = clog2(alttypedef_ast.alts.len() as u64);
+            let tag_width = db.alttypedef_tag_bitwidth(typ.clone())?;
             let width = tag_width + payload_width;
             eprintln!("Bitwidth for {typ} was found to be {width}");
             Ok(width)
         },
         Type::Other(_) => todo!(),
     }
+}
+
+fn alttypedef_tag_bitwidth(db: &dyn TypecheckQ, typ: Type) -> VirdantResult<Width> {
+    let alttypedef_ast = db.alttypedef_ast(typ.name())?;
+    let tag_width = clog2(alttypedef_ast.alts.len() as u64);
+    Ok(tag_width)
+}
+
+fn alttypedef_ctor_tag(db: &dyn TypecheckQ, typ: Type, ctor: Ident) -> VirdantResult<u64> {
+    let alttypedef_ast = db.alttypedef_ast(typ.name())?;
+    for (tag, (ctor_name, _)) in alttypedef_ast.alts.iter().enumerate() {
+        if ctor_name == &ctor {
+            return Ok(tag.try_into().unwrap());
+        }
+    }
+    Err(VirdantError::Unknown)
 }
 
 fn clog2(n: u64) -> u64 {
@@ -354,21 +370,6 @@ fn moddef_target_type(db: &dyn TypecheckQ, moddef: Ident, target: Path) -> Virda
     }
 
     Err(VirdantError::Other(format!("Component not found: `{target}` in `{moddef}`")))
-}
-
-fn resolve_type(db: &dyn TypecheckQ, typ: Arc<ast::Type>) -> VirdantResult<Type> {
-    match &*typ {
-        ast::Type::Clock => Ok(Type::Clock),
-        ast::Type::Word(width) => Ok(Type::Word(*width)),
-        ast::Type::Vec(inner, len) => Ok(Type::Vec(Arc::new(db.resolve_type(inner.clone())?), *len)),
-        ast::Type::TypeRef(name) => {
-            if let Ok(alttypedef_ast) = db.alttypedef_ast(name.clone()) {
-                Ok(Type::AltType(alttypedef_ast.name))
-            } else {
-                Err(VirdantError::Other(format!("Unknown type: {name}")))
-            }
-        },
-    }
 }
 
 fn pow(n: u64, k: u64) -> u64 {

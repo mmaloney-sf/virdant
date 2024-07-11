@@ -2,18 +2,25 @@ use std::collections::{HashSet, HashMap};
 use crate::ast::SimpleComponentKind;
 use crate::common::*;
 use crate::ast;
+use crate::types::Type;
 pub use super::AstQ;
 
 #[salsa::query_group(StructureQStorage)]
 pub trait StructureQ: AstQ {
     fn package_item_names(&self) -> VirdantResult<Vec<Ident>>;
     fn package_moddef_names(&self) -> VirdantResult<Vec<Ident>>;
+
     fn moddef_component_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
     fn moddef_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
     fn moddef_port_names(&self, moddef: Ident) -> VirdantResult<Vec<Ident>>;
 
     fn moddef_required_targets(&self, moddef: Ident) -> VirdantResult<Vec<Path>>;
     fn moddef_wire_targets(&self, moddef: Ident) -> VirdantResult<Vec<Path>>;
+
+    fn resolve_type(&self, typ: Arc<ast::Type>) -> VirdantResult<Type>;
+
+    fn alttypedef_ctors(&self, alttype: Ident) -> VirdantResult<Vec<Ident>>;
+    fn alttypedef_ctor_argtypes(&self, alttype: Ident, ctor: Ident) -> VirdantResult<Vec<Type>>;
 
     fn check_item_names_unique(&self) -> VirdantResult<()>;
     fn check_moddef_component_names_unique(&self, moddef: Ident) -> VirdantResult<()>;
@@ -130,6 +137,41 @@ fn moddef_wire_targets(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<Vec<
     }
 
     Ok(result)
+}
+
+fn resolve_type(db: &dyn StructureQ, typ: Arc<ast::Type>) -> VirdantResult<Type> {
+    match &*typ {
+        ast::Type::Clock => Ok(Type::Clock),
+        ast::Type::Word(width) => Ok(Type::Word(*width)),
+        ast::Type::Vec(inner, len) => Ok(Type::Vec(Arc::new(db.resolve_type(inner.clone())?), *len)),
+        ast::Type::TypeRef(name) => {
+            if let Ok(alttypedef_ast) = db.alttypedef_ast(name.clone()) {
+                Ok(Type::AltType(alttypedef_ast.name))
+            } else {
+                Err(VirdantError::Other(format!("Unknown type: {name}")))
+            }
+        },
+    }
+}
+
+fn alttypedef_ctors(db: &dyn StructureQ, alttype: Ident) -> VirdantResult<Vec<Ident>> {
+    let alttypedef_ast = db.alttypedef_ast(alttype)?;
+    let idents: Vec<Ident> = alttypedef_ast.alts.iter().map(|(ident, _argtypes)| ident.clone()).collect();
+    Ok(idents)
+}
+
+fn alttypedef_ctor_argtypes(db: &dyn StructureQ, alttype: Ident, ctor: Ident) -> VirdantResult<Vec<Type>> {
+    let alttypedef_ast = db.alttypedef_ast(alttype.clone())?;
+    for (alt_ctor, arg_typs) in &alttypedef_ast.alts {
+        if alt_ctor == &ctor {
+            let mut typs = vec![];
+            for arg_typ in arg_typs {
+                typs.push(db.resolve_type(arg_typ.clone())?);
+            }
+            return Ok(typs)
+        }
+    }
+    Err(VirdantError::Other(format!("Unknown constructor: {ctor} for alt type {alttype}")))
 }
 
 fn check_item_names_unique(db: &dyn StructureQ) -> Result<(), VirdantError> {

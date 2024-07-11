@@ -230,6 +230,9 @@ impl<'a> Verilog<'a> {
             TypedExpr::Ctor(typ, ctor, args) => {
                 let gs = self.gensym();
 
+                let tag_width = self.db.alttypedef_tag_bitwidth(typ.clone())?;
+                let ctor_argtypes = self.db.alttypedef_ctor_argtypes(typ.name(), ctor.clone())?;
+
                 let mut args_ssa: Vec<SsaName> = vec![];
                 for arg in args {
                     let arg_ssa = self.verilog_expr(arg.clone())?;
@@ -239,11 +242,10 @@ impl<'a> Verilog<'a> {
                 let width_str = make_width_str(self.db, typ.clone());
                 writeln!(self.writer, "    wire {width_str} {gs};")?;
 
-                let tag = 0;
-                let top_bit = 0;
-                let bot_bit = 0;
-                writeln!(self.writer, "    // assign ctor tag")?;
-                writeln!(self.writer, "    assign {gs}[{top_bit}:{bot_bit}] = {tag};")?;
+                let tag = self.db.alttypedef_ctor_tag(typ.clone(), ctor.clone())?;
+                let top_bit = tag_width - 1;
+                writeln!(self.writer, "    // assign ctor tag: {ctor} is tag {tag}")?;
+                writeln!(self.writer, "    assign {gs}[{top_bit}:0] = {tag};")?;
 
                 for (i, arg_ssa) in args_ssa.into_iter().enumerate() {
                     let top_bit = 0;

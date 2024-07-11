@@ -12,6 +12,18 @@ pub enum Type {
     Other(String),
 }
 
+impl Type {
+    pub fn name(&self) -> Ident {
+        match self {
+            Type::Clock => "Clock".into(),
+            Type::Word(width) => format!("Word[{width}]").into(),
+            Type::StructType(name) => name.clone(),
+            Type::AltType(name) => name.clone(),
+            _ => panic!(),
+        }
+    }
+}
+
 impl std::fmt::Display for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {

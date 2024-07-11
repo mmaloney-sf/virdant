@@ -1,5 +1,6 @@
 alt type State {
     Idle();
+    Idle2();
     Running(Word[2]);
 }
 

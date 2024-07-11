@@ -81,6 +81,7 @@ pub enum Expr {
     IdxRange(Arc<Expr>, StaticIndex, StaticIndex),
     Cat(Vec<Arc<Expr>>),
     If(Arc<Expr>, Arc<Expr>, Arc<Expr>),
+    Let(Ident, Option<Arc<Type>>, Arc<Expr>, Arc<Expr>),
     Match(Arc<Expr>, Vec<MatchArm>),
 }
 

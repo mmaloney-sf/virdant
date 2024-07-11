@@ -145,6 +145,19 @@ fn expr_typecheck(
             let typed_b = db.expr_typecheck(moddef.clone(), b.clone(), typ.clone(), ctx.clone())?;
             Ok(TypedExpr::If(typ, typed_c, typed_a, typed_b).into())
         },
+        ast::Expr::Let(x, ascription, e, b) => {
+            let typed_e = match ascription {
+                Some(ascribed_typ) => {
+                    let resolved_ascribed_typ = db.resolve_type(ascribed_typ.clone())?;
+                    db.expr_typecheck(moddef.clone(), e.clone(), resolved_ascribed_typ, ctx.clone())?
+                },
+                None => db.expr_typeinfer(moddef.clone(), e.clone(), ctx.clone())?,
+            };
+
+            let new_ctx = ctx.extend(x.as_path(), typed_e.typ());
+            let typed_b = db.expr_typecheck(moddef, b.clone(), typ.clone(), new_ctx)?;
+            Ok(TypedExpr::Let(typed_b.typ(), x.clone(), ascription.clone(), typed_e, typed_b).into())
+        },
         ast::Expr::Match(subject, arms) => {
             let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone(), ctx.clone())?;
             todo!()
@@ -209,6 +222,19 @@ fn expr_typeinfer(
         },
         ast::Expr::Cat(_) => todo!(),
         ast::Expr::If(_, _, _) => Err(VirdantError::Other("Can't infer".to_string())),
+        ast::Expr::Let(x, ascription, e, b) => {
+            let typed_e = match ascription {
+                Some(ascribed_typ) => {
+                    let resolved_ascribed_typ = db.resolve_type(ascribed_typ.clone())?;
+                    db.expr_typecheck(moddef.clone(), e.clone(), resolved_ascribed_typ, ctx.clone())?
+                },
+                None => db.expr_typeinfer(moddef.clone(), e.clone(), ctx.clone())?,
+            };
+
+            let new_ctx = ctx.extend(x.as_path(), typed_e.typ());
+            let typed_b = db.expr_typeinfer(moddef, b.clone(), new_ctx)?;
+            Ok(TypedExpr::Let(typed_b.typ(), x.clone(), ascription.clone(), typed_e, typed_b).into())
+        },
         ast::Expr::Match(_subject, _arms) => Err(TypeError::CantInfer.into()),
     }
 }
@@ -447,6 +473,7 @@ pub enum TypedExpr {
     IdxRange(Type, Arc<TypedExpr>, StaticIndex, StaticIndex),
     Cat(Type, Vec<Arc<TypedExpr>>),
     If(Type, Arc<TypedExpr>, Arc<TypedExpr>, Arc<TypedExpr>),
+    Let(Type, Ident, Option<Arc<ast::Type>>, Arc<TypedExpr>, Arc<TypedExpr>),
     Match(Type, Arc<TypedExpr>, Vec<TypedMatchArm>),
 }
 
@@ -467,6 +494,7 @@ impl TypedExpr {
             TypedExpr::IdxRange(typ, _, _, _) => typ.clone(),
             TypedExpr::Cat(typ, _) => typ.clone(),
             TypedExpr::If(typ, _, _, _) => typ.clone(),
+            TypedExpr::Let(typ, x, ascription, e, b) => typ.clone(),
             TypedExpr::Match(typ, _subject, _arms) => typ.clone(),
         }
     }
@@ -491,6 +519,7 @@ impl TypedExpr {
             TypedExpr::Cat(_typ, _) => HashSet::new(),
             TypedExpr::If(_typ, _, _, _) => HashSet::new(),
             TypedExpr::Match(_typ, _subject, _arms) => todo!(),
+            _ => todo!(),
         }
     }
 
@@ -514,6 +543,7 @@ impl TypedExpr {
             TypedExpr::Cat(_typ, _) => todo!(),
             TypedExpr::If(_typ, _, _, _) => todo!(),
             TypedExpr::Match(_typ, _subject, _arms) => todo!(),
+            _ => todo!(),
         }
     }
 }

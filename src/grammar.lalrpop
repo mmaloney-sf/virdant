@@ -139,10 +139,18 @@ Type: Arc<Type> = {
 }
 
 pub Expr: Arc<Expr> = {
-//    <e:ExprLet> => e,
+    <e:ExprLet> => e,
     <e:ExprMatch> => e,
     <e:ExprIf> => e,
     <e:ExprCall> => e,
+}
+
+ExprLet: Arc<Expr> = {
+    <ll:@L> "let" <x:Id> <ascription:(":" Type)?> "=" <e:Expr> "in"
+    <b:Expr> <rr:@R> => {
+        let type_ascription = ascription.map(|(_of, typ)| typ);
+        Arc::new(Expr::Let(x, type_ascription, e, b))
+    },
 }
 
 ExprMatch: Arc<Expr> = {

@@ -5,6 +5,7 @@ use crate::common::*;
 use crate::types::Type;
 use crate::db::*;
 use crate::ast;
+use crate::context::Context;
 
 type SsaName = String;
 
@@ -99,7 +100,7 @@ impl<'a> Verilog<'a> {
                 let expr = self.db.moddef_typecheck_wire(moddef.clone(), component.clone().as_path())?;
                 let typ = expr.typ();
                 writeln!(self.writer, "    // outgoing {component} : {typ}")?;
-                let ssa = self.verilog_expr(expr)?;
+                let ssa = self.verilog_expr(expr, Context::empty())?;
                 writeln!(self.writer, "    assign {component} = {ssa};")?;
                 writeln!(self.writer)?;
             },
@@ -109,7 +110,7 @@ impl<'a> Verilog<'a> {
                 let width_str = make_width_str(self.db, typ.clone());
                 writeln!(self.writer, "    // node {component} : {typ}")?;
                 writeln!(self.writer, "    wire {width_str} {component};")?;
-                let ssa = self.verilog_expr(expr)?;
+                let ssa = self.verilog_expr(expr, Context::empty())?;
                 writeln!(self.writer, "    assign {component} = {ssa};")?;
                 writeln!(self.writer)?;
             },
@@ -120,7 +121,7 @@ impl<'a> Verilog<'a> {
                 writeln!(self.writer, "    // reg {component} : {typ}")?;
                 writeln!(self.writer, "    reg  {width_str} {component};")?;
                 let clk = component_ast.clock.unwrap();
-                let connect_ssa = self.verilog_expr(expr.clone())?;
+                let connect_ssa = self.verilog_expr(expr.clone(), Context::empty())?;
                 writeln!(self.writer, "    always @(posedge {clk}) begin")?;
                 writeln!(self.writer, "        {component} <= {connect_ssa};")?;
                 writeln!(self.writer, "    end")?;
@@ -143,7 +144,7 @@ impl<'a> Verilog<'a> {
 
         for port in &ports {
             if let Ok(expr) = self.db.moddef_typecheck_wire(moddef.clone(), submodule.name.as_path().join(&port.clone().as_path())) {
-                let gs = self.verilog_expr(expr)?;
+                let gs = self.verilog_expr(expr, Context::empty())?;
                 writeln!(self.writer, "    assign __TEMP_{sm}_{port} = {gs};", sm = submodule.name)?;
             }
         }
@@ -163,14 +164,21 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
-    fn verilog_expr(&mut self, expr: Arc<TypedExpr>) -> VirdantResult<SsaName> {
+    fn verilog_expr(&mut self, expr: Arc<TypedExpr>, ctx: Context<Path, SsaName>) -> VirdantResult<SsaName> {
         match expr.as_ref() {
-            TypedExpr::Reference(_typ, path) if path.is_local()  => Ok(format!("{}", path)),
             TypedExpr::Reference(_typ, path) => {
-                let parts = path.parts();
-                let sm = &parts[0];
-                let port = &parts[1];
-                Ok(format!("__TEMP_{sm}_{port}"))
+                if path.is_local() {
+                    if let Some(ssa) = ctx.lookup(path) {
+                        Ok(format!("{ssa}"))
+                    } else {
+                        Ok(format!("{path}"))
+                    }
+                } else {
+                    let parts = path.parts();
+                    let sm = &parts[0];
+                    let port = &parts[1];
+                    Ok(format!("__TEMP_{sm}_{port}"))
+                }
             },
             TypedExpr::Word(_typ, w) => {
                 let gs = self.gensym();
@@ -183,7 +191,7 @@ impl<'a> Verilog<'a> {
                 let gs = self.gensym();
                 let mut args_ssa: Vec<SsaName> = vec![];
                 for arg in args {
-                    let arg_ssa = self.verilog_expr(arg.clone())?;
+                    let arg_ssa = self.verilog_expr(arg.clone(), ctx.clone())?;
                     args_ssa.push(arg_ssa);
                 }
                 writeln!(self.writer, "    wire {gs} = {{{}}};", args_ssa.join(", "))?;
@@ -191,13 +199,13 @@ impl<'a> Verilog<'a> {
             },
             TypedExpr::Idx(_typ, subject, i) => {
                 let gs = self.gensym();
-                let subject_ssa = self.verilog_expr(subject.clone())?;
+                let subject_ssa = self.verilog_expr(subject.clone(), ctx)?;
                 writeln!(self.writer, "    wire {gs} = {subject_ssa}[{i}];")?;
                 Ok(gs)
             },
             TypedExpr::IdxRange(typ, subject, j, i) => {
                 let gs = self.gensym();
-                let subject_ssa = self.verilog_expr(subject.clone())?;
+                let subject_ssa = self.verilog_expr(subject.clone(), ctx)?;
                 let end = *j - 1;
                 let width_str = make_width_str(self.db, typ.clone());
                 writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa}[{end}:{i}];")?;
@@ -205,11 +213,11 @@ impl<'a> Verilog<'a> {
             },
             TypedExpr::MethodCall(_typ, subject, method, args) => {
                 let gs = self.gensym();
-                let subject_ssa = self.verilog_expr(subject.clone())?;
+                let subject_ssa = self.verilog_expr(subject.clone(), ctx.clone())?;
                 let mut args_ssa: Vec<SsaName> = vec![];
-                self.verilog_expr(subject.clone())?;
+                self.verilog_expr(subject.clone(), ctx.clone())?;
                 for arg in args {
-                    let arg_ssa = self.verilog_expr(arg.clone())?;
+                    let arg_ssa = self.verilog_expr(arg.clone(), ctx.clone())?;
                     args_ssa.push(arg_ssa);
                 }
                 let typ = expr.typ();
@@ -241,7 +249,7 @@ impl<'a> Verilog<'a> {
 
                 let mut args_ssa: Vec<SsaName> = vec![];
                 for arg in args {
-                    let arg_ssa = self.verilog_expr(arg.clone())?;
+                    let arg_ssa = self.verilog_expr(arg.clone(), ctx.clone())?;
                     args_ssa.push(arg_ssa);
                 }
 
@@ -266,21 +274,30 @@ impl<'a> Verilog<'a> {
                 Ok(gs)
             },
             TypedExpr::As(_typ, subject, _typ_ast) => {
-                self.verilog_expr(subject.clone())
+                self.verilog_expr(subject.clone(), ctx.clone())
             },
             TypedExpr::If(_typ, c, a, b) => {
                 let gs = self.gensym();
-                let cond_ssa = self.verilog_expr(c.clone())?;
-                let a_ssa = self.verilog_expr(a.clone())?;
-                let b_ssa = self.verilog_expr(b.clone())?;
+                let cond_ssa = self.verilog_expr(c.clone(), ctx.clone())?;
+                let a_ssa = self.verilog_expr(a.clone(), ctx.clone())?;
+                let b_ssa = self.verilog_expr(b.clone(), ctx.clone())?;
                 let typ = expr.typ();
                 let width_str = make_width_str(self.db, typ.clone());
                 writeln!(self.writer, "    wire {width_str} {gs} = {cond_ssa} ? {a_ssa} : {b_ssa};")?;
                 Ok(gs)
             },
+            TypedExpr::Let(typ, x, _ascription, e, b) => {
+                let gs = self.gensym();
+                let e_ssa = self.verilog_expr(e.clone(), ctx.clone())?;
+                let new_ctx = ctx.extend(x.as_path(), e_ssa);
+                let b_ssa = self.verilog_expr(b.clone(), new_ctx)?;
+                let width_str = make_width_str(self.db, typ.clone());
+                writeln!(self.writer, "    wire {width_str} {gs} = {b_ssa};")?;
+                Ok(gs)
+            },
             TypedExpr::Match(_typ, subject, arms) => {
                 let gs = self.gensym();
-                let subject_ssa = self.verilog_expr(subject.clone())?;
+                let subject_ssa = self.verilog_expr(subject.clone(), ctx.clone())?;
                 let typ = expr.typ();
                 let width_str = make_width_str(self.db, typ.clone());
                 writeln!(self.writer, "    wire {width_str} {gs} = 0;")?;

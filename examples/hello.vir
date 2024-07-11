@@ -23,14 +23,19 @@ pub mod Top {
     counter <= counter->inc();
 
     node led : Word[5];
-    led := counter[25..20];
-//    led := counter[7..2];
+    led :=
+        let is_fpga : Word[1] = 1 in
+        if is_fpga {
+            counter[25..20]
+        } else {
+            counter[29..24]
+        };
 
-    led_0 := led[4];
-    led_1 := led[3];
-    led_2 := led[2];
-    led_3 := led[1];
-    led_4 := led[0];
+    led_0 := led[0];
+    led_1 := led[1];
+    led_4 := led[2];
+    led_2 := led[3];
+    led_3 := led[4];
 }
 
 mod Resetter {
@@ -49,10 +54,10 @@ mod Resetter {
 
 mod Buffer {
     incoming clock : Clock;
-    incoming in : Word[3];
+    incoming inp : Word[3];
     outgoing out : Word[3];
 
     reg buffer : Word[3] on clock;
-    buffer <= in;
+    buffer <= inp;
     out := buffer;
 }

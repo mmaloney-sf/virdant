@@ -202,6 +202,9 @@ impl ast::Expr {
                     unreachable!()
                 }
             },
+            ast::Expr::Let(x, typ, e, b) => {
+                todo!()
+            },
             ast::Expr::Match(_subject, _arms) => {
                 todo!()
             },

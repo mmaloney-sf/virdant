@@ -30,6 +30,7 @@ fn package_item_names(db: &dyn StructureQ) -> Result<Vec<Ident>, VirdantError> {
         match item {
             ast::Item::ModDef(moddef) => result.push(moddef.name.clone()),
             ast::Item::StructTypeDef(structtypedef) => result.push(structtypedef.name.clone()),
+            ast::Item::AltTypeDef(alttypedef) => result.push(alttypedef.name.clone()),
         }
     }
     Ok(result)
@@ -41,7 +42,7 @@ fn package_moddef_names(db: &dyn StructureQ) -> Result<Vec<Ident>, VirdantError>
     for item in &package.items {
         match item {
             ast::Item::ModDef(moddef) => result.push(moddef.name.clone()),
-            ast::Item::StructTypeDef(_) => (),
+            _ => (),
         }
     }
     Ok(result)

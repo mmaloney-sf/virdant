@@ -9,6 +9,7 @@ pub struct Package {
 pub enum Item {
     ModDef(ModDef),
     StructTypeDef(StructTypeDef),
+    AltTypeDef(AltTypeDef),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
@@ -27,6 +28,12 @@ pub struct ModDef {
 pub struct StructTypeDef {
     pub name: Ident,
     pub fields: Vec<(Ident, Arc<Type>)>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AltTypeDef {
+    pub name: Ident,
+    pub alts: Vec<(Ident, Vec<Arc<Type>>)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -68,6 +75,7 @@ pub enum Expr {
     Vec(Vec<Arc<Expr>>),
     Struct(Ident, Vec<(Field, Arc<Expr>)>),
     MethodCall(Arc<Expr>, Ident, Vec<Arc<Expr>>),
+    Ctor(Ident, Vec<Arc<Expr>>),
     As(Arc<Expr>, Arc<Type>),
     Idx(Arc<Expr>, StaticIndex),
     IdxRange(Arc<Expr>, StaticIndex, StaticIndex),

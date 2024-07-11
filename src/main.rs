@@ -43,7 +43,10 @@ fn main() {
             std::process::exit(-1);
         }
 
-        db::compile_verilog(&package_text).unwrap();
+        if let Err(e) = db::compile_verilog(&package_text) {
+            eprintln!("{e:?}");
+            std::process::exit(-1);
+        }
     } else if args.sim {
         let top = args.top.unwrap_or_else(|| "Top".into());
         let trace = args.trace.as_ref().map(|s| s.as_str());

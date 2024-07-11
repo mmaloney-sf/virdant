@@ -206,14 +206,7 @@ impl<'a> Verilog<'a> {
                     args_ssa.push(arg_ssa);
                 }
                 let typ = expr.typ();
-                let width_str: String = match typ {
-                    Type::Word(1) => " ".to_string(),
-                    Type::Word(n) => {
-                        let max_bit = n - 1;
-                        format!("[{max_bit}:0]")
-                    },
-                    _ => panic!(),
-                };
+                let width_str = make_width_str(self.db, typ.clone());
 
                 match method.as_str() {
                     "add" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} + {};", args_ssa[0])?,
@@ -232,6 +225,35 @@ impl<'a> Verilog<'a> {
                     "gte" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} >= {};", args_ssa.join(" : "))?,
                     _ => panic!("Unknown method: {}", method),
                 }
+                Ok(gs)
+            },
+            TypedExpr::Ctor(typ, ctor, args) => {
+                let gs = self.gensym();
+
+                let mut args_ssa: Vec<SsaName> = vec![];
+                for arg in args {
+                    let arg_ssa = self.verilog_expr(arg.clone())?;
+                    args_ssa.push(arg_ssa);
+                }
+
+                let width_str = make_width_str(self.db, typ.clone());
+                writeln!(self.writer, "    wire {width_str} {gs};")?;
+
+                let tag = 0;
+                let top_bit = 0;
+                let bot_bit = 0;
+                writeln!(self.writer, "    // assign ctor tag")?;
+                writeln!(self.writer, "    assign {gs}[{top_bit}:{bot_bit}] = {tag};")?;
+
+                for (i, arg_ssa) in args_ssa.into_iter().enumerate() {
+                    let top_bit = 0;
+                    let bot_bit = 0;
+                    writeln!(self.writer, "    // assign field {i}")?;
+                    writeln!(self.writer, "    assign {gs}[{top_bit}:{bot_bit}] = {arg_ssa};")?;
+                }
+
+                // writeln!(self.writer, "    assign {component} = {ssa};")?;
+
                 Ok(gs)
             },
             TypedExpr::As(_typ, subject, _typ_ast) => {

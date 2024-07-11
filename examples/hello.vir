@@ -1,3 +1,8 @@
+alt type State {
+    Idle();
+    Running(Word[2]);
+}
+
 pub mod Top {
     incoming clock : Clock;
     outgoing led_0 : Word[1];
@@ -6,11 +11,15 @@ pub mod Top {
     outgoing led_3 : Word[1];
     outgoing led_4 : Word[1];
 
+    node state : State;
+    state := @Idle();
+
     reg counter : Word[32] on clock;
     counter <= counter->inc();
 
     node led : Word[5];
-    led := counter[25..20];
+//    led := counter[25..20];
+    led := counter[7..2];
 
     led_0 := led[4];
     led_1 := led[1];

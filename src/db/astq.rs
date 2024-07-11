@@ -11,6 +11,7 @@ pub trait AstQ: salsa::Database {
 
     fn package_ast(&self) -> VirdantResult<ast::Package>;
     fn moddef_ast(&self, moddef: Ident) -> VirdantResult<ast::ModDef>;
+    fn alttypedef_ast(&self, moddef: Ident) -> VirdantResult<ast::AltTypeDef>;
     fn moddef_component_ast(&self, moddef: Ident, component: Ident) -> VirdantResult<ast::SimpleComponent>;
 
     fn moddef_components(&self, moddef: Ident) -> VirdantResult<Vec<ast::SimpleComponent>>;
@@ -42,7 +43,7 @@ fn moddef_ast(db: &dyn AstQ, moddef: Ident) -> Result<ast::ModDef, VirdantError>
                     }
                 }
             },
-            ast::Item::StructTypeDef(_structtypedef) => (),
+            _ => (),
         }
     }
 
@@ -50,6 +51,32 @@ fn moddef_ast(db: &dyn AstQ, moddef: Ident) -> Result<ast::ModDef, VirdantError>
         Ok(moddef)
     } else {
         Err(VirdantError::Other(format!("Unknown moddef {moddef}")))
+    }
+}
+
+fn alttypedef_ast(db: &dyn AstQ, alttype: Ident) -> Result<ast::AltTypeDef, VirdantError> {
+    let package = db.package_ast()?;
+    let mut result: Option<ast::AltTypeDef> = None;
+
+    for item in &package.items {
+        match item {
+            ast::Item::AltTypeDef(alttypedef_ast) => {
+                if alttypedef_ast.name == alttype {
+                    if result.is_none() {
+                        result = Some(alttypedef_ast.clone());
+                    } else {
+                        return Err(VirdantError::Other("Uh oh".into()));
+                    }
+                }
+            },
+            _ => (),
+        }
+    }
+
+    if let Some(alttypedef) = result {
+        Ok(alttypedef)
+    } else {
+        Err(VirdantError::Other(format!("Unknown moddef {alttype}")))
     }
 }
 
@@ -148,6 +175,7 @@ impl ast::Expr {
                     args[i-1].clone()
                 }
             },
+            ast::Expr::Ctor(_ctor, args) => args[i].clone(),
             ast::Expr::As(e, _typ) => {
                 assert_eq!(i, 0);
                 e.clone()

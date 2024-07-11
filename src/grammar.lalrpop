@@ -12,6 +12,7 @@ pub Package: Package = {
 Item: Item = {
     <m:ModDef> => Item::ModDef(m),
     <e:StructTypeDef> => Item::StructTypeDef(e),
+    <e:AltTypeDef> => Item::AltTypeDef(e),
 }
 
 Visibility: Visibility = {
@@ -47,6 +48,34 @@ StructTypeDef: StructTypeDef = {
     },
 }
 
+AltTypeDef: AltTypeDef = {
+    <ll:@L> <vis:Visibility> "alt" "type" <name:Id> "{"
+        <alts:AltTypeDefAlt*>
+    "}" <rr:@R> => {
+        AltTypeDef {
+            name,
+            alts,
+        }
+    },
+}
+
+AltTypeDefAlt: (Ident, Vec<Arc<Type>>) = {
+    <ident:Id> "(" <typs:TypeList> ")" ";" => (ident, typs),
+}
+
+TypeList: Vec<Arc<Type>> = {
+    <args:((Type ("," Type)* ","?)?)> => {
+        if let Some((typ, args, _comma)) = args {
+            let mut results = vec![typ];
+            for (_comma, typ) in args {
+                results.push(typ);
+            }
+            results
+        } else {
+            vec![]
+        }
+    },
+}
 
 Decl: Decl = {
     <c:SimpleComponent> => Decl::SimpleComponent(c),
@@ -135,7 +164,7 @@ ExprIf: Arc<Expr> = {
 
 ExprCall: Arc<Expr> = {
 //    <ll:@L> <name:Ctor> <rr:@R> =>  Arc::new(Expr::Call(name, vec![], vec![])),
-//    <ll:@L> <name:Ctor> "(" <es:ExprList> ")" <rr:@R> =>  Arc::new(Expr::Call(name, vec![], es)),
+    <ll:@L> <name:Ctor> "(" <es:ExprList> ")" <rr:@R> =>  Arc::new(Expr::Ctor(name, es)),                            
 
     "cat" "(" <es:ExprList> ")" => {
         Arc::new(Expr::Cat(es))
@@ -294,6 +323,12 @@ Nat: u64 = {
     <lit:r"0x[0-9][_0-9]*"> => {
         let lit_nounders: String = lit.chars().filter(|&c| c != '_').collect();
         u64::from_str_radix(&lit_nounders[2..], 16).unwrap()
+    },
+}
+
+Ctor: Ident = {
+    <rr:@R> <id:r"@[_A-Za-z][_A-Za-z0-9]*"> <ll:@L> => {
+        id.into()
     },
 }
 

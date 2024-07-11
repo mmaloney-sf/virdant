@@ -85,6 +85,16 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
 
             Ok(TypedExpr::MethodCall(typ, typed_subject, method.clone(), typed_args).into())
         },
+        ast::Expr::Ctor(ctor, args) => {
+            //todo!();
+            // Is the ctor valid?
+            // What is the signature of the ctor?
+            let mut typed_args = vec![];
+            for arg in args {
+                // todo!
+            }
+            Ok(TypedExpr::Ctor(typ, ctor.clone(), typed_args).into())
+        },
         ast::Expr::As(subject, expected_typ) => {
             let expected_type_resolved = db.resolve_type(expected_typ.clone())?;
             let typed_subject = db.expr_typecheck(moddef.clone(), subject.clone(), expected_type_resolved.clone())?;
@@ -151,6 +161,9 @@ fn expr_typeinfer(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>) -> V
 
             Ok(TypedExpr::MethodCall(ret_typ, typed_subject, method.clone(), typed_args).into())
         },
+        ast::Expr::Ctor(_ctor, _args) => {
+            Err(TypeError::CantInfer.into())
+        },
         ast::Expr::As(_, _) => todo!(),
         ast::Expr::Idx(subject, i) => {
             eprintln!("TODO: Check i fits in the size of the subject");
@@ -202,16 +215,63 @@ fn method_sig(_db: &dyn TypecheckQ, typ: Type, method: Ident) -> VirdantResult<M
     }
 }
 
-fn bitwidth(_db: &dyn TypecheckQ, typ: Type) -> VirdantResult<Width> {
-    match typ {
+fn bitwidth(db: &dyn TypecheckQ, typ: Type) -> VirdantResult<Width> {
+    match typ.clone() {
         Type::Unknown => todo!(),
         Type::Clock => Ok(1),
         Type::Bool => Ok(1),
         Type::Word(n) => Ok(n.into()),
         Type::Vec(_, _) => todo!(),
-        Type::TypeRef(_) => todo!(),
+        Type::StructType(_name) => todo!(),
+        Type::AltType(name) => {
+            let alttypedef_ast = db.alttypedef_ast(name)?;
+
+            let mut payload_width = 0;
+            for (_ctor, ast_arg_typs) in &alttypedef_ast.alts {
+                let mut resolved_arg_typs = vec![];
+                for ast_arg_typ in ast_arg_typs {
+                    let resolved_typ = db.resolve_type(ast_arg_typ.clone())?;
+                    resolved_arg_typs.push(resolved_typ);
+                }
+
+                let mut width = 0;
+                for resolved_arg_typ in &resolved_arg_typs {
+                    width += db.bitwidth(resolved_arg_typ.clone())?;
+                }
+
+                if width > payload_width {
+                    payload_width = width;
+                }
+            }
+            let tag_width = clog2(alttypedef_ast.alts.len() as u64);
+            let width = tag_width + payload_width;
+            eprintln!("Bitwidth for {typ} was found to be {width}");
+            Ok(width)
+        },
         Type::Other(_) => todo!(),
     }
+}
+
+fn clog2(n: u64) -> u64 {
+    let mut result = 0;
+    while n > (1 << result) {
+        result += 1;
+    }
+    result
+}
+
+#[test]
+fn clog_test() {
+    assert_eq!(clog2(0), 0);
+    assert_eq!(clog2(1), 0);
+    assert_eq!(clog2(2), 1);
+    assert_eq!(clog2(3), 2);
+    assert_eq!(clog2(4), 2);
+    assert_eq!(clog2(5), 3);
+    assert_eq!(clog2(6), 3);
+    assert_eq!(clog2(7), 3);
+    assert_eq!(clog2(8), 3);
+    assert_eq!(clog2(9), 4);
 }
 
 fn moddef_typecheck_wire(db: &dyn TypecheckQ, moddef: Ident, target: Path) -> VirdantResult<Arc<TypedExpr>> {
@@ -297,13 +357,18 @@ fn moddef_target_type(db: &dyn TypecheckQ, moddef: Ident, target: Path) -> Virda
 }
 
 fn resolve_type(db: &dyn TypecheckQ, typ: Arc<ast::Type>) -> VirdantResult<Type> {
-    let typ = match &*typ {
-        ast::Type::Clock => Type::Clock.into(),
-        ast::Type::Word(width) => Type::Word(*width).into(),
-        ast::Type::Vec(inner, len) => Type::Vec(Arc::new(db.resolve_type(inner.clone())?), *len).into(),
-        ast::Type::TypeRef(name) => Type::TypeRef(name.clone()).into(),
-    };
-    Ok(typ)
+    match &*typ {
+        ast::Type::Clock => Ok(Type::Clock),
+        ast::Type::Word(width) => Ok(Type::Word(*width)),
+        ast::Type::Vec(inner, len) => Ok(Type::Vec(Arc::new(db.resolve_type(inner.clone())?), *len)),
+        ast::Type::TypeRef(name) => {
+            if let Ok(alttypedef_ast) = db.alttypedef_ast(name.clone()) {
+                Ok(Type::AltType(alttypedef_ast.name))
+            } else {
+                Err(VirdantError::Other(format!("Unknown type: {name}")))
+            }
+        },
+    }
 }
 
 fn pow(n: u64, k: u64) -> u64 {
@@ -324,6 +389,7 @@ pub enum TypedExpr {
     Vec(Type, Vec<Arc<TypedExpr>>),
     Struct(Type, Ident, Vec<(Field, Arc<TypedExpr>)>),
     MethodCall(Type, Arc<TypedExpr>, Ident, Vec<Arc<TypedExpr>>),
+    Ctor(Type, Ident, Vec<Arc<TypedExpr>>),
     As(Type, Arc<TypedExpr>, Arc<ast::Type>),
     Idx(Type, Arc<TypedExpr>, StaticIndex),
     IdxRange(Type, Arc<TypedExpr>, StaticIndex, StaticIndex),
@@ -339,6 +405,7 @@ impl TypedExpr {
             TypedExpr::Vec(typ, _) => typ.clone(),
             TypedExpr::Struct(typ, _, _) => typ.clone(),
             TypedExpr::MethodCall(typ, _, _, _) => typ.clone(),
+            TypedExpr::Ctor(typ, _, _) => typ.clone(),
             TypedExpr::As(typ, _, _) => typ.clone(),
             TypedExpr::Idx(typ, _, _) => typ.clone(),
             TypedExpr::IdxRange(typ, _, _, _) => typ.clone(),
@@ -354,6 +421,13 @@ impl TypedExpr {
             TypedExpr::Vec(_typ, _) => HashSet::new(),
             TypedExpr::Struct(_typ, _, _) => HashSet::new(),
             TypedExpr::MethodCall(_typ, _, _, _) => HashSet::new(),
+            TypedExpr::Ctor(_typ, _, args) => {
+                let mut references = vec![];
+                for arg_references in args.iter().map(|arg| arg.references()) {
+                    references.extend(arg_references);
+                }
+                references.into_iter().collect::<HashSet<Path>>()
+            },
             TypedExpr::As(_typ, _, _) => HashSet::new(),
             TypedExpr::Idx(_typ, _, _) => HashSet::new(),
             TypedExpr::IdxRange(_typ, _, _, _) => HashSet::new(),
@@ -375,6 +449,7 @@ impl TypedExpr {
             TypedExpr::Vec(_typ, _) => todo!(),
             TypedExpr::Struct(_typ, _, _) => todo!(),
             TypedExpr::MethodCall(_typ, _, _, _) => todo!(),
+            TypedExpr::Ctor(_typ, _, _args) => todo!(),
             TypedExpr::As(_typ, _, _) => todo!(),
             TypedExpr::Idx(_typ, _, _) => todo!(),
             TypedExpr::IdxRange(_typ, _, _, _) => todo!(),

@@ -42,7 +42,6 @@ fn package_item_names(db: &dyn StructureQ) -> Result<Vec<Ident>, VirdantError> {
     }
     Ok(result)
 }
-
 fn package_moddef_names(db: &dyn StructureQ) -> Result<Vec<Ident>, VirdantError> {
     let package = db.package_ast()?;
     let mut result = vec![];

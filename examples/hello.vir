@@ -23,13 +23,13 @@ pub mod Top {
     counter <= counter->inc();
 
     node led : Word[5];
-//    led := counter[25..20];
-    led := counter[7..2];
+    led := counter[25..20];
+//    led := counter[7..2];
 
     led_0 := led[4];
-    led_1 := led[1];
+    led_1 := led[3];
     led_2 := led[2];
-    led_3 := led[3];
+    led_3 := led[1];
     led_4 := led[0];
 }
 

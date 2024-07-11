@@ -2,7 +2,6 @@ use std::collections::HashSet;
 use crate::common::*;
 use crate::value::Value;
 
-use super::structureq::ResolveTypeQuery;
 pub use super::StructureQ;
 
 use crate::types::Type;
@@ -16,8 +15,8 @@ pub trait TypecheckQ: StructureQ {
     fn moddef_reference_type(&self, moddef: Ident, path: Path) -> VirdantResult<Type>;
     fn moddef_target_type(&self, moddef: Ident, target: Path) -> VirdantResult<Type>;
 
-    fn expr_typecheck(&self, moddef: Ident, expr: Arc<ast::Expr>, typ: Type) -> VirdantResult<Arc<TypedExpr>>;
-    fn expr_typeinfer(&self, moddef: Ident, expr: Arc<ast::Expr>) -> VirdantResult<Arc<TypedExpr>>;
+    fn expr_typecheck(&self, moddef: Ident, expr: Arc<ast::Expr>, typ: Type, ctx: Context<Path, Type>) -> VirdantResult<Arc<TypedExpr>>;
+    fn expr_typeinfer(&self, moddef: Ident, expr: Arc<ast::Expr>, ctx: Context<Path, Type>) -> VirdantResult<Arc<TypedExpr>>;
 
     fn method_sig(&self, typ: Type, method: Ident) -> VirdantResult<MethodSig>;
 
@@ -42,10 +41,20 @@ fn typecheck(db: &dyn TypecheckQ) -> VirdantResult<()> {
     errors.check()
 }
 
-fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ: Type) -> VirdantResult<Arc<TypedExpr>> {
+fn expr_typecheck(
+    db: &dyn TypecheckQ,
+    moddef: Ident,
+    expr: Arc<ast::Expr>,
+    typ: Type,
+    ctx: Context<Path, Type>,
+) -> VirdantResult<Arc<TypedExpr>> {
     match expr.as_ref() {
         ast::Expr::Reference(path) => {
-            let actual_typ = db.moddef_reference_type(moddef, path.clone())?;
+            let actual_typ = if let Some(actual_typ) = ctx.lookup(path) {
+                actual_typ
+            } else {
+                db.moddef_reference_type(moddef, path.clone())?
+            };
             if typ != actual_typ {
                 Err(VirdantError::Other(format!("Wrong types: {path} is {typ} vs {actual_typ}")))
             } else {
@@ -69,7 +78,7 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
         ast::Expr::Vec(_) => todo!(),
         ast::Expr::Struct(_, _) => todo!(),
         ast::Expr::MethodCall(subject, method, args) => {
-            let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone())?;
+            let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone(), ctx.clone())?;
             let MethodSig(arg_types, ret_type) = db.method_sig(typed_subject.typ(), method.clone())?;
 
             if ret_type != typ {
@@ -82,7 +91,7 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
 
             let mut typed_args = vec![];
             for (arg, arg_type) in args.iter().zip(arg_types) {
-                let typed_arg = db.expr_typecheck(moddef.clone(), arg.clone(), arg_type)?;
+                let typed_arg = db.expr_typecheck(moddef.clone(), arg.clone(), arg_type, ctx.clone())?;
                 typed_args.push(typed_arg);
             }
 
@@ -99,14 +108,14 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
             }
             let mut typed_args = vec![];
             for (arg, arg_typ) in args.iter().zip(arg_types) {
-                let typed_arg = db.expr_typecheck(moddef.clone(), arg.clone(), arg_typ.clone())?;
+                let typed_arg = db.expr_typecheck(moddef.clone(), arg.clone(), arg_typ.clone(), ctx.clone())?;
                 typed_args.push(typed_arg);
             }
             Ok(TypedExpr::Ctor(typ, ctor.clone(), typed_args).into())
         },
         ast::Expr::As(subject, expected_typ) => {
             let expected_type_resolved = db.resolve_type(expected_typ.clone())?;
-            let typed_subject = db.expr_typecheck(moddef.clone(), subject.clone(), expected_type_resolved.clone())?;
+            let typed_subject = db.expr_typecheck(moddef.clone(), subject.clone(), expected_type_resolved.clone(), ctx)?;
             if expected_type_resolved != typ {
                 return Err(VirdantError::Unknown);
             } else {
@@ -114,7 +123,7 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
             }
         },
         ast::Expr::Idx(_subject, _i) => {
-            let typed_expr = db.expr_typeinfer(moddef, expr)?;
+            let typed_expr = db.expr_typeinfer(moddef, expr, ctx)?;
             if typed_expr.typ() != typ {
                 Err(VirdantError::Unknown)
             } else {
@@ -122,7 +131,7 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
             }
         },
         ast::Expr::IdxRange(_subject, _j, _i) => {
-            let typed_expr = db.expr_typeinfer(moddef, expr)?;
+            let typed_expr = db.expr_typeinfer(moddef, expr, ctx)?;
             if typed_expr.typ() != typ {
                 Err(VirdantError::Unknown)
             } else {
@@ -131,22 +140,32 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
         },
         ast::Expr::Cat(_) => todo!(),
         ast::Expr::If(c, a, b) => {
-            let typed_c = db.expr_typecheck(moddef.clone(), c.clone(), Type::Word(1))?;
-            let typed_a = db.expr_typecheck(moddef.clone(), a.clone(), typ.clone())?;
-            let typed_b = db.expr_typecheck(moddef.clone(), b.clone(), typ.clone())?;
+            let typed_c = db.expr_typecheck(moddef.clone(), c.clone(), Type::Word(1), ctx.clone())?;
+            let typed_a = db.expr_typecheck(moddef.clone(), a.clone(), typ.clone(), ctx.clone())?;
+            let typed_b = db.expr_typecheck(moddef.clone(), b.clone(), typ.clone(), ctx.clone())?;
             Ok(TypedExpr::If(typ, typed_c, typed_a, typed_b).into())
         },
         ast::Expr::Match(subject, arms) => {
-            let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone())?;
+            let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone(), ctx.clone())?;
             todo!()
         },
     }
 }
 
-fn expr_typeinfer(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>) -> VirdantResult<Arc<TypedExpr>> {
+fn expr_typeinfer(
+    db: &dyn TypecheckQ,
+    moddef: Ident,
+    expr: Arc<ast::Expr>,
+    ctx: Context<Path, Type>,
+) -> VirdantResult<Arc<TypedExpr>> {
     match expr.as_ref() {
         ast::Expr::Reference(path) => {
-            let typ = db.moddef_reference_type(moddef, path.clone())?;
+            let typ = if let Some(actual_typ) = ctx.lookup(path) {
+                actual_typ
+            } else {
+                db.moddef_reference_type(moddef, path.clone())?
+            };
+
             Ok(TypedExpr::Reference(typ, path.clone()).into())
         },
         ast::Expr::Word(lit) => {
@@ -159,7 +178,7 @@ fn expr_typeinfer(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>) -> V
         ast::Expr::Vec(_) => todo!(),
         ast::Expr::Struct(_, _) => todo!(),
         ast::Expr::MethodCall(subject, method, args) => {
-            let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone())?;
+            let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone(), ctx.clone())?;
             let MethodSig(arg_types, ret_typ) = db.method_sig(typed_subject.typ(), method.clone())?;
 
             if args.len() != arg_types.len() {
@@ -168,7 +187,7 @@ fn expr_typeinfer(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>) -> V
 
             let mut typed_args = vec![];
             for (arg, arg_type) in args.iter().zip(arg_types) {
-                let typed_arg = db.expr_typecheck(moddef.clone(), arg.clone(), arg_type)?;
+                let typed_arg = db.expr_typecheck(moddef.clone(), arg.clone(), arg_type, ctx.clone())?;
                 typed_args.push(typed_arg);
             }
 
@@ -180,12 +199,12 @@ fn expr_typeinfer(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>) -> V
         ast::Expr::As(_, _) => todo!(),
         ast::Expr::Idx(subject, i) => {
             eprintln!("TODO: Check i fits in the size of the subject");
-            let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone())?;
+            let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone(), ctx)?;
             Ok(TypedExpr::Idx(Type::Word(1), typed_subject, *i).into())
         },
         ast::Expr::IdxRange(subject, j, i) => {
             eprintln!("TODO: Check i fits in the size of the subject");
-            let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone())?;
+            let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone(), ctx)?;
             Ok(TypedExpr::IdxRange(Type::Word(j - i), typed_subject, *j, *i).into())
         },
         ast::Expr::Cat(_) => todo!(),
@@ -325,7 +344,7 @@ fn clog_test() {
 fn moddef_typecheck_wire(db: &dyn TypecheckQ, moddef: Ident, target: Path) -> VirdantResult<Arc<TypedExpr>> {
     let ast::Wire(target, _wire_type, expr) = db.moddef_wire(moddef.clone(), target)?;
     let typ = db.moddef_target_type(moddef.clone(), target)?;
-    Ok(db.expr_typecheck(moddef, expr, typ)?)
+    Ok(db.expr_typecheck(moddef, expr, typ, Context::empty())?)
 }
 
 fn moddef_typecheck(db: &dyn TypecheckQ, moddef: Ident) -> VirdantResult<()> {

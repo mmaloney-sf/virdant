@@ -4,14 +4,19 @@ pub mod Top {
     outgoing led_1 : Word[1];
     outgoing led_2 : Word[1];
     outgoing led_3 : Word[1];
+    outgoing led_4 : Word[1];
 
     reg counter : Word[32] on clock;
-    counter <= counter->add(1);
+    counter <= counter->inc();
 
-    led_0 := counter[22]->not();
-    led_1 := 1;
-    led_2 := 1;
-    led_3 := 1;
+    node led : Word[5];
+    led := counter[25..20];
+
+    led_0 := led[4];
+    led_1 := led[1];
+    led_2 := led[2];
+    led_3 := led[3];
+    led_4 := led[0];
 }
 
 mod Resetter {
@@ -26,7 +31,6 @@ mod Resetter {
     };
 
     reset := counter->eq(1);
-
 }
 
 mod Buffer {

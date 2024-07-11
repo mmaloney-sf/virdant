@@ -168,14 +168,7 @@ impl<'a> Verilog<'a> {
             TypedExpr::Word(_typ, w) => {
                 let gs = self.gensym();
                 let typ = expr.typ();
-                let width_str: String = match typ {
-                    Type::Word(1) => " ".to_string(),
-                    Type::Word(n) => {
-                        let max_bit = n - 1;
-                        format!("[{max_bit}:0]")
-                    },
-                    _ => panic!(),
-                };
+                let width_str = make_width_str(self.db, typ);
                 writeln!(self.writer, "    wire {width_str} {gs} = {};", w.value)?;
                 Ok(gs)
             },
@@ -189,10 +182,18 @@ impl<'a> Verilog<'a> {
                 writeln!(self.writer, "    wire {gs} = {{{}}};", args_ssa.join(", "))?;
                 Ok(gs)
             },
-            TypedExpr::Idx(_typ, subject, index) => {
+            TypedExpr::Idx(_typ, subject, i) => {
                 let gs = self.gensym();
                 let subject_ssa = self.verilog_expr(subject.clone())?;
-                writeln!(self.writer, "    wire {gs} = {subject_ssa}[{index}];")?;
+                writeln!(self.writer, "    wire {gs} = {subject_ssa}[{i}];")?;
+                Ok(gs)
+            },
+            TypedExpr::IdxRange(typ, subject, j, i) => {
+                let gs = self.gensym();
+                let subject_ssa = self.verilog_expr(subject.clone())?;
+                let end = *j - 1;
+                let width_str = make_width_str(self.db, typ.clone());
+                writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa}[{end}:{i}];")?;
                 Ok(gs)
             },
             TypedExpr::MethodCall(_typ, subject, method, args) => {
@@ -216,6 +217,7 @@ impl<'a> Verilog<'a> {
 
                 match method.as_str() {
                     "add" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} + {};", args_ssa[0])?,
+                    "inc" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} + 1;")?,
                     "sub" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} - {};", args_ssa[0])?,
                     "and" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} & {};", args_ssa[0])?,
                     "or"  => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} | {};", args_ssa[0])?,

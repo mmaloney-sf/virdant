@@ -102,7 +102,14 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
                 Ok(typed_expr)
             }
         },
-        ast::Expr::IdxRange(_, _, _) => todo!(),
+        ast::Expr::IdxRange(_subject, _j, _i) => {
+            let typed_expr = db.expr_typeinfer(moddef, expr)?;
+            if typed_expr.typ() != typ {
+                Err(VirdantError::Unknown)
+            } else {
+                Ok(typed_expr)
+            }
+        },
         ast::Expr::Cat(_) => todo!(),
         ast::Expr::If(c, a, b) => {
             let typed_c = db.expr_typecheck(moddef.clone(), c.clone(), Type::Word(1))?;
@@ -150,7 +157,11 @@ fn expr_typeinfer(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>) -> V
             let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone())?;
             Ok(TypedExpr::Idx(Type::Word(1), typed_subject, *i).into())
         },
-        ast::Expr::IdxRange(_, _, _) => todo!(),
+        ast::Expr::IdxRange(subject, j, i) => {
+            eprintln!("TODO: Check i fits in the size of the subject");
+            let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone())?;
+            Ok(TypedExpr::IdxRange(Type::Word(j - i), typed_subject, *j, *i).into())
+        },
         ast::Expr::Cat(_) => todo!(),
         ast::Expr::If(_, _, _) => Err(VirdantError::Other("Can't infer".to_string())),
     }
@@ -161,6 +172,8 @@ fn method_sig(_db: &dyn TypecheckQ, typ: Type, method: Ident) -> VirdantResult<M
         Type::Word(_n) => {
             if method == "add".into() {
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))
+            } else if method == "inc".into() {
+                Ok(MethodSig(vec![], typ.clone()))
             } else if method == "sub".into() {
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))
             } else if method == "and".into() {

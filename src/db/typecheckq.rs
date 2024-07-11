@@ -44,7 +44,7 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
         ast::Expr::Reference(path) => {
             let actual_typ = db.moddef_reference_type(moddef, path.clone())?;
             if typ != actual_typ {
-                Err(VirdantError::Other("Wrong types".into()))
+                Err(VirdantError::Other(format!("Wrong types: {path} is {typ} vs {actual_typ}")))
             } else {
                 Ok(TypedExpr::Reference(typ, path.clone()).into())
             }
@@ -60,7 +60,7 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
                         Err(VirdantError::Other("Doesn't fit".to_string()))
                     }
                 },
-                (_, _) => Err(VirdantError::Unknown),
+                (typ, _width) => Err(VirdantError::Other(format!("Could not typecheck {lit:?} as {typ}"))),
             }
         },
         ast::Expr::Vec(_) => todo!(),
@@ -70,11 +70,11 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
             let MethodSig(arg_types, ret_type) = db.method_sig(typed_subject.typ(), method.clone())?;
 
             if ret_type != typ {
-                return Err(VirdantError::Unknown);
+                return Err(VirdantError::Other(format!("Wrong return type")));
             }
 
             if args.len() != arg_types.len() {
-                return Err(VirdantError::Unknown);
+                return Err(VirdantError::Other(format!("Wrong argument list length")));
             }
 
             let mut typed_args = vec![];
@@ -94,7 +94,14 @@ fn expr_typecheck(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>, typ:
                 Ok(TypedExpr::As(expected_type_resolved, typed_subject.clone(), expected_typ.clone()).into())
             }
         },
-        ast::Expr::Idx(_, _) => todo!(),
+        ast::Expr::Idx(_subject, _i) => {
+            let typed_expr = db.expr_typeinfer(moddef, expr)?;
+            if typed_expr.typ() != typ {
+                Err(VirdantError::Unknown)
+            } else {
+                Ok(typed_expr)
+            }
+        },
         ast::Expr::IdxRange(_, _, _) => todo!(),
         ast::Expr::Cat(_) => todo!(),
         ast::Expr::If(c, a, b) => {
@@ -138,7 +145,11 @@ fn expr_typeinfer(db: &dyn TypecheckQ, moddef: Ident, expr: Arc<ast::Expr>) -> V
             Ok(TypedExpr::MethodCall(ret_typ, typed_subject, method.clone(), typed_args).into())
         },
         ast::Expr::As(_, _) => todo!(),
-        ast::Expr::Idx(_, _) => todo!(),
+        ast::Expr::Idx(subject, i) => {
+            eprintln!("TODO: Check i fits in the size of the subject");
+            let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone())?;
+            Ok(TypedExpr::Idx(Type::Word(1), typed_subject, *i).into())
+        },
         ast::Expr::IdxRange(_, _, _) => todo!(),
         ast::Expr::Cat(_) => todo!(),
         ast::Expr::If(_, _, _) => Err(VirdantError::Other("Can't infer".to_string())),
@@ -156,6 +167,18 @@ fn method_sig(_db: &dyn TypecheckQ, typ: Type, method: Ident) -> VirdantResult<M
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))
             } else if method == "or".into() {
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))
+            } else if method == "lt".into() {
+                Ok(MethodSig(vec![typ.clone()], Type::Word(1)))
+            } else if method == "lte".into() {
+                Ok(MethodSig(vec![typ.clone()], Type::Word(1)))
+            } else if method == "gt".into() {
+                Ok(MethodSig(vec![typ.clone()], Type::Word(1)))
+            } else if method == "gte".into() {
+                Ok(MethodSig(vec![typ.clone()], Type::Word(1)))
+            } else if method == "eq".into() {
+                Ok(MethodSig(vec![typ.clone()], Type::Word(1)))
+            } else if method == "neq".into() {
+                Ok(MethodSig(vec![typ.clone()], Type::Word(1)))
             } else if method == "not".into() {
                 Ok(MethodSig(vec![], typ.clone()))
             } else {

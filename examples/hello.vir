@@ -1,24 +1,40 @@
 pub mod Top {
-    incoming clk : Clock;
-    incoming reset : Word[1];
-    outgoing out : Word[3];
+    incoming clock : Clock;
+    outgoing led_0 : Word[1];
+    outgoing led_1 : Word[1];
+    outgoing led_2 : Word[1];
+    outgoing led_3 : Word[1];
 
-    out := buffer.out->not()->and(0b100)->as(Word[3]);
+    reg counter : Word[32] on clock;
+    counter <= counter->add(1);
 
-    reg counter : Word[3] on clk;
-    counter <= if reset { 0 } else { counter->add(1) };
+    led_0 := counter[22]->not();
+    led_1 := 1;
+    led_2 := 1;
+    led_3 := 1;
+}
 
-    mod buffer of Buffer;
-    buffer.clk := clk;
-    buffer.in := counter;
+mod Resetter {
+    incoming clock   : Clock;
+    outgoing reset : Word[1];
+
+    reg counter : Word[8] on clock;
+    counter <= if counter->gt(0) {
+        counter->sub(1)
+    } else {
+        0
+    };
+
+    reset := counter->eq(1);
+
 }
 
 mod Buffer {
-    incoming clk : Clock;
+    incoming clock : Clock;
     incoming in : Word[3];
     outgoing out : Word[3];
 
-    reg buffer : Word[3] on clk;
+    reg buffer : Word[3] on clock;
     buffer <= in;
     out := buffer;
 }

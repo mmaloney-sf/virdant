@@ -1,6 +1,18 @@
 alt type State {
-    Idle();
-    Running(Word[3]);
+    Idle(Word[4], Word[1]);
+    SpinCW(Word[5], Word[4]);
+    SpinCCW(Word[5], Word[4]);
+}
+
+mod Edge {
+    incoming clock : Clock;
+    incoming inp   : Word[1];
+    outgoing out   : Word[1];
+
+    reg last : Word[1] on clock;
+    last <= inp;
+
+    out := last->not()->and(inp);
 }
 
 pub mod Top {
@@ -14,14 +26,39 @@ pub mod Top {
     reg counter : Word[32] on clock;
     counter <= counter->inc();
 
+    mod edge_detector of Edge;
+    edge_detector.clock := clock;
+    edge_detector.inp   := counter[17];
+
     reg state : State on clock;
-    state <= if counter[22] {
+    state <= if edge_detector.out {
         match state {
-            @Idle() => @Running(0);
-            @Running(x) => if x->eq(7) {
-                @Idle()
+            @Idle(round, next) => if round->lt(3) {
+                @Idle(round->inc(), next)
             } else {
-                @Running(x->inc())
+                if next {
+                    @SpinCCW(0b10000, 0)
+                } else {
+                    @SpinCW(0b00001, 0)
+                }
+            };
+            @SpinCW(x, round) => if x->eq(0b10000) {
+                if round->lt(8) {
+                    @SpinCW(0b00001, round->inc())
+                } else {
+                    @Idle(0, 1)
+                }
+            } else {
+                @SpinCW(x->sll(1), round)
+            };
+            @SpinCCW(x, round) => if x->eq(0b00001) {
+                if round->lt(8) {
+                    @SpinCCW(0b10000, round->inc())
+                } else {
+                    @Idle(0, 0)
+                }
+            } else {
+                @SpinCCW(x->srl(1), round)
             };
         }
     } else {
@@ -31,12 +68,9 @@ pub mod Top {
 
     node led : Word[5];
     led := match state {
-        @Idle() => 0;
-        @Running(x) => if x->lt(3) {
-            counter[27..22]
-        } else {
-            counter[27..22]->and(0b10101)
-        };
+        @Idle(round, next) => 0;
+        @SpinCW(leds, round) => leds;
+        @SpinCCW(leds, round) => leds;
     };
 
     led_0 := led[0];
@@ -45,6 +79,7 @@ pub mod Top {
     led_3 := led[3];
     led_4 := led[4];
 }
+
 
 /*
 mod Resetter {

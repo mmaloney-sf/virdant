@@ -280,6 +280,10 @@ fn method_sig(_db: &dyn TypecheckQ, typ: Type, method: Ident) -> VirdantResult<M
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))
             } else if method == "inc".into() {
                 Ok(MethodSig(vec![], typ.clone()))
+            } else if method == "sll".into() {
+                Ok(MethodSig(vec![typ.clone()], typ.clone()))
+            } else if method == "srl".into() {
+                Ok(MethodSig(vec![typ.clone()], typ.clone()))
             } else if method == "sub".into() {
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))
             } else if method == "and".into() {

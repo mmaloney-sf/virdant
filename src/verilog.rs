@@ -263,7 +263,7 @@ impl<'a> Verilog<'a> {
                 let fill = "1";
 
                 write!(self.writer, "    wire {width_str} {gs} = {{ ")?;
-                for arg_ssa in &args_ssa {
+                for arg_ssa in args_ssa.iter().rev() {
                     write!(self.writer, "{arg_ssa}, ")?;
                 }
                 let tag_width = layout.tag_width();

@@ -1,8 +1,7 @@
 alt type State {
     Idle();
-    Running(Word[2], Word[4]);
-    Idle2();
-    OhNo(Word[2], Word[4]);
+    Running();
+    Done();
 }
 
 pub mod Top {
@@ -14,8 +13,41 @@ pub mod Top {
     outgoing led_4 : Word[1];
 
     node state : State;
-    state := @Idle();
+    state := @Running();
 
+    node result : Word[8];
+    result := match state {
+        @Idle() => 0b00001010;
+        @Running(x) => 0b00001111;
+    };
+
+    node led : Word[5];
+    led := 0;
+
+    led_0 := led[0];
+    led_1 := led[1];
+    led_4 := led[2];
+    led_2 := led[3];
+    led_3 := led[4];
+}
+
+/*
+mod Resetter {
+    incoming clock   : Clock;
+    outgoing reset : Word[1];
+
+    reg counter : Word[8] on clock;
+    counter <= if counter->gt(0) {
+        counter->sub(1)
+    } else {
+        0
+    };
+
+    reset := counter->eq(1);
+}
+*/
+
+/*
     node foo : State;
     foo := @Running(0w2, 15);
 
@@ -38,19 +70,6 @@ pub mod Top {
     led_3 := led[4];
 }
 
-mod Resetter {
-    incoming clock   : Clock;
-    outgoing reset : Word[1];
-
-    reg counter : Word[8] on clock;
-    counter <= if counter->gt(0) {
-        counter->sub(1)
-    } else {
-        0
-    };
-
-    reset := counter->eq(1);
-}
 
 mod Buffer {
     incoming clock : Clock;
@@ -61,3 +80,4 @@ mod Buffer {
     buffer <= inp;
     out := buffer;
 }
+*/

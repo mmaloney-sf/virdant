@@ -11,6 +11,7 @@ pub use typecheckq::TypecheckQ;
 pub use packageq::PackageQ;
 
 pub use typecheckq::TypedExpr;
+pub use typecheckq::TypedMatchArm;
 
 use crate::common::VirdantResult;
 //use crate::common::*;

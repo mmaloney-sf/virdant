@@ -82,7 +82,7 @@ pub enum Expr {
     Cat(Vec<Arc<Expr>>),
     If(Arc<Expr>, Arc<Expr>, Arc<Expr>),
     Let(Ident, Option<Arc<Type>>, Arc<Expr>, Arc<Expr>),
-    Match(Arc<Expr>, Vec<MatchArm>),
+    Match(Arc<Expr>, Option<Arc<Type>>, Vec<MatchArm>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

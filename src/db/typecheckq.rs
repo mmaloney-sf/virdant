@@ -158,9 +158,16 @@ fn expr_typecheck(
             let typed_b = db.expr_typecheck(moddef, b.clone(), typ.clone(), new_ctx)?;
             Ok(TypedExpr::Let(typed_b.typ(), x.clone(), ascription.clone(), typed_e, typed_b).into())
         },
-        ast::Expr::Match(subject, arms) => {
+        ast::Expr::Match(subject, ascription, arms) => {
             let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone(), ctx.clone())?;
-            todo!()
+            let mut typed_arms: Vec<TypedMatchArm> = vec![];
+            for ast::MatchArm(pat, e) in arms {
+                let typed_e = db.expr_typecheck(moddef.clone(), e.clone(), typ.clone(), ctx.clone())?;
+                let typed_arm = TypedMatchArm(pat.clone(), typed_e);
+                typed_arms.push(typed_arm);
+            }
+            // TODO type ascription
+            Ok(TypedExpr::Match(typ.clone(), typed_subject, None, typed_arms).into())
         },
     }
 }
@@ -235,7 +242,7 @@ fn expr_typeinfer(
             let typed_b = db.expr_typeinfer(moddef, b.clone(), new_ctx)?;
             Ok(TypedExpr::Let(typed_b.typ(), x.clone(), ascription.clone(), typed_e, typed_b).into())
         },
-        ast::Expr::Match(_subject, _arms) => Err(TypeError::CantInfer.into()),
+        ast::Expr::Match(_subject, _ascription, _arms) => Err(TypeError::CantInfer.into()),
     }
 }
 
@@ -474,7 +481,7 @@ pub enum TypedExpr {
     Cat(Type, Vec<Arc<TypedExpr>>),
     If(Type, Arc<TypedExpr>, Arc<TypedExpr>, Arc<TypedExpr>),
     Let(Type, Ident, Option<Arc<ast::Type>>, Arc<TypedExpr>, Arc<TypedExpr>),
-    Match(Type, Arc<TypedExpr>, Vec<TypedMatchArm>),
+    Match(Type, Arc<TypedExpr>, Option<Arc<Type>>, Vec<TypedMatchArm>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -495,7 +502,7 @@ impl TypedExpr {
             TypedExpr::Cat(typ, _) => typ.clone(),
             TypedExpr::If(typ, _, _, _) => typ.clone(),
             TypedExpr::Let(typ, x, ascription, e, b) => typ.clone(),
-            TypedExpr::Match(typ, _subject, _arms) => typ.clone(),
+            TypedExpr::Match(typ, _subject, _ascription, _arms) => typ.clone(),
         }
     }
 
@@ -518,7 +525,6 @@ impl TypedExpr {
             TypedExpr::IdxRange(_typ, _, _, _) => HashSet::new(),
             TypedExpr::Cat(_typ, _) => HashSet::new(),
             TypedExpr::If(_typ, _, _, _) => HashSet::new(),
-            TypedExpr::Match(_typ, _subject, _arms) => todo!(),
             _ => todo!(),
         }
     }
@@ -542,7 +548,6 @@ impl TypedExpr {
             TypedExpr::IdxRange(_typ, _, _, _) => todo!(),
             TypedExpr::Cat(_typ, _) => todo!(),
             TypedExpr::If(_typ, _, _, _) => todo!(),
-            TypedExpr::Match(_typ, _subject, _arms) => todo!(),
             _ => todo!(),
         }
     }
@@ -555,18 +560,51 @@ pub struct AltTypeLayout {
 }
 
 impl AltTypeLayout {
+    pub fn width(&self) -> Width {
+        self.tag_width + self.payload_width()
+    }
+
+    pub fn payload_width(&self) -> Width {
+        let mut payload_width = 0;
+        for ctor in self.slots.iter().map(|(ctor, _)| ctor) {
+            let ctor_payload_width = self.ctor_payload_width(ctor.clone());
+            if ctor_payload_width > payload_width {
+                payload_width = ctor_payload_width;
+            }
+        }
+        payload_width
+    }
+
     pub fn tag_width(&self) -> Width {
         self.tag_width
     }
 
     pub fn ctor_slot(&self, ctor: Ident, slot: usize) -> (Offset, Width) {
-        for (i, (ctor_name, slots)) in self.slots.iter().enumerate() {
+        for (ctor_name, slots) in &self.slots {
             if ctor_name == &ctor {
                 let mut offset = self.tag_width;
                 for i in 0..slot {
                     offset += slots.0[i];
                 }
                 return (offset, slots.0[slot]);
+            }
+        }
+        panic!("No ctor found: {ctor}")
+    }
+
+    pub fn ctor_payload_width(&self, ctor: Ident) -> Width {
+        for (ctor_name, slots) in &self.slots {
+            if ctor_name == &ctor {
+                return slots.width();
+            }
+        }
+        panic!("No ctor found: {ctor}")
+    }
+
+    pub fn ctor_width(&self, ctor: Ident) -> Width {
+        for (ctor_name, slots) in &self.slots {
+            if ctor_name == &ctor {
+                return self.tag_width + slots.width();
             }
         }
         panic!("No ctor found: {ctor}")
@@ -579,5 +617,9 @@ pub struct CtorSlots(Vec<Width>);
 impl CtorSlots {
     fn add(&mut self, width: Width) {
         self.0.push(width)
+    }
+
+    fn width(&self) -> Width {
+        self.0.iter().sum()
     }
 }

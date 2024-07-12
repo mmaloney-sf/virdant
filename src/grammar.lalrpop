@@ -154,10 +154,11 @@ ExprLet: Arc<Expr> = {
 }
 
 ExprMatch: Arc<Expr> = {
-    <ll:@L> "match" <e:Expr> "{"
+    <ll:@L> "match" <ascription:(":" Type)?> <e:Expr> "{"
         <arms:MatchArm*>
     "}" <rr:@R> => {
-        Arc::new(Expr::Match(e, arms))
+        let type_ascription = ascription.map(|(_of, typ)| typ);
+        Arc::new(Expr::Match(e, type_ascription, arms))
     },
 }
 

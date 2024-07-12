@@ -258,8 +258,13 @@ impl<'a> Verilog<'a> {
 
                 let tag = self.db.alttypedef_ctor_tag(typ.clone(), ctor.clone())?;
                 let top_bit = layout.tag_width() - 1;
+                let tag_width_str = if top_bit > 0 {
+                    format!("[{top_bit}:0]")
+                } else {
+                    format!("")
+                };
                 writeln!(self.writer, "    // assign ctor tag: {ctor} is tag {tag}")?;
-                writeln!(self.writer, "    assign {gs}[{top_bit}:0] = {tag};")?;
+                writeln!(self.writer, "    assign {gs}{tag_width_str} = {tag};")?;
 
                 let ctor_argtypes = self.db.alttypedef_ctor_argtypes(typ.name(), ctor.clone())?;
                 for (i, arg_ssa) in args_ssa.into_iter().enumerate() {
@@ -267,8 +272,20 @@ impl<'a> Verilog<'a> {
                     let (offset, width) = layout.ctor_slot(ctor.clone(), i);
                     let bot_bit = offset;
                     let top_bit = offset + width - 1; // TODO mind 0-width types
+
                     writeln!(self.writer, "    // assign slot {i} of type {typ}")?;
                     writeln!(self.writer, "    assign {gs}[{top_bit}:{bot_bit}] = {arg_ssa};")?;
+                }
+
+                let fill = "1";
+
+                if layout.ctor_width(ctor.clone()) < layout.width() {
+                    let bot_bit = layout.ctor_width(ctor.clone());
+                    let top_bit = layout.width() - 1;
+                    let bits = top_bit - bot_bit + 1;
+
+                    writeln!(self.writer, "    // fill remaining space with {fill}")?;
+                    writeln!(self.writer, "    assign {gs}[{top_bit}:{bot_bit}] = {bits}'b{};", fill.repeat(bits as usize))?;
                 }
 
                 Ok(gs)
@@ -295,13 +312,46 @@ impl<'a> Verilog<'a> {
                 writeln!(self.writer, "    wire {width_str} {gs} = {b_ssa};")?;
                 Ok(gs)
             },
-            TypedExpr::Match(_typ, subject, arms) => {
+            TypedExpr::Match(_typ, subject, _ascription, arms) => {
                 let gs = self.gensym();
                 let subject_ssa = self.verilog_expr(subject.clone(), ctx.clone())?;
                 let typ = expr.typ();
+                let layout = self.db.alttype_layout(subject.typ())?;
                 let width_str = make_width_str(self.db, typ.clone());
-                writeln!(self.writer, "    wire {width_str} {gs} = 0;")?;
-                todo!()
+
+                let tag_ssa = self.gensym();
+                let tag_width = layout.tag_width();
+                let tag_top = tag_width - 1;
+
+                let mut arm_ssas = vec![];
+                for TypedMatchArm(pat, e) in arms {
+                    let arm_ssa = self.verilog_expr(e.clone(), ctx.clone())?;
+                    arm_ssas.push(arm_ssa);
+                }
+
+                writeln!(self.writer, "    // project out the tag ({tag_width} bits)")?;
+                let tag_width_str = if tag_width == 1 {
+                    format!("")
+                } else {
+                    format!("[{tag_top}:0]")
+                };
+
+                writeln!(self.writer, "    reg {width_str} {gs};")?;
+
+                writeln!(self.writer, "    wire {tag_width_str} {tag_ssa} = {subject_ssa}{tag_width_str};")?;
+
+                writeln!(self.writer, "    always @(*) begin")?;
+                writeln!(self.writer, "        case ({tag_ssa})")?;
+
+                for (i, arm_ssa) in arm_ssas.iter().enumerate() {
+                    writeln!(self.writer, "            {i}: {gs} <= {arm_ssa};")?;
+                }
+
+                writeln!(self.writer, "            default: {gs} <= 32'bx;")?;
+                writeln!(self.writer, "        endcase")?;
+                writeln!(self.writer, "    end")?;
+
+                Ok(gs)
             },
             _ => {
                 let gs = self.gensym();

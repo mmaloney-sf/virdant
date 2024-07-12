@@ -76,7 +76,7 @@ fn alttypedef_ast(db: &dyn AstQ, alttype: Ident) -> Result<ast::AltTypeDef, Vird
     if let Some(alttypedef) = result {
         Ok(alttypedef)
     } else {
-        Err(VirdantError::Other(format!("Unknown moddef {alttype}")))
+        Err(VirdantError::Other(format!("Unknown alt type {alttype}")))
     }
 }
 
@@ -205,7 +205,7 @@ impl ast::Expr {
             ast::Expr::Let(x, typ, e, b) => {
                 todo!()
             },
-            ast::Expr::Match(_subject, _arms) => {
+            ast::Expr::Match(_subject, _ascription, _arms) => {
                 todo!()
             },
         }

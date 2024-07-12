@@ -258,30 +258,16 @@ impl<'a> Verilog<'a> {
                 }
 
                 let width_str = make_width_str(self.db, typ.clone());
-                writeln!(self.writer, "    wire {width_str} {gs};")?;
 
                 let tag = self.db.alttypedef_ctor_tag(typ.clone(), ctor.clone())?;
-                let top_bit = layout.tag_width() - 1;
-                let tag_width_str = if top_bit > 0 {
-                    format!("[{top_bit}:0]")
-                } else {
-                    format!("")
-                };
-                writeln!(self.writer, "    // assign ctor tag: {ctor} is tag {tag}")?;
-                writeln!(self.writer, "    assign {gs}{tag_width_str} = {tag};")?;
-
-                let ctor_argtypes = self.db.alttypedef_ctor_argtypes(typ.name(), ctor.clone())?;
-                for (i, arg_ssa) in args_ssa.into_iter().enumerate() {
-                    let typ = &ctor_argtypes[i];
-                    let (offset, width) = layout.ctor_slot(ctor.clone(), i);
-                    let bot_bit = offset;
-                    let top_bit = offset + width - 1; // TODO mind 0-width types
-
-                    writeln!(self.writer, "    // assign slot {i} of type {typ}")?;
-                    writeln!(self.writer, "    assign {gs}[{top_bit}:{bot_bit}] = {arg_ssa};")?;
-                }
-
                 let fill = "1";
+
+                write!(self.writer, "    wire {width_str} {gs} = {{ ")?;
+                for arg_ssa in &args_ssa {
+                    write!(self.writer, "{arg_ssa}, ")?;
+                }
+                let tag_width = layout.tag_width();
+                writeln!(self.writer, "{tag_width}'d{tag} }};")?;
 
                 if layout.ctor_width(ctor.clone()) < layout.width() {
                     let bot_bit = layout.ctor_width(ctor.clone());
@@ -339,13 +325,15 @@ impl<'a> Verilog<'a> {
                             writeln!(self.writer, "    // (pats are {pats:?})")?;
                             for (i, pat) in pats.iter().enumerate() {
                                 let (offset, width) = layout.ctor_slot(ctor.clone(), i);
+                                dbg!((offset, width));
+                                let width_minus_1 = width - 1;
                                 if let ast::Pat::Bind(x) = pat {
                                     let x_ssa = self.gensym_hint(&x.to_string());
                                     new_ctx = new_ctx.extend(x.as_path(), x_ssa.clone());
                                     let bot_bit = offset;
                                     let top_bit = offset + width - 1;
                                     writeln!(self.writer, "    // binding variable {x} to slot")?;
-                                    writeln!(self.writer, "    wire [{width}:0] {x_ssa} = {subject_ssa}[{top_bit}:{bot_bit}];")?;
+                                    writeln!(self.writer, "    wire [{width_minus_1}:0] {x_ssa} = {subject_ssa}[{top_bit}:{bot_bit}];")?;
                                 } else {
                                     panic!()
                                 }
@@ -366,9 +354,15 @@ impl<'a> Verilog<'a> {
                     format!("[{tag_top}:0]")
                 };
 
+                let subject_tag_idx = if tag_width == 1 {
+                    format!("[0]")
+                } else {
+                    format!("[{tag_top}:0]")
+                };
+
                 writeln!(self.writer, "    reg {width_str} {gs};")?;
 
-                writeln!(self.writer, "    wire {tag_width_str} {tag_ssa} = {subject_ssa};")?;
+                writeln!(self.writer, "    wire {tag_width_str} {tag_ssa} = {subject_ssa}{subject_tag_idx};")?;
 
                 writeln!(self.writer, "    always @(*) begin")?;
                 writeln!(self.writer, "        case ({tag_ssa})")?;

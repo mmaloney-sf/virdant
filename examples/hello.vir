@@ -13,15 +13,15 @@ pub mod Top {
 
     reg state : State on clock;
     state <= match state {
-        @Idle(x) => @Running(0w3);
-        @Running(x) => @Idle(x->inc());
+        @Idle(x) => @Running(x->inc());
+        @Running(x) => @Idle(x);
     };
 
-    node result : Word[3];
-    result := match state {
-        @Idle(x) => x->not();
-        @Running(x) => x;
-    };
+//    node result : Word[3];
+//    result := match state {
+//        @Idle(x) => x->not();
+//        @Running(x) => x;
+//    };
 
     reg counter : Word[32] on clock;
     counter <= counter->inc();

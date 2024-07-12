@@ -1,5 +1,5 @@
 alt type State {
-    Idle(Word[3]);
+    Idle();
     Running(Word[3]);
 }
 
@@ -15,11 +15,11 @@ pub mod Top {
     counter <= counter->inc();
 
     reg state : State on clock;
-    state <= if counter[0] {
+    state <= if counter[22] {
         match state {
-            @Idle(x) => @Running(0);
+            @Idle() => @Running(0);
             @Running(x) => if x->eq(7) {
-                @Idle(0)
+                @Idle()
             } else {
                 @Running(x->inc())
             };
@@ -31,7 +31,7 @@ pub mod Top {
 
     node led : Word[5];
     led := match state {
-        @Idle(x) => 0;
+        @Idle() => 0;
         @Running(x) => if x->lt(3) {
             counter[27..22]
         } else {

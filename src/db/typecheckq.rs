@@ -81,9 +81,7 @@ fn expr_typecheck(
             let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone(), ctx.clone())?;
             let MethodSig(arg_types, ret_type) = db.method_sig(typed_subject.typ(), method.clone())?;
 
-            dbg!(&ret_type, &typ);
             if ret_type != typ {
-                dbg!(&ctx);
                 return Err(VirdantError::Other(format!("Wrong return type")));
             }
 
@@ -160,13 +158,37 @@ fn expr_typecheck(
             let typed_b = db.expr_typecheck(moddef, b.clone(), typ.clone(), new_ctx)?;
             Ok(TypedExpr::Let(typed_b.typ(), x.clone(), ascription.clone(), typed_e, typed_b).into())
         },
-        ast::Expr::Match(subject, ascription, arms) => {
+        ast::Expr::Match(subject, _ascription, arms) => {
             let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone(), ctx.clone())?;
+            let ctors = db.alttypedef_ctors(typed_subject.typ().name())
+                .map_err(|_err| {
+                    VirdantError::Other(format!("match subject must be an alt type"))
+                })?;
+
             let mut typed_arms: Vec<TypedMatchArm> = vec![];
             for ast::MatchArm(pat, e) in arms {
-                // TODO lol
-                let new_ctx = ctx.extend("x".into(), Type::Word(3));
-                let typed_e = db.expr_typecheck(moddef.clone(), e.clone(), typ.clone(), new_ctx.clone())?;
+                let mut new_ctx = ctx.clone();
+                match pat {
+                    ast::Pat::At(ctor, subpats) => {
+                        let CtorSig(arg_typs, _typ) = db.ctor_sig(typed_subject.typ(), ctor.clone())?;
+
+                        if subpats.len() != arg_typs.len() {
+                            return Err(VirdantError::Unknown);
+                        }
+
+                        for (subpat, arg_typ) in subpats.iter().zip(arg_typs) {
+                            if let ast::Pat::Bind(x) = subpat {
+                                eprintln!("Extending ctx with {x} : {arg_typ}");
+                                new_ctx = new_ctx.extend(x.as_path(), arg_typ);
+                            } else {
+                                return Err(VirdantError::Unknown);
+                            }
+                        }
+                    },
+                    ast::Pat::Bind(x) => todo!(),
+                    ast::Pat::Otherwise => todo!(),
+                }
+                let typed_e = db.expr_typecheck(moddef.clone(), e.clone(), typ.clone(), new_ctx)?;
                 let typed_pat = TypedPat::from(pat, typed_subject.typ(), db)?;
                 let typed_arm = TypedMatchArm(typed_pat, typed_e);
                 typed_arms.push(typed_arm);
@@ -257,7 +279,6 @@ fn method_sig(_db: &dyn TypecheckQ, typ: Type, method: Ident) -> VirdantResult<M
             if method == "add".into() {
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))
             } else if method == "inc".into() {
-                dbg!(&typ);
                 Ok(MethodSig(vec![], typ.clone()))
             } else if method == "sub".into() {
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))

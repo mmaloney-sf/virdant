@@ -317,17 +317,15 @@ impl<'a> Verilog<'a> {
                 writeln!(self.writer, "    // match arm")?;
                 for TypedMatchArm(pat, e) in arms {
                     match pat {
-                        ast::Pat::At(ctor, pats) => {
+                        TypedPat::At(_typ, ctor, pats) => {
                             writeln!(self.writer, "    // case {ctor}")?;
-                            dbg!(ctor, pats);
                             let tag = layout.tag_for(ctor.clone());
                             let mut new_ctx = ctx.clone();
                             writeln!(self.writer, "    // (pats are {pats:?})")?;
                             for (i, pat) in pats.iter().enumerate() {
                                 let (offset, width) = layout.ctor_slot(ctor.clone(), i);
-                                dbg!((offset, width));
                                 let width_minus_1 = width - 1;
-                                if let ast::Pat::Bind(x) = pat {
+                                if let TypedPat::Bind(_typ, x) = pat {
                                     let x_ssa = self.gensym_hint(&x.to_string());
                                     new_ctx = new_ctx.extend(x.as_path(), x_ssa.clone());
                                     let bot_bit = offset;
@@ -338,9 +336,7 @@ impl<'a> Verilog<'a> {
                                     panic!()
                                 }
                             }
-                            dbg!(&new_ctx);
                             let arm_ssa = self.verilog_expr(e.clone(), new_ctx)?;
-                            dbg!(&arm_ssa);
                             arm_ssas.push((tag, ctor.clone(), arm_ssa));
                         },
                         _ => todo!(),

@@ -11,29 +11,39 @@ pub mod Top {
     outgoing led_3 : Word[1];
     outgoing led_4 : Word[1];
 
-    reg state : State on clock;
-    state <= match state {
-        @Idle(x) => @Running(x->inc());
-        @Running(x) => @Idle(x);
-    };
-
-//    node result : Word[3];
-//    result := match state {
-//        @Idle(x) => x->not();
-//        @Running(x) => x;
-//    };
-
     reg counter : Word[32] on clock;
     counter <= counter->inc();
 
-    node led : Word[5];
-    led := counter[27..22];
+    reg state : State on clock;
+    state <= if counter[0] {
+        match state {
+            @Idle(x) => @Running(0);
+            @Running(x) => if x->eq(7) {
+                @Idle(0)
+            } else {
+                @Running(x->inc())
+            };
+        }
+    } else {
+        state
+    };
 
-    led_0 := counter[22];
-    led_1 := counter[22]->not();
-    led_2 := counter[22];
-    led_3 := counter[22]->not();
-    led_4 := counter[20];
+
+    node led : Word[5];
+    led := match state {
+        @Idle(x) => 0;
+        @Running(x) => if x->lt(3) {
+            counter[27..22]
+        } else {
+            counter[27..22]->and(0b10101)
+        };
+    };
+
+    led_0 := led[0];
+    led_1 := led[1];
+    led_2 := led[2];
+    led_3 := led[3];
+    led_4 := led[4];
 }
 
 /*

@@ -19,11 +19,11 @@ pub trait TypecheckQ: StructureQ {
     fn expr_typeinfer(&self, moddef: Ident, expr: Arc<ast::Expr>, ctx: Context<Path, Type>) -> VirdantResult<Arc<TypedExpr>>;
 
     fn method_sig(&self, typ: Type, method: Ident) -> VirdantResult<MethodSig>;
+    fn ctor_sig(&self, typ: Type, ctor: Ident) -> VirdantResult<CtorSig>;
 
     fn bitwidth(&self, typ: Type) -> VirdantResult<Width>;
 
     fn alttypedef_ctor_tag(&self, typ: Type, ctor: Ident) -> VirdantResult<u64>;
-
     fn alttype_layout(&self, typ: Type) -> VirdantResult<AltTypeLayout>;
 
     fn moddef_typecheck_wire(&self, moddef: Ident, target: Path) -> VirdantResult<Arc<TypedExpr>>;
@@ -167,7 +167,8 @@ fn expr_typecheck(
                 // TODO lol
                 let new_ctx = ctx.extend("x".into(), Type::Word(3));
                 let typed_e = db.expr_typecheck(moddef.clone(), e.clone(), typ.clone(), new_ctx.clone())?;
-                let typed_arm = TypedMatchArm(pat.clone(), typed_e);
+                let typed_pat = TypedPat::from(pat, typed_subject.typ(), db)?;
+                let typed_arm = TypedMatchArm(typed_pat, typed_e);
                 typed_arms.push(typed_arm);
             }
             // TODO type ascription
@@ -284,6 +285,23 @@ fn method_sig(_db: &dyn TypecheckQ, typ: Type, method: Ident) -> VirdantResult<M
         },
         _ => Err(VirdantError::Other(format!("No such method {method} for type {typ}"))),
     }
+}
+
+fn ctor_sig(db: &dyn TypecheckQ, typ: Type, ctor: Ident) -> VirdantResult<CtorSig> {
+    let alttypedef_ast = db.alttypedef_ast(typ.name())?;
+
+    for (ctor_name, ast_arg_typs) in &alttypedef_ast.alts {
+        if ctor_name == &ctor {
+            let mut arg_typs = vec![];
+            for ast_arg_typ in ast_arg_typs {
+                let resolved_arg_typ = db.resolve_type(ast_arg_typ.clone())?;
+                arg_typs.push(resolved_arg_typ);
+            }
+            return Ok(CtorSig(arg_typs, typ));
+        }
+    }
+
+    Err(VirdantError::Unknown)
 }
 
 fn bitwidth(db: &dyn TypecheckQ, typ: Type) -> VirdantResult<Width> {
@@ -472,6 +490,9 @@ fn pow(n: u64, k: u64) -> u64 {
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub struct MethodSig(Vec<Type>, Type);
 
+#[derive(Clone, Hash, PartialEq, Eq, Debug)]
+pub struct CtorSig(Vec<Type>, Type);
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypedExpr {
     Reference(Type, Path),
@@ -490,7 +511,46 @@ pub enum TypedExpr {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TypedMatchArm(pub ast::Pat, pub Arc<TypedExpr>);
+pub enum TypedPat {
+    At(Type, Ident, Vec<TypedPat>),
+    Bind(Type, Ident),
+    Otherwise(Type),
+}
+
+impl TypedPat {
+    fn from(pat: &ast::Pat, typ: Type, db: &dyn TypecheckQ) -> VirdantResult<TypedPat> {
+        match pat {
+            ast::Pat::At(ctor, subpats) => {
+                let CtorSig(arg_typs, _typ) = db.ctor_sig(typ.clone(), ctor.clone())?;
+
+                if arg_typs.len() != subpats.len() {
+                    return Err(VirdantError::Unknown);
+                }
+
+                let mut typed_args: Vec<TypedPat> = vec![];
+                for (subpat, arg_typ) in subpats.iter().zip(arg_typs) {
+                    let typed_arg = TypedPat::from(subpat, arg_typ, db)?;
+                    typed_args.push(typed_arg);
+                }
+
+                Ok(TypedPat::At(typ, ctor.clone(), typed_args))
+            },
+            ast::Pat::Bind(x) => Ok(TypedPat::Bind(typ, x.clone())),
+            ast::Pat::Otherwise => Ok(TypedPat::Otherwise(typ)),
+        }
+    }
+
+    pub fn typ(&self) -> Type {
+        match self {
+            TypedPat::At(typ, _, _) => typ.clone(),
+            TypedPat::Bind(typ, _) => typ.clone(),
+            TypedPat::Otherwise(typ) => typ.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypedMatchArm(pub TypedPat, pub Arc<TypedExpr>);
 
 impl TypedExpr {
     pub fn typ(&self) -> Type {

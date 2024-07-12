@@ -1,0 +1,43 @@
+alt type State {
+    Idle();
+    Running(Word[8], Word[8]);
+    Done(Word[8]);
+}
+
+pub mod Top {
+    incoming clock : Clock;
+    mod gcd of Gcd;
+    gcd.clock := clock;
+    gcd.x := 89;
+    gcd.y := 144;
+}
+
+mod Gcd {
+    incoming clock : Clock;
+    incoming x : Word[8];
+    incoming y : Word[8];
+    outgoing result : Word[8];
+
+    reg state : State on clock;
+
+    state <= match state {
+        @Idle() => @Running(x, y);
+        @Running(x, y) =>
+            if y->eq(0) {
+                @Done(x)
+            } else {
+                if x->lt(y) {
+                    @Running(y->sub(x), x)
+                } else {
+                    @Running(x->sub(y), y)
+                }
+            };
+        @Done(result) => @Idle();
+    };
+
+    result := match state {
+        @Idle() => 0;
+        @Running(x, y) => 0;
+        @Done(result) => result;
+    };
+}

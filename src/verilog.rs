@@ -126,6 +126,10 @@ impl<'a> Verilog<'a> {
                 writeln!(self.writer, "        {component} <= {connect_ssa};")?;
                 writeln!(self.writer, "    end")?;
                 writeln!(self.writer)?;
+                writeln!(self.writer, "    initial begin")?;
+                writeln!(self.writer, "        {component} <= 0;")?;
+                writeln!(self.writer, "    end")?;
+                writeln!(self.writer)?;
             },
         }
         Ok(())
@@ -313,7 +317,7 @@ impl<'a> Verilog<'a> {
                 Ok(gs)
             },
             TypedExpr::Match(_typ, subject, _ascription, arms) => {
-                let gs = self.gensym();
+                let gs = self.gensym_hint("match");
                 let subject_ssa = self.verilog_expr(subject.clone(), ctx.clone())?;
                 let typ = expr.typ();
                 let layout = self.db.alttype_layout(subject.typ())?;
@@ -323,13 +327,39 @@ impl<'a> Verilog<'a> {
                 let tag_width = layout.tag_width();
                 let tag_top = tag_width - 1;
 
-                let mut arm_ssas = vec![];
+                let mut arm_ssas: Vec<(Tag, Ident, SsaName)> = vec![];
+                writeln!(self.writer, "    // match arm")?;
                 for TypedMatchArm(pat, e) in arms {
-                    let arm_ssa = self.verilog_expr(e.clone(), ctx.clone())?;
-                    arm_ssas.push(arm_ssa);
+                    match pat {
+                        ast::Pat::At(ctor, pats) => {
+                            writeln!(self.writer, "    // case {ctor}")?;
+                            dbg!(ctor, pats);
+                            let tag = layout.tag_for(ctor.clone());
+                            let mut new_ctx = ctx.clone();
+                            writeln!(self.writer, "    // (pats are {pats:?})")?;
+                            for (i, pat) in pats.iter().enumerate() {
+                                let (offset, width) = layout.ctor_slot(ctor.clone(), i);
+                                if let ast::Pat::Bind(x) = pat {
+                                    let x_ssa = self.gensym_hint(&x.to_string());
+                                    new_ctx = new_ctx.extend(x.as_path(), x_ssa.clone());
+                                    let bot_bit = offset;
+                                    let top_bit = offset + width - 1;
+                                    writeln!(self.writer, "    // binding variable {x} to slot")?;
+                                    writeln!(self.writer, "    wire [{width}:0] {x_ssa} = {subject_ssa}[{top_bit}:{bot_bit}];")?;
+                                } else {
+                                    panic!()
+                                }
+                            }
+                            dbg!(&new_ctx);
+                            let arm_ssa = self.verilog_expr(e.clone(), new_ctx)?;
+                            dbg!(&arm_ssa);
+                            arm_ssas.push((tag, ctor.clone(), arm_ssa));
+                        },
+                        _ => todo!(),
+                    }
                 }
 
-                writeln!(self.writer, "    // project out the tag ({tag_width} bits)")?;
+                writeln!(self.writer, "    // project tag ({tag_width} bits)")?;
                 let tag_width_str = if tag_width == 1 {
                     format!("")
                 } else {
@@ -338,13 +368,14 @@ impl<'a> Verilog<'a> {
 
                 writeln!(self.writer, "    reg {width_str} {gs};")?;
 
-                writeln!(self.writer, "    wire {tag_width_str} {tag_ssa} = {subject_ssa}{tag_width_str};")?;
+                writeln!(self.writer, "    wire {tag_width_str} {tag_ssa} = {subject_ssa};")?;
 
                 writeln!(self.writer, "    always @(*) begin")?;
                 writeln!(self.writer, "        case ({tag_ssa})")?;
 
-                for (i, arm_ssa) in arm_ssas.iter().enumerate() {
-                    writeln!(self.writer, "            {i}: {gs} <= {arm_ssa};")?;
+                for (tag, ctor, arm_ssa) in &arm_ssas {
+                    writeln!(self.writer, "            // @{ctor}:")?;
+                    writeln!(self.writer, "            {tag}: {gs} <= {arm_ssa};")?;
                 }
 
                 writeln!(self.writer, "            default: {gs} <= 32'bx;")?;
@@ -364,6 +395,11 @@ impl<'a> Verilog<'a> {
     fn gensym(&mut self) -> SsaName {
         self.gensym += 1;
         format!("__TEMP_{}", self.gensym)
+    }
+
+    fn gensym_hint(&mut self, hint: &str) -> SsaName {
+        self.gensym += 1;
+        format!("__TEMP_{}_{hint}", self.gensym)
     }
 }
 

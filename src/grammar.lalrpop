@@ -169,7 +169,7 @@ MatchArm: MatchArm = {
 Pat: Pat = {
     <id:Ctor> => Pat::At(id.as_str()[1..].into(), vec![]),
     <id:Ctor> "(" <subpats:PatList> ")" => {
-        Pat::At(id.as_str()[1..].into(), subpats)
+        Pat::At(id.as_str().into(), subpats)
     },
     <id:Id> => Pat::Bind(id.into()),
     "otherwise" => Pat::Otherwise,

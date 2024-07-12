@@ -81,7 +81,9 @@ fn expr_typecheck(
             let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone(), ctx.clone())?;
             let MethodSig(arg_types, ret_type) = db.method_sig(typed_subject.typ(), method.clone())?;
 
+            dbg!(&ret_type, &typ);
             if ret_type != typ {
+                dbg!(&ctx);
                 return Err(VirdantError::Other(format!("Wrong return type")));
             }
 
@@ -162,7 +164,9 @@ fn expr_typecheck(
             let typed_subject = db.expr_typeinfer(moddef.clone(), subject.clone(), ctx.clone())?;
             let mut typed_arms: Vec<TypedMatchArm> = vec![];
             for ast::MatchArm(pat, e) in arms {
-                let typed_e = db.expr_typecheck(moddef.clone(), e.clone(), typ.clone(), ctx.clone())?;
+                // TODO lol
+                let new_ctx = ctx.extend("x".into(), Type::Word(3));
+                let typed_e = db.expr_typecheck(moddef.clone(), e.clone(), typ.clone(), new_ctx.clone())?;
                 let typed_arm = TypedMatchArm(pat.clone(), typed_e);
                 typed_arms.push(typed_arm);
             }
@@ -252,6 +256,7 @@ fn method_sig(_db: &dyn TypecheckQ, typ: Type, method: Ident) -> VirdantResult<M
             if method == "add".into() {
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))
             } else if method == "inc".into() {
+                dbg!(&typ);
                 Ok(MethodSig(vec![], typ.clone()))
             } else if method == "sub".into() {
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))
@@ -577,6 +582,27 @@ impl AltTypeLayout {
 
     pub fn tag_width(&self) -> Width {
         self.tag_width
+    }
+
+    pub fn tag_for(&self, ctor: Ident) -> Tag {
+        for (tag, (ctor_name, _slots)) in self.slots.iter().enumerate() {
+            if ctor_name == &ctor {
+                return tag as Tag;
+            }
+        }
+
+        panic!("No ctor found: {ctor}")
+    }
+
+    pub fn ctor_slots(&self, ctor: Ident) -> Vec<(Offset, Width)> {
+        for (ctor_name, slots) in &self.slots {
+            let mut results = vec![];
+            for i in 0..slots.0.len() {
+                results.push(self.ctor_slot(ctor.clone(), i));
+            }
+        return results;
+        }
+        panic!("No ctor found: {ctor}")
     }
 
     pub fn ctor_slot(&self, ctor: Ident, slot: usize) -> (Offset, Width) {

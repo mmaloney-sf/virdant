@@ -1,7 +1,6 @@
 alt type State {
-    Idle();
-    Running();
-    Done();
+    Idle(Word[3]);
+    Running(Word[3]);
 }
 
 pub mod Top {
@@ -12,23 +11,29 @@ pub mod Top {
     outgoing led_3 : Word[1];
     outgoing led_4 : Word[1];
 
-    node state : State;
-    state := @Running();
-
-    node result : Word[8];
-    result := match state {
-        @Idle() => 0b00001010;
-        @Running(x) => 0b00001111;
+    reg state : State on clock;
+    state <= match state {
+        @Idle(x) => @Running(0w3);
+        @Running(x) => @Idle(x->inc());
     };
 
-    node led : Word[5];
-    led := 0;
+    node result : Word[3];
+    result := match state {
+        @Idle(x) => x->not();
+        @Running(x) => x;
+    };
 
-    led_0 := led[0];
-    led_1 := led[1];
-    led_4 := led[2];
-    led_2 := led[3];
-    led_3 := led[4];
+    reg counter : Word[32] on clock;
+    counter <= counter->inc();
+
+    node led : Word[5];
+    led := counter[27..22];
+
+    led_0 := counter[22];
+    led_1 := counter[22]->not();
+    led_2 := counter[22];
+    led_3 := counter[22]->not();
+    led_4 := counter[20];
 }
 
 /*

@@ -591,7 +591,7 @@ impl TypedExpr {
             TypedExpr::IdxRange(typ, _, _, _) => typ.clone(),
             TypedExpr::Cat(typ, _) => typ.clone(),
             TypedExpr::If(typ, _, _, _) => typ.clone(),
-            TypedExpr::Let(typ, x, ascription, e, b) => typ.clone(),
+            TypedExpr::Let(typ, _x, _ascription, _e, _b) => typ.clone(),
             TypedExpr::Match(typ, _subject, _ascription, _arms) => typ.clone(),
         }
     }

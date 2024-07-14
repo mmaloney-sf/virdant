@@ -3,6 +3,7 @@ mod item_resolution;
 mod item_dependency;
 mod item_structure;
 mod type_resolution;
+mod typecheck;
 
 use crate::common::*;
 
@@ -12,6 +13,7 @@ use crate::common::*;
     item_dependency::ItemDependencyQStorage,
     item_structure::ItemStructureQStorage,
     type_resolution::TypeResolutionQStorage,
+    typecheck::TypecheckQStorage,
 )]
 #[derive(Default)]
 pub struct Db {

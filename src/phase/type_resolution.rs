@@ -8,6 +8,8 @@ pub trait TypeResolutionQ: item_resolution::ItemResolutionQ {
 
     fn method_sig(&self, typ: Type, method: Ident) -> VirdantResult<MethodSig>;
     fn ctor_sig(&self, typ: Type, ctor: Ident) -> VirdantResult<CtorSig>;
+
+    fn component_typ(&self, component: Component) -> VirdantResult<Type>;
 }
 
 fn resolve_typ(db: &dyn TypeResolutionQ, typ: Arc<ast::Type>, from: Package) -> VirdantResult<Type> {
@@ -85,6 +87,22 @@ fn ctor_sig(db: &dyn TypeResolutionQ, typ: Type, ctor: Ident) -> VirdantResult<C
                 arg_typs.push(resolved_arg_typ);
             }
             return Ok(CtorSig(arg_typs, typ));
+        }
+    }
+
+    Err(VirdantError::Unknown)
+}
+
+fn component_typ(db: &dyn TypeResolutionQ, component: Component) -> VirdantResult<Type> {
+    let moddef_ast = db.moddef_ast(component.moddef()).unwrap();
+
+    for decl in &moddef_ast.decls {
+        if let ast::Decl::SimpleComponent(simplecomponent) = decl {
+            if simplecomponent.name == component.name() {
+                let package = Package("test".into());
+                let typ = db.resolve_typ(simplecomponent.typ.clone(), package)?;
+                return Ok(typ);
+            }
         }
     }
 

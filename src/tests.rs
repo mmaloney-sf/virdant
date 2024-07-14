@@ -1,6 +1,5 @@
 use crate::common::*;
 use crate::parse::{parse_package, parse_expr};
-use crate::ast;
 use crate::db::*;
 
 #[test]

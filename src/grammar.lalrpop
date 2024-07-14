@@ -64,8 +64,8 @@ AltTypeDef: AltTypeDef = {
     },
 }
 
-AltTypeDefAlt: (Ident, Vec<Arc<Type>>) = {
-    <ident:Id> "(" <typs:TypeList> ")" ";" => (ident, typs),
+AltTypeDefAlt: Alt = {
+    <ident:Id> "(" <typs:TypeList> ")" ";" => Alt(ident, typs),
 }
 
 TypeList: Vec<Arc<Type>> = {

@@ -37,8 +37,11 @@ pub struct StructTypeDef {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AltTypeDef {
     pub name: Ident,
-    pub alts: Vec<(Ident, Vec<Arc<Type>>)>,
+    pub alts: Vec<Alt>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Alt(pub Ident, pub Vec<Arc<Type>>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Decl {

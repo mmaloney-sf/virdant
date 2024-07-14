@@ -156,13 +156,13 @@ fn resolve_type(db: &dyn StructureQ, typ: Arc<ast::Type>) -> VirdantResult<Type>
 
 fn alttypedef_ctors(db: &dyn StructureQ, alttype: Ident) -> VirdantResult<Vec<Ident>> {
     let alttypedef_ast = db.alttypedef_ast(alttype)?;
-    let idents: Vec<Ident> = alttypedef_ast.alts.iter().map(|(ident, _argtypes)| ident.clone()).collect();
+    let idents: Vec<Ident> = alttypedef_ast.alts.iter().map(|ast::Alt(ident, _argtypes)| ident.clone()).collect();
     Ok(idents)
 }
 
 fn alttypedef_ctor_argtypes(db: &dyn StructureQ, alttype: Ident, ctor: Ident) -> VirdantResult<Vec<Type>> {
     let alttypedef_ast = db.alttypedef_ast(alttype.clone())?;
-    for (alt_ctor, arg_typs) in &alttypedef_ast.alts {
+    for ast::Alt(alt_ctor, arg_typs) in &alttypedef_ast.alts {
         if alt_ctor == &ctor {
             let mut typs = vec![];
             for arg_typ in arg_typs {

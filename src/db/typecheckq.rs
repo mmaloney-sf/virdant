@@ -315,7 +315,7 @@ fn method_sig(_db: &dyn TypecheckQ, typ: Type, method: Ident) -> VirdantResult<M
 fn ctor_sig(db: &dyn TypecheckQ, typ: Type, ctor: Ident) -> VirdantResult<CtorSig> {
     let alttypedef_ast = db.alttypedef_ast(typ.name())?;
 
-    for (ctor_name, ast_arg_typs) in &alttypedef_ast.alts {
+    for ast::Alt(ctor_name, ast_arg_typs) in &alttypedef_ast.alts {
         if ctor_name == &ctor {
             let mut arg_typs = vec![];
             for ast_arg_typ in ast_arg_typs {
@@ -341,7 +341,7 @@ fn bitwidth(db: &dyn TypecheckQ, typ: Type) -> VirdantResult<Width> {
             let alttypedef_ast = db.alttypedef_ast(name)?;
 
             let mut payload_width = 0;
-            for (_ctor, ast_arg_typs) in &alttypedef_ast.alts {
+            for ast::Alt(_ctor, ast_arg_typs) in &alttypedef_ast.alts {
                 let mut resolved_arg_typs = vec![];
                 for ast_arg_typ in ast_arg_typs {
                     let resolved_typ = db.resolve_type(ast_arg_typ.clone())?;
@@ -371,7 +371,7 @@ fn alttype_layout(db: &dyn TypecheckQ, typ: Type) -> VirdantResult<AltTypeLayout
     let tag_width = clog2(alttypedef_ast.alts.len() as u64);
 
     let mut slots_by_ctor: Vec<(Ident, CtorSlots)> = vec![];
-    for (ctor, arg_typs) in &alttypedef_ast.alts {
+    for ast::Alt(ctor, arg_typs) in &alttypedef_ast.alts {
         let mut slots = CtorSlots::default();
         for arg_typ in arg_typs {
             let resolved_arg_typ = db.resolve_type(arg_typ.clone())?;
@@ -392,7 +392,7 @@ fn alttype_layout(db: &dyn TypecheckQ, typ: Type) -> VirdantResult<AltTypeLayout
 
 fn alttypedef_ctor_tag(db: &dyn TypecheckQ, typ: Type, ctor: Ident) -> VirdantResult<u64> {
     let alttypedef_ast = db.alttypedef_ast(typ.name())?;
-    for (tag, (ctor_name, _)) in alttypedef_ast.alts.iter().enumerate() {
+    for (tag, ast::Alt(ctor_name, _)) in alttypedef_ast.alts.iter().enumerate() {
         if ctor_name == &ctor {
             return Ok(tag.try_into().unwrap());
         }

@@ -1,6 +1,7 @@
 mod astq;
 mod item_resolution;
 mod item_dependency;
+mod item_structure;
 
 use crate::common::*;
 
@@ -8,6 +9,7 @@ use crate::common::*;
     astq::AstQStorage,
     item_resolution::ItemResolutionQStorage,
     item_dependency::ItemDependencyQStorage,
+    item_structure::ItemStructureQStorage,
 )]
 #[derive(Default)]
 pub struct Db {
@@ -35,7 +37,7 @@ impl From<Item> for Path {
     }
 }
 
-macro_rules! define_path_type {
+macro_rules! define_fq_type {
     ($name:ident) => {
         #[derive(Clone, PartialEq, Eq, Hash)]
         pub struct $name(Path);
@@ -80,10 +82,16 @@ macro_rules! define_path_type {
     };
 }
 
-define_path_type!(Package);
-define_path_type!(ModDef);
-define_path_type!(UnionDef);
-define_path_type!(StructDef);
+define_fq_type!(Package);
+
+// Items
+define_fq_type!(ModDef);
+define_fq_type!(UnionDef);
+define_fq_type!(StructDef);
+
+define_fq_type!(Component);
+define_fq_type!(Alt);
+define_fq_type!(Field);
 
 pub trait AsItem {
     fn as_item(&self) -> Item;
@@ -122,6 +130,7 @@ fn phase() {
     use self::item_dependency::*;
     use self::item_resolution::*;
     use self::astq::*;
+    use self::item_structure::*;
 
     let mut db = Db::default();
     let sources: Vec<(String, Arc<String>)> = vec![
@@ -145,7 +154,14 @@ fn phase() {
             Arc::new("
                 import edge;
 
+                alt type ValidByte {
+                    Invalid();
+                    Valid(Word[8]);
+                }
+
                 alt type Foo {
+                    Foo();
+                    Bar(Word[1]);
                 }
 
                 alt type Bar {
@@ -178,5 +194,16 @@ fn phase() {
     let deps = db.moddef_item_dependencies(ModDef("test.Test".into())).unwrap();
     eprintln!("DEPS:");
     eprintln!("{deps:?}");
+    eprintln!();
+
+
+    let components = db.moddef_components(ModDef("test.Test".into())).unwrap();
+    eprintln!("test.Test COMPONENTS:");
+    eprintln!("{components:?}");
+    eprintln!();
+
+    let alts = db.uniondef_alts(UnionDef("test.ValidByte".into())).unwrap();
+    eprintln!("test.ValidByte ALTS");
+    eprintln!("{alts:?}");
     eprintln!();
 }

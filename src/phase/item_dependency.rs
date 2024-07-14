@@ -12,9 +12,7 @@ pub trait ItemDependencyQ: super::item_resolution::ItemResolutionQ {
 fn moddef_item_dependencies(db: &dyn ItemDependencyQ, moddef: ModDef) -> VirdantResult<Vec<Item>> {
     let mut errors = ErrorReport::new();
     let mut dependencies: HashSet<Item> = HashSet::new();
-    let moddef_ast = db.moddef_ast(moddef.package(), moddef.name())?;
-
-    let package_path: Path = moddef.fqname().parent();
+    let moddef_ast = db.moddef_ast(moddef.clone())?;
 
     for decl in &moddef_ast.decls {
         match decl {
@@ -25,7 +23,7 @@ fn moddef_item_dependencies(db: &dyn ItemDependencyQ, moddef: ModDef) -> Virdant
                 }
             },
             ast::Decl::Submodule(submodule) => {
-                let item = db.item(package_path.join(&submodule.moddef.as_path()))?;
+                let item = db.item(submodule.moddef.clone(), moddef.package())?;
                 dependencies.insert(item);
             },
             ast::Decl::Wire(ast::Wire(_target, _wire_type, expr)) => {
@@ -41,13 +39,14 @@ fn moddef_item_dependencies(db: &dyn ItemDependencyQ, moddef: ModDef) -> Virdant
     Ok(dependencies.into_iter().collect())
 }
 
-fn moddef_item_dependencies_simplecomponent(db: &dyn ItemDependencyQ, moddef: ModDef, simplecomponent: &ast::SimpleComponent) -> VirdantResult<Vec<Item>> {
-    eprintln!("moddef_item_dependencies_simplecomponent({})", simplecomponent.name);
-    let package_path: Path = moddef.fqname().parent();
+fn moddef_item_dependencies_simplecomponent(
+    db: &dyn ItemDependencyQ,
+    moddef: ModDef,
+    simplecomponent: &ast::SimpleComponent,
+) -> VirdantResult<Vec<Item>> {
     let mut items = vec![];
-    eprintln!("    typ is {:?}", simplecomponent.typ);
     if let ast::Type::TypeRef(name) = simplecomponent.typ.as_ref() {
-        let item = db.item(package_path.join(&name.as_path()))?;
+        let item = db.item(name.as_path(), moddef.package())?;
         items.push(item);
     }
 
@@ -56,11 +55,9 @@ fn moddef_item_dependencies_simplecomponent(db: &dyn ItemDependencyQ, moddef: Mo
         items.extend(expr_depends);
     }
 
-    eprintln!("    = {items:?}");
     Ok(items)
 }
 
 fn expr_item_dependencies(_db: &dyn ItemDependencyQ, _expr: Arc<ast::Expr>) -> VirdantResult<Vec<Item>> {
-    eprintln!("TODO expr_item_dependencies");
     Ok(vec![])
 }

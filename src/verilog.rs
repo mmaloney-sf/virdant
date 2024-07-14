@@ -136,10 +136,10 @@ impl<'a> Verilog<'a> {
     }
 
     fn verilog_submodule(&mut self, moddef: Ident, submodule: ast::Submodule) -> VirdantResult<()> {
-        let ports = self.db.moddef_port_names(submodule.moddef.clone())?;
+        let ports = self.db.moddef_port_names(submodule.moddef.as_ident().unwrap())?;
 
         for port in &ports {
-            let typ = self.db.moddef_component_type(submodule.moddef.clone(), port.clone())?;
+            let typ = self.db.moddef_component_type(submodule.moddef.as_ident().unwrap(), port.clone())?;
             let width_str = make_width_str(self.db, typ);
             writeln!(self.writer, "    wire {width_str} __TEMP_{sm}_{port};", sm = submodule.name)?;
         }

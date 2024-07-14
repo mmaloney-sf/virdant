@@ -449,15 +449,15 @@ fn moddef_full_context(db: &dyn TypecheckQ, moddef: Ident) -> Result<Context<Pat
     }
 
     for submodule in db.moddef_submodules(moddef.clone())? {
-        for component in &db.moddef_component_names(submodule.moddef.clone())? {
-            let component_ast = db.moddef_component_ast(submodule.moddef.clone(), component.clone())?;
+        for component in &db.moddef_component_names(submodule.moddef.as_ident().unwrap())? {
+            let component_ast = db.moddef_component_ast(submodule.moddef.as_ident().unwrap(), component.clone())?;
             if let ast::SimpleComponentKind::Incoming = component_ast.kind {
                 let path = submodule.name.as_path().join(&component_ast.name.as_path());
-                let typ = db.moddef_component_type(submodule.moddef.clone(), component.clone())?;
+                let typ = db.moddef_component_type(submodule.moddef.as_ident().unwrap(), component.clone())?;
                 ctx = ctx.extend(path, typ);
             } else if let ast::SimpleComponentKind::Outgoing = component_ast.kind {
                 let path = submodule.name.as_path().join(&component_ast.name.as_path());
-                let typ = db.moddef_component_type(submodule.moddef.clone(), component.clone())?;
+                let typ = db.moddef_component_type(submodule.moddef.as_ident().unwrap(), component.clone())?;
                 ctx = ctx.extend(path, typ);
             }
         }
@@ -495,7 +495,7 @@ fn moddef_target_type(db: &dyn TypecheckQ, moddef: Ident, target: Path) -> Virda
                 return Ok(typ);
             },
             ast::Decl::Submodule(submodule) if submodule.name.as_path() == target.parent() => {
-                return db.moddef_component_type(submodule.moddef.clone(), target.parts()[1].into());
+                return db.moddef_component_type(submodule.moddef.as_ident().unwrap(), target.parts()[1].into());
             },
             _ => (),
         }

@@ -111,7 +111,7 @@ pub enum WireType {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Submodule {
     pub name: Ident,
-    pub moddef: Ident,
+    pub moddef: Path,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

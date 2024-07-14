@@ -11,7 +11,7 @@ pub trait ItemResolutionQ: astq::AstQ {
 
     fn moddefs(&self, package: Package) -> VirdantResult<Vec<ModDef>>;
 
-    fn item(&self, item: Path) -> VirdantResult<Item>;
+    fn item(&self, item: Path, from: Package) -> VirdantResult<Item>;
 }
 
 fn items(db: &dyn ItemResolutionQ, package: Package) -> VirdantResult<Vec<Item>> {
@@ -66,14 +66,29 @@ fn moddefs(db: &dyn ItemResolutionQ, package: Package) -> VirdantResult<Vec<ModD
     Ok(moddefs)
 }
 
-fn item(db: &dyn ItemResolutionQ, item: Path) -> VirdantResult<Item> {
-    for package in db.packages() {
-        for package_item in db.items(package)? {
-            let item_path: Path = package_item.clone().into();
-            if item_path == item {
-                return Ok(package_item);
+fn item(db: &dyn ItemResolutionQ, path: Path, from: Package) -> VirdantResult<Item> {
+    let imported_packages = db.imports(from.clone())?;
+    let path_package = Package::from(path.head().as_path());
+
+    if imported_packages.contains(&Package::from(path.head().as_path())) {
+        // try to interpret the path as imported_package.rest.of.path
+        for item in db.items(path_package)? {
+            let item_path: Path = item.clone().into();
+            if item_path == path {
+                return Ok(item);
+            }
+        }
+    } else {
+        // otherwise, treat it as a local path
+        for package in db.packages() {
+            for item in db.items(package)? {
+                let item_path: Path = item.clone().into();
+                if item_path == Path::from(from.clone()).join(&path) {
+                    return Ok(item);
+                }
             }
         }
     }
-    Err(VirdantError::Other(format!("Could not resolve item for path: {item}")))
+
+    Err(VirdantError::Other(format!("Could not resolve item for path: {path}")))
 }

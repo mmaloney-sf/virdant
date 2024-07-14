@@ -105,7 +105,7 @@ fn moddef_required_targets(db: &dyn StructureQ, moddef: Ident) -> VirdantResult<
                 }
             },
             ast::Decl::Submodule(submodule) => {
-                let submodule_moddef_ast = db.moddef_ast(submodule.moddef.clone())?;
+                let submodule_moddef_ast = db.moddef_ast(submodule.moddef.as_ident().unwrap())?;
                 for decl in &submodule_moddef_ast.decls {
                     if let ast::Decl::SimpleComponent(component) = decl {
                         if component.kind == SimpleComponentKind::Incoming {
@@ -211,7 +211,7 @@ fn check_submodule_moddefs_exist(db: &dyn StructureQ) -> Result<(), VirdantError
     let moddef_names: Vec<Ident> = db.package_moddef_names()?;
     for moddef_name in &moddef_names {
         for submodule in &db.moddef_submodules(moddef_name.clone())? {
-            if !moddef_names.contains(&submodule.moddef) {
+            if !moddef_names.contains(&submodule.moddef.as_ident().unwrap()) {
                 let submoddef_name = &submodule.moddef;
                 let msg = format!("Module contains an undefined submodule: {moddef_name} contains unknown {submoddef_name}");
                 errors.add(VirdantError::Other(msg));
@@ -230,7 +230,7 @@ fn check_no_submodule_cycles(db: &dyn StructureQ) -> Result<(), VirdantError> {
 
     for moddef_name in &moddef_names {
         let submodules = db.moddef_submodules(moddef_name.clone())?;
-        depends.insert(moddef_name.clone(), submodules.into_iter().map(|s| s.moddef).collect());
+        depends.insert(moddef_name.clone(), submodules.into_iter().map(|s| s.moddef.as_ident().unwrap()).collect());
     }
 
     for cycle in find_cycles(&depends) {

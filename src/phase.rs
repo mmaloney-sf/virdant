@@ -2,7 +2,7 @@ mod astq;
 mod item_resolution;
 mod item_dependency;
 
-use crate::{common::*, phase::item_dependency::ItemDependencyQ};
+use crate::common::*;
 
 #[salsa::database(
     astq::AstQStorage,
@@ -85,26 +85,66 @@ define_path_type!(ModDef);
 define_path_type!(UnionDef);
 define_path_type!(StructDef);
 
-pub trait FQName {
-    fn fqname(&self) -> Path;
+pub trait AsItem {
+    fn as_item(&self) -> Item;
 }
 
-impl ModDef {
-    pub fn package(&self) -> Package {
-        self.0.parent().into()
+impl AsItem for ModDef {
+    fn as_item(&self) -> Item {
+        Item::ModDef(self.clone())
+    }
+}
+
+impl AsItem for UnionDef {
+    fn as_item(&self) -> Item {
+        Item::UnionDef(self.clone())
+    }
+}
+
+impl AsItem for StructDef {
+    fn as_item(&self) -> Item {
+        Item::StructDef(self.clone())
+    }
+}
+
+pub trait FQName {
+    fn fqname(&self) -> Path;
+
+    fn package(&self) -> Package {
+        let fqname = &self.fqname();
+        let parts = fqname.parts();
+        Path::from(parts[0]).into()
     }
 }
 
 #[test]
 fn phase() {
+    use self::item_dependency::*;
     use self::item_resolution::*;
     use self::astq::*;
 
     let mut db = Db::default();
     let sources: Vec<(String, Arc<String>)> = vec![
         (
+            "edge".to_string(), 
+            Arc::new("
+                mod EdgeDetector {
+                    incoming clock : Clock;
+                    incoming inp : Word[1];
+                    incoming out : Word[1];
+
+                    reg prev_inp : Word[1] on clock;
+                    prev_inp <= inp;
+
+                    out := inp->and(prev_inp->not());
+                }
+            ".to_string()),
+        ),
+        (
             "test".to_string(), 
             Arc::new("
+                import edge;
+
                 alt type Foo {
                 }
 
@@ -116,6 +156,7 @@ fn phase() {
                     incoming inp2 : Bar;
 
                     mod submod of Submod;
+                    mod edge of edge.EdgeDetector;
                 }
 
                 mod Submod {

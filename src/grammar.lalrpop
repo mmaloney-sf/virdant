@@ -134,7 +134,7 @@ Wire: Wire = {
 }
 
 Submodule: Submodule = {
-    "mod" <name:Id> "of" <moddef:Id> => Submodule { name, moddef },
+    "mod" <name:Id> "of" <moddef:Path> => Submodule { name, moddef },
 }
 
 Type: Arc<Type> = {

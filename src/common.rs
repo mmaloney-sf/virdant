@@ -165,6 +165,16 @@ impl Path {
             None
         }
     }
+
+    pub fn head(&self) -> Ident {
+        let parts = self.parts();
+        parts[0].into()
+    }
+
+    pub fn tail(&self) -> Path {
+        let parts = self.parts();
+        parts[1..].join(".").into()
+    }
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]

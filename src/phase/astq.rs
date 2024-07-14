@@ -4,6 +4,7 @@ use crate::common::*;
 use super::*;
 
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 #[salsa::query_group(AstQStorage)]
@@ -14,8 +15,11 @@ pub trait AstQ: salsa::Database {
     fn packages(&self) -> Vec<Package>;
 
     fn package_ast(&self, package: Package) -> VirdantResult<ast::Package>;
-    fn moddef_ast(&self, package: Package, moddef: Ident) -> VirdantResult<ast::ModDef>;
-    fn uniondef_ast(&self, package: Package, moddef: Ident) -> VirdantResult<ast::AltTypeDef>;
+    fn moddef_ast(&self, moddef: ModDef) -> VirdantResult<ast::ModDef>;
+    fn uniondef_ast(&self, uniondef: UnionDef) -> VirdantResult<ast::AltTypeDef>;
+
+    // TODO MOVE THIS
+    fn imports(&self, package: Package) -> VirdantResult<Vec<Package>>;
 }
 
 fn packages(db: &dyn AstQ) -> Vec<Package> {
@@ -39,14 +43,14 @@ fn package_ast(db: &dyn AstQ, package: Package) -> Result<ast::Package, VirdantE
     }
 }
 
-fn moddef_ast(db: &dyn AstQ, package: Package, moddef: Ident) -> Result<ast::ModDef, VirdantError> {
-    let package_ast = db.package_ast(package)?;
+fn moddef_ast(db: &dyn AstQ, moddef: ModDef) -> Result<ast::ModDef, VirdantError> {
+    let package_ast = db.package_ast(moddef.package())?;
     let mut result: Option<ast::ModDef> = None;
 
     for item in &package_ast.items {
         match item {
             ast::Item::ModDef(moddef_ast) => {
-                if moddef_ast.name == moddef {
+                if moddef_ast.name == moddef.name() {
                     if result.is_none() {
                         result = Some(moddef_ast.clone());
                     } else {
@@ -65,14 +69,14 @@ fn moddef_ast(db: &dyn AstQ, package: Package, moddef: Ident) -> Result<ast::Mod
     }
 }
 
-fn uniondef_ast(db: &dyn AstQ, package: Package, uniontype: Ident) -> Result<ast::AltTypeDef, VirdantError> {
-    let package_ast = db.package_ast(package)?;
+fn uniondef_ast(db: &dyn AstQ, uniontype: UnionDef) -> Result<ast::AltTypeDef, VirdantError> {
+    let package_ast = db.package_ast(uniontype.package())?;
     let mut result: Option<ast::AltTypeDef> = None;
 
     for item in &package_ast.items {
         match item {
             ast::Item::AltTypeDef(alttypedef_ast) => {
-                if alttypedef_ast.name == uniontype {
+                if alttypedef_ast.name == uniontype.name() {
                     if result.is_none() {
                         result = Some(alttypedef_ast.clone());
                     } else {
@@ -89,4 +93,18 @@ fn uniondef_ast(db: &dyn AstQ, package: Package, uniontype: Ident) -> Result<ast
     } else {
         Err(VirdantError::Other(format!("Unknown alt type {uniontype}")))
     }
+}
+
+
+fn imports(db: &dyn AstQ, package: Package) -> VirdantResult<Vec<Package>> {
+    let package_ast = db.package_ast(package)?;
+    let mut errors = ErrorReport::new();
+    let mut packages = HashSet::new();
+    for ast::PackageImport(package_name) in &package_ast.imports {
+        if !packages.insert(package_name.as_path().into()) {
+            errors.add(VirdantError::Other(format!("Duplicate import: {package_name}")));
+        }
+    }
+    errors.check()?;
+    Ok(packages.into_iter().collect())
 }

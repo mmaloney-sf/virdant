@@ -47,7 +47,7 @@ fn moddef_item_dependencies_simplecomponent(
 ) -> VirdantResult<Vec<Item>> {
     let mut items = vec![];
     if let ast::Type::TypeRef(name) = simplecomponent.typ.as_ref() {
-        let item = db.item(name.as_path(), moddef.package())?;
+        let item = db.item(name.clone(), moddef.package())?;
         items.push(item);
     }
 

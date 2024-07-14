@@ -171,7 +171,7 @@ Wire: Wire = {
 Type: Arc<Type> = {
     "Clock" => Arc::new(Type::Clock),
     "Word" "[" <w:Nat> "]" => Arc::new(Type::Word(w)),
-    <id:Id> => Arc::new(Type::TypeRef(id)),
+    <path:Path> => Arc::new(Type::TypeRef(path)),
 }
 
 pub Expr: Arc<Expr> = {

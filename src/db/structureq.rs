@@ -148,7 +148,7 @@ fn resolve_type(db: &dyn StructureQ, typ: Arc<ast::Type>) -> VirdantResult<Type>
         ast::Type::Word(width) => Ok(Type::Word(*width)),
         ast::Type::Vec(inner, len) => Ok(Type::Vec(Arc::new(db.resolve_type(inner.clone())?), *len)),
         ast::Type::TypeRef(name) => {
-            if let Ok(alttypedef_ast) = db.alttypedef_ast(name.clone()) {
+            if let Ok(alttypedef_ast) = db.alttypedef_ast(name.as_ident().unwrap()) {
                 Ok(Type::AltType(alttypedef_ast.name))
             } else {
                 Err(VirdantError::Other(format!("Unknown type: {name}")))

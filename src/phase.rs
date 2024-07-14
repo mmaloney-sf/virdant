@@ -4,7 +4,7 @@ mod item_dependency;
 mod item_structure;
 mod type_resolution;
 
-use crate::common::*;
+use crate::{ast, common::*};
 
 #[salsa::database(
     astq::AstQStorage,
@@ -268,9 +268,9 @@ fn phase() {
         ),
     ];
     db.set_sources(sources.into_iter().collect());
-    let package = db.package_ast(Path::from("test").into()).unwrap();
+    let package_ast = db.package_ast(Path::from("test").into()).unwrap();
     eprintln!("package:");
-    eprintln!("{package:?}");
+    eprintln!("{package_ast:?}");
     eprintln!();
 
     let items = db.items(Path::from("test").into()).unwrap();
@@ -294,8 +294,24 @@ fn phase() {
     eprintln!("{alts:?}");
     eprintln!();
 
-    let typ = db.typ("Word".into(), vec![TypeArg::Nat(8)], package.clone()).unwrap();
-    eprintln!("Type of Word[8] is:");
-    eprintln!("{typ:?}");
+    eprintln!("Component types:");
+    for component in &components {
+        eprint!("    {component} : ");
+        let moddef_ast = db.moddef_ast(component.moddef()).unwrap();
+        let mut has_type = false;
+        for decl in &moddef_ast.decls {
+            if let ast::Decl::SimpleComponent(simplecomponent) = decl {
+                if simplecomponent.name == component.name() {
+                    let package = Package("test".into());
+                    let typ = db.typ(simplecomponent.typ.clone(), package).unwrap();
+                    eprintln!("{typ:?}");
+                    has_type = true;
+                }
+            }
+        }
+        if !has_type {
+            eprintln!("(submodule)");
+        }
+    }
     eprintln!();
 }

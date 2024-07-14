@@ -82,7 +82,7 @@ pub enum Type {
     Clock,
     Word(Width),
     Vec(Arc<Type>, usize),
-    TypeRef(Ident),
+    TypeRef(Path),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

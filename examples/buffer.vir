@@ -8,16 +8,16 @@ pub mod Top {
 
     mod buffer of Buffer;
     buffer.clk := clk;
-    buffer.in := r;
+    buffer.inp := r;
     out := buffer.out;
 }
 
 mod Buffer {
     incoming clk : Clock;
-    incoming in : Word[8];
+    incoming inp : Word[8];
     outgoing out : Word[8];
 
     reg r : Word[8] on clk;
-    r <= in;
+    r <= inp;
     out <= r;
 }

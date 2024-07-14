@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests;
 
+pub mod phase;
+
 pub mod ast;
 pub mod parse;
 pub mod context;

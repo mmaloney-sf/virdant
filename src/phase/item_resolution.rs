@@ -10,6 +10,8 @@ pub trait ItemResolutionQ: astq::AstQ {
     fn items(&self, package: Package) -> VirdantResult<Vec<Item>>;
 
     fn moddefs(&self, package: Package) -> VirdantResult<Vec<ModDef>>;
+
+    fn item(&self, item: Path) -> VirdantResult<Item>;
 }
 
 fn items(db: &dyn ItemResolutionQ, package: Package) -> VirdantResult<Vec<Item>> {
@@ -62,4 +64,16 @@ fn moddefs(db: &dyn ItemResolutionQ, package: Package) -> VirdantResult<Vec<ModD
         })
         .collect();
     Ok(moddefs)
+}
+
+fn item(db: &dyn ItemResolutionQ, item: Path) -> VirdantResult<Item> {
+    for package in db.packages() {
+        for package_item in db.items(package)? {
+            let item_path: Path = package_item.clone().into();
+            if item_path == item {
+                return Ok(package_item);
+            }
+        }
+    }
+    Err(VirdantError::Other(format!("Could not resolve item for path: {item}")))
 }

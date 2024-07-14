@@ -1,11 +1,13 @@
 mod astq;
 mod item_resolution;
+mod item_dependency;
 
-use crate::common::*;
+use crate::{common::*, phase::item_dependency::ItemDependencyQ};
 
 #[salsa::database(
     astq::AstQStorage,
     item_resolution::ItemResolutionQStorage,
+    item_dependency::ItemDependencyQStorage,
 )]
 #[derive(Default)]
 pub struct Db {
@@ -22,6 +24,17 @@ pub enum Item {
     StructDef(StructDef),
 }
 
+impl From<Item> for Path {
+    fn from(item: Item) -> Self {
+        match item {
+            Item::Package(package) => package.into(),
+            Item::ModDef(moddef) => moddef.into(),
+            Item::UnionDef(uniondef) => uniondef.into(),
+            Item::StructDef(structdef) => structdef.into(),
+        }
+    }
+}
+
 macro_rules! define_path_type {
     ($name:ident) => {
         #[derive(Clone, PartialEq, Eq, Hash)]
@@ -30,6 +43,12 @@ macro_rules! define_path_type {
         impl From<$name> for Path {
             fn from(value: $name) -> Self {
                 value.0
+            }
+        }
+
+        impl FQName for $name {
+            fn fqname(&self) -> Path {
+                self.0.clone().into()
             }
         }
 
@@ -50,6 +69,14 @@ macro_rules! define_path_type {
                 write!(f, "{}", self.0)
             }
         }
+
+        impl $name {
+            pub fn name(&self) -> Ident {
+                let parts = self.0.parts();
+
+                parts[parts.len() - 1].clone().into()
+            }
+        }
     };
 }
 
@@ -58,6 +85,15 @@ define_path_type!(ModDef);
 define_path_type!(UnionDef);
 define_path_type!(StructDef);
 
+pub trait FQName {
+    fn fqname(&self) -> Path;
+}
+
+impl ModDef {
+    pub fn package(&self) -> Package {
+        self.0.parent().into()
+    }
+}
 
 #[test]
 fn phase() {
@@ -65,18 +101,41 @@ fn phase() {
     use self::astq::*;
 
     let mut db = Db::default();
-    db.set_package_source("test".into(), Arc::new("
-        mod Test {
-        }
+    let sources: Vec<(String, Arc<String>)> = vec![
+        (
+            "test".to_string(), 
+            Arc::new("
+                alt type Foo {
+                }
 
-        alt type Foo {
-        }
-    ".into()));
+                alt type Bar {
+                }
+
+                mod Test {
+                    incoming inp : Foo;
+                    incoming inp2 : Bar;
+
+                    mod submod of Submod;
+                }
+
+                mod Submod {
+                }
+            ".to_string()),
+        ),
+    ];
+    db.set_sources(sources.into_iter().collect());
     let package = db.package_ast(Path::from("test").into()).unwrap();
     eprintln!("package:");
     eprintln!("{package:?}");
+    eprintln!();
 
     let items = db.items(Path::from("test").into()).unwrap();
 
     eprintln!("ITEMS: {items:?}");
+    eprintln!();
+
+    let deps = db.moddef_item_dependencies(ModDef("test.Test".into())).unwrap();
+    eprintln!("DEPS:");
+    eprintln!("{deps:?}");
+    eprintln!();
 }

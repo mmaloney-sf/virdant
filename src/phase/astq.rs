@@ -3,21 +3,40 @@ use crate::ast;
 use crate::common::*;
 use super::*;
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 #[salsa::query_group(AstQStorage)]
 pub trait AstQ: salsa::Database {
     #[salsa::input]
-    fn package_source(&self, package: Path) -> Arc<String>;
+    fn sources(&self) -> HashMap<String, Arc<String>>;
+
+    fn packages(&self) -> Vec<Package>;
 
     fn package_ast(&self, package: Package) -> VirdantResult<ast::Package>;
     fn moddef_ast(&self, package: Package, moddef: Ident) -> VirdantResult<ast::ModDef>;
     fn uniondef_ast(&self, package: Package, moddef: Ident) -> VirdantResult<ast::AltTypeDef>;
 }
 
+fn packages(db: &dyn AstQ) -> Vec<Package> {
+    let mut packages: Vec<String> = vec![];
+
+    for package_name in db.sources().keys() {
+        packages.push(package_name.clone());
+    }
+
+    packages.sort();
+    packages.into_iter().map(|package| Path::from(package).into()).collect()
+}
+
 fn package_ast(db: &dyn AstQ, package: Package) -> Result<ast::Package, VirdantError> {
-    let input = db.package_source(package.into());
-    parse::parse_package(&input)
+    let sources = db.sources();
+    let package_name: String = Path::from(package).to_string();
+    if let Some(input) = sources.get(&package_name) {
+        parse::parse_package(&input)
+    } else {
+        Err(VirdantError::Unknown)
+    }
 }
 
 fn moddef_ast(db: &dyn AstQ, package: Package, moddef: Ident) -> Result<ast::ModDef, VirdantError> {

@@ -2,15 +2,14 @@ use std::io::Write;
 
 use crate::ast::SimpleComponentKind;
 use crate::common::*;
-use crate::types::Type;
 use crate::ast;
 use crate::context::Context;
 
-use crate::db::*;
-/*
 use crate::phase::*;
-use crate::phase::typecheck::TypedExpr;
-*/
+use crate::phase::astq::*;
+use crate::phase::item_resolution::*;
+use crate::phase::typecheck::*;
+use crate::phase::layout::*;
 
 type SsaName = String;
 
@@ -22,25 +21,10 @@ impl Db {
             gensym: 0,
         };
 
-        verilog.verilog_package()?;
+        verilog.verilog_packages()?;
         Ok(())
     }
 }
-
-/*
-impl Db {
-    pub fn verilog<F: Write>(&self, writer: &mut F) -> VirdantResult<()> {
-        let mut verilog = Verilog {
-            writer,
-            db: self,
-            gensym: 0,
-        };
-
-        verilog.verilog_package()?;
-        Ok(())
-    }
-}
-*/
 
 struct Verilog<'a> {
     writer: &'a mut dyn Write,
@@ -49,29 +33,31 @@ struct Verilog<'a> {
 }
 
 impl<'a> Verilog<'a> {
-    fn verilog_package(&mut self) -> VirdantResult<()> {
-        let moddef_names = self.db.package_moddef_names()?;
-        for moddef in moddef_names {
-            self.verilog_moddef(moddef)?;
+    fn verilog_packages(&mut self) -> VirdantResult<()> {
+        for package in self.db.packages() {
+            for moddef in self.db.moddefs(package)? {
+                self.verilog_moddef(moddef)?;
+            }
         }
         Ok(())
     }
 
-    fn verilog_moddef(&mut self, moddef: Ident) -> VirdantResult<()> {
-        writeln!(self.writer, "module {}(", moddef.clone())?;
-        let ports = self.db.moddef_port_names(moddef.clone())?;
+    fn verilog_moddef(&mut self, moddef: ModDef) -> VirdantResult<()> {
+        let moddef_name: Ident = moddef.name();
+        writeln!(self.writer, "module {}(", moddef_name.clone())?;
+        let ports = self.db.moddef_port_names(moddef_name.clone())?;
         for (i, port) in ports.iter().enumerate() {
             let is_last = i + 1 == ports.len();
-            self.verilog_port(moddef.clone(), port.clone(), is_last)?;
+            self.verilog_port(moddef_name.clone(), port.clone(), is_last)?;
         }
         writeln!(self.writer, ");")?;
 
-        for submodule_ast in self.db.moddef_submodules(moddef.clone())? {
-            self.verilog_submodule(moddef.clone(), submodule_ast)?;
+        for submodule_ast in self.db.moddef_submodules(moddef_name.clone())? {
+            self.verilog_submodule(moddef_name.clone(), submodule_ast)?;
         }
 
-        for component in self.db.moddef_component_names(moddef.clone())? {
-            self.verilog_component(moddef.clone(), component)?;
+        for component in self.db.moddef_component_names(moddef_name.clone())? {
+            self.verilog_component(moddef_name.clone(), component)?;
         }
 
         writeln!(self.writer, "endmodule")?;
@@ -269,7 +255,7 @@ impl<'a> Verilog<'a> {
             TypedExpr::Ctor(typ, ctor, args) => {
                 let gs = self.gensym();
 
-                let layout = self.db.alttype_layout(typ.clone())?;
+                let layout = self.db.union_layout(typ.clone())?;
 
                 let mut args_ssa: Vec<SsaName> = vec![];
                 for arg in args {
@@ -279,7 +265,7 @@ impl<'a> Verilog<'a> {
 
                 let width_str = make_width_str(self.db, typ.clone());
 
-                let tag = self.db.alttypedef_ctor_tag(typ.clone(), ctor.clone())?;
+                let tag = self.db.union_ctor_tag(typ.clone(), ctor.clone())?;
                 let fill = "1";
 
                 write!(self.writer, "    wire {width_str} {gs} = {{ ")?;
@@ -326,7 +312,7 @@ impl<'a> Verilog<'a> {
                 let gs = self.gensym_hint("match");
                 let subject_ssa = self.verilog_expr(subject.clone(), ctx.clone())?;
                 let typ = expr.typ();
-                let layout = self.db.alttype_layout(subject.typ())?;
+                let layout = self.db.union_layout(subject.typ())?;
                 let width_str = make_width_str(self.db, typ.clone());
 
                 let tag_ssa = self.gensym();

@@ -1,4 +1,4 @@
-mod astq;
+pub mod astq;
 pub mod item_resolution;
 pub mod item_dependency;
 pub mod item_structure;

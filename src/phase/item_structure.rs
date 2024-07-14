@@ -6,7 +6,6 @@ use super::*;
 pub trait ItemStructureQ: astq::AstQ {
     fn moddef_components(&self, moddef: ModDef) -> VirdantResult<Vec<Component>>;
     fn uniondef_alts(&self, uniondef: UnionDef) -> VirdantResult<Vec<Alt>>;
-
 }
 
 fn moddef_components(db: &dyn ItemStructureQ, moddef: ModDef) -> VirdantResult<Vec<Component>> {

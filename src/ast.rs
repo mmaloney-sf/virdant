@@ -2,8 +2,12 @@ use crate::common::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Package {
+    pub imports: Vec<PackageImport>,
     pub items: Vec<Item>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PackageImport(pub Ident);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Item {

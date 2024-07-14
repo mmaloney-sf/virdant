@@ -4,9 +4,14 @@ use crate::ast::*;
 grammar;
 
 pub Package: Package = {
-    <items: Item*> => Package {
-      items,
+    <imports:PackageImport*> <items:Item*> => Package {
+        imports,
+        items,
     },
+}
+
+PackageImport: PackageImport = {
+    "import" <ident:Id> ";" => PackageImport(ident),
 }
 
 Item: Item = {

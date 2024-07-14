@@ -2,6 +2,7 @@ mod astq;
 mod item_resolution;
 mod item_dependency;
 mod item_structure;
+mod type_resolution;
 
 use crate::common::*;
 
@@ -10,6 +11,7 @@ use crate::common::*;
     item_resolution::ItemResolutionQStorage,
     item_dependency::ItemDependencyQStorage,
     item_structure::ItemStructureQStorage,
+    type_resolution::TypeResolutionQStorage,
 )]
 #[derive(Default)]
 pub struct Db {
@@ -124,6 +126,13 @@ impl AsItem for PortDef {
     }
 }
 
+impl Component {
+    pub fn moddef(&self) -> ModDef {
+        let path: Path = self.clone().into();
+        ModDef(path.parent())
+    }
+}
+
 pub trait FQName {
     fn fqname(&self) -> Path;
 
@@ -134,12 +143,81 @@ pub trait FQName {
     }
 }
 
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub enum TypeArg {
+    Type(Arc<Type>),
+    Nat(u64),
+}
+
+impl std::fmt::Display for TypeArg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TypeArg::Type(typ) => write!(f, "{typ}"),
+            TypeArg::Nat(n) => write!(f, "{n}"),
+        }
+    }
+}
+
+impl std::fmt::Debug for TypeArg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self}")
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub enum Type {
+    Clock,
+    Bool,
+    Word(Width),
+    Union(UnionDef, Vec<TypeArg>),
+    Struct(StructDef, Vec<TypeArg>),
+}
+
+impl std::fmt::Display for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            Type::Clock => write!(f, "Clock"),
+            Type::Bool => write!(f, "Bool"),
+            Type::Word(width) => write!(f, "Word[{width}]"),
+            Type::Struct(structdef, args) => {
+                write!(f, "{structdef}")?;
+                if args.len() > 0 {
+                    write!(f, "[")?;
+                    for arg in args {
+                        write!(f, "{arg}")?;
+                    }
+                    write!(f, "]")?;
+                }
+                Ok(())
+            },
+            Type::Union(uniondef, args) => {
+                write!(f, "{uniondef}")?;
+                if args.len() > 0 {
+                    write!(f, "[")?;
+                    for arg in args {
+                        write!(f, "{arg}")?;
+                    }
+                    write!(f, "]")?;
+                }
+                Ok(())
+            },
+        }
+    }
+}
+
+impl std::fmt::Debug for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{self}")
+    }
+}
+
 #[test]
 fn phase() {
-    use self::item_dependency::*;
-    use self::item_resolution::*;
     use self::astq::*;
+    use self::item_resolution::*;
+    use self::item_dependency::*;
     use self::item_structure::*;
+    use self::type_resolution::*;
 
     let mut db = Db::default();
     let sources: Vec<(String, Arc<String>)> = vec![
@@ -214,5 +292,10 @@ fn phase() {
     let alts = db.uniondef_alts(UnionDef("test.ValidByte".into())).unwrap();
     eprintln!("test.ValidByte ALTS");
     eprintln!("{alts:?}");
+    eprintln!();
+
+    let typ = db.typ("Word".into(), vec![TypeArg::Nat(8)], package.clone()).unwrap();
+    eprintln!("Type of Word[8] is:");
+    eprintln!("{typ:?}");
     eprintln!();
 }

@@ -154,17 +154,17 @@ fn phase() {
             Arc::new("
                 import edge;
 
-                alt type ValidByte {
+                union type ValidByte {
                     Invalid();
                     Valid(Word[8]);
                 }
 
-                alt type Foo {
+                union type Foo {
                     Foo();
                     Bar(Word[1]);
                 }
 
-                alt type Bar {
+                union type Bar {
                 }
 
                 mod Test {

@@ -1,4 +1,4 @@
-alt type State {
+union type State {
     Idle();
     Running(Word[8], Word[8]);
     Done(Word[8]);

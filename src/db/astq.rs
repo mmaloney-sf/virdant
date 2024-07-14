@@ -11,7 +11,7 @@ pub trait AstQ: salsa::Database {
 
     fn package_ast(&self) -> VirdantResult<ast::Package>;
     fn moddef_ast(&self, moddef: Ident) -> VirdantResult<ast::ModDef>;
-    fn alttypedef_ast(&self, moddef: Ident) -> VirdantResult<ast::AltTypeDef>;
+    fn alttypedef_ast(&self, moddef: Ident) -> VirdantResult<ast::UnionDef>;
     fn moddef_component_ast(&self, moddef: Ident, component: Ident) -> VirdantResult<ast::SimpleComponent>;
 
     fn moddef_components(&self, moddef: Ident) -> VirdantResult<Vec<ast::SimpleComponent>>;
@@ -54,13 +54,13 @@ fn moddef_ast(db: &dyn AstQ, moddef: Ident) -> Result<ast::ModDef, VirdantError>
     }
 }
 
-fn alttypedef_ast(db: &dyn AstQ, alttype: Ident) -> Result<ast::AltTypeDef, VirdantError> {
+fn alttypedef_ast(db: &dyn AstQ, alttype: Ident) -> Result<ast::UnionDef, VirdantError> {
     let package = db.package_ast()?;
-    let mut result: Option<ast::AltTypeDef> = None;
+    let mut result: Option<ast::UnionDef> = None;
 
     for item in &package.items {
         match item {
-            ast::Item::AltTypeDef(alttypedef_ast) => {
+            ast::Item::UnionDef(alttypedef_ast) => {
                 if alttypedef_ast.name == alttype {
                     if result.is_none() {
                         result = Some(alttypedef_ast.clone());

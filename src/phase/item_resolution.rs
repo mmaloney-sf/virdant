@@ -39,7 +39,7 @@ fn items(db: &dyn ItemResolutionQ, package: Package) -> VirdantResult<Vec<Item>>
                     errors.add(VirdantError::Other(format!("Duplicate item name in package {package_path}: {name}")))
                 }
             },
-            ast::Item::AltTypeDef(uniondef_ast) => {
+            ast::Item::UnionDef(uniondef_ast) => {
                 let name = uniondef_ast.name.clone();
                 let uniondef: UnionDef = package_path.join(&name.as_path()).into();
                 items.push(Item::UnionDef(uniondef));

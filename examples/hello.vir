@@ -1,6 +1,6 @@
 import edge;
 
-alt type State {
+union type State {
     Idle(Word[4], Word[1]);
     SpinCW(Word[5], Word[4]);
     SpinCCW(Word[5], Word[4]);

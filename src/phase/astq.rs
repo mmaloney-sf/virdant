@@ -16,7 +16,7 @@ pub trait AstQ: salsa::Database {
 
     fn package_ast(&self, package: Package) -> VirdantResult<ast::Package>;
     fn moddef_ast(&self, moddef: ModDef) -> VirdantResult<ast::ModDef>;
-    fn uniondef_ast(&self, uniondef: UnionDef) -> VirdantResult<ast::AltTypeDef>;
+    fn uniondef_ast(&self, uniondef: UnionDef) -> VirdantResult<ast::UnionDef>;
 
     // TODO MOVE THIS
     fn imports(&self, package: Package) -> VirdantResult<Vec<Package>>;
@@ -69,13 +69,13 @@ fn moddef_ast(db: &dyn AstQ, moddef: ModDef) -> Result<ast::ModDef, VirdantError
     }
 }
 
-fn uniondef_ast(db: &dyn AstQ, uniontype: UnionDef) -> Result<ast::AltTypeDef, VirdantError> {
+fn uniondef_ast(db: &dyn AstQ, uniontype: UnionDef) -> Result<ast::UnionDef, VirdantError> {
     let package_ast = db.package_ast(uniontype.package())?;
-    let mut result: Option<ast::AltTypeDef> = None;
+    let mut result: Option<ast::UnionDef> = None;
 
     for item in &package_ast.items {
         match item {
-            ast::Item::AltTypeDef(alttypedef_ast) => {
+            ast::Item::UnionDef(alttypedef_ast) => {
                 if alttypedef_ast.name == uniontype.name() {
                     if result.is_none() {
                         result = Some(alttypedef_ast.clone());

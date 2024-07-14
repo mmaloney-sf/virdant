@@ -17,7 +17,7 @@ PackageImport: PackageImport = {
 Item: Item = {
     <m:ModDef> => Item::ModDef(m),
     <e:StructTypeDef> => Item::StructTypeDef(e),
-    <e:AltTypeDef> => Item::AltTypeDef(e),
+    <e:UnionDef> => Item::UnionDef(e),
 }
 
 Visibility: Visibility = {
@@ -53,18 +53,18 @@ StructTypeDef: StructTypeDef = {
     },
 }
 
-AltTypeDef: AltTypeDef = {
-    <ll:@L> <vis:Visibility> "alt" "type" <name:Id> "{"
-        <alts:AltTypeDefAlt*>
+UnionDef: UnionDef = {
+    <ll:@L> <vis:Visibility> "union" "type" <name:Id> "{"
+        <alts:Alt*>
     "}" <rr:@R> => {
-        AltTypeDef {
+        UnionDef {
             name,
             alts,
         }
     },
 }
 
-AltTypeDefAlt: Alt = {
+Alt: Alt = {
     <ident:Id> "(" <typs:TypeList> ")" ";" => Alt(ident, typs),
 }
 

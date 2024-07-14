@@ -13,7 +13,7 @@ pub struct PackageImport(pub Ident);
 pub enum Item {
     ModDef(ModDef),
     StructTypeDef(StructTypeDef),
-    AltTypeDef(AltTypeDef),
+    UnionDef(UnionDef),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
@@ -35,7 +35,7 @@ pub struct StructTypeDef {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct AltTypeDef {
+pub struct UnionDef {
     pub name: Ident,
     pub alts: Vec<Alt>,
 }

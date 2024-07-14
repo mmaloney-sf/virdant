@@ -16,7 +16,7 @@ PackageImport: PackageImport = {
 
 Item: Item = {
     <m:ModDef> => Item::ModDef(m),
-    <e:StructTypeDef> => Item::StructTypeDef(e),
+    <e:StructDef> => Item::StructDef(e),
     <e:UnionDef> => Item::UnionDef(e),
 }
 
@@ -42,11 +42,11 @@ ModDef: ModDef = {
     },
 }
 
-StructTypeDef: StructTypeDef = {
+StructDef: StructDef = {
     "struct" "type" <name:Id> "{"
         <fields:(Id ":" Type ";")*>
     "}" => {
-        StructTypeDef {
+        StructDef {
             name,
             fields: fields.iter().map(|(name, _, typ, _)| (name.clone(), typ.clone())).collect::<Vec<_>>(),
         }

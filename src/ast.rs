@@ -12,7 +12,7 @@ pub struct PackageImport(pub Ident);
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Item {
     ModDef(ModDef),
-    StructTypeDef(StructTypeDef),
+    StructDef(StructDef),
     UnionDef(UnionDef),
 }
 
@@ -29,7 +29,7 @@ pub struct ModDef {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct StructTypeDef {
+pub struct StructDef {
     pub name: Ident,
     pub fields: Vec<(Ident, Arc<Type>)>,
 }

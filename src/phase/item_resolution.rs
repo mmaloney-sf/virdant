@@ -31,7 +31,7 @@ fn items(db: &dyn ItemResolutionQ, package: Package) -> VirdantResult<Vec<Item>>
                     errors.add(VirdantError::Other(format!("Duplicate item name in package {package_path}: {name}")))
                 }
             },
-            ast::Item::StructTypeDef(structdef_ast) => {
+            ast::Item::StructDef(structdef_ast) => {
                 let name = structdef_ast.name.clone();
                 let structdef: StructDef = package_path.join(&name.as_path()).into();
                 items.push(Item::StructDef(structdef));

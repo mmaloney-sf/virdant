@@ -4,7 +4,7 @@ mod item_dependency;
 mod item_structure;
 mod type_resolution;
 
-use crate::{ast, common::*};
+use crate::common::*;
 
 #[salsa::database(
     astq::AstQStorage,
@@ -97,6 +97,12 @@ define_fq_type!(PortDef);
 define_fq_type!(Component);
 define_fq_type!(Alt);
 define_fq_type!(Field);
+
+#[derive(Clone, Hash, PartialEq, Eq, Debug)]
+pub struct MethodSig(Vec<Type>, Type);
+
+#[derive(Clone, Hash, PartialEq, Eq, Debug)]
+pub struct CtorSig(Vec<Type>, Type);
 
 pub trait AsItem {
     fn as_item(&self) -> Item;
@@ -213,6 +219,7 @@ impl std::fmt::Debug for Type {
 
 #[test]
 fn phase() {
+    use crate::ast;
     use self::astq::*;
     use self::item_resolution::*;
     use self::item_dependency::*;
@@ -303,7 +310,7 @@ fn phase() {
             if let ast::Decl::SimpleComponent(simplecomponent) = decl {
                 if simplecomponent.name == component.name() {
                     let package = Package("test".into());
-                    let typ = db.typ(simplecomponent.typ.clone(), package).unwrap();
+                    let typ = db.resolve_typ(simplecomponent.typ.clone(), package).unwrap();
                     eprintln!("{typ:?}");
                     has_type = true;
                 }

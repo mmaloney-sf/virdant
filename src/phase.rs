@@ -1,9 +1,10 @@
 mod astq;
-mod item_resolution;
-mod item_dependency;
-mod item_structure;
-mod type_resolution;
-mod typecheck;
+pub mod item_resolution;
+pub mod item_dependency;
+pub mod item_structure;
+pub mod type_resolution;
+pub mod typecheck;
+pub mod layout;
 
 use crate::common::*;
 
@@ -14,6 +15,7 @@ use crate::common::*;
     item_structure::ItemStructureQStorage,
     type_resolution::TypeResolutionQStorage,
     typecheck::TypecheckQStorage,
+    layout::LayoutQStorage,
 )]
 #[derive(Default)]
 pub struct Db {
@@ -324,3 +326,17 @@ fn phase() {
     }
     eprintln!();
 }
+
+/*
+pub fn compile_verilog(input: &str) -> VirdantResult<()> {
+    use crate::phase::astq::AstQ;
+
+    let mut db = Db::default();
+    let sources = vec![("top".to_string(), Arc::new(input.to_string()))];
+    db.set_sources(sources.into_iter().collect());
+
+    let mut stdout = std::io::stdout();
+    db.verilog(&mut stdout)?;
+    Ok(())
+}
+*/

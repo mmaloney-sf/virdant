@@ -32,6 +32,7 @@ fn moddef_item_dependencies(db: &dyn ItemDependencyQ, moddef: ModDef) -> Virdant
                     Err(e) => errors.add(e),
                 }
             },
+            ast::Decl::Port(_) => todo!(),
         }
     }
 

@@ -18,6 +18,7 @@ Item: Item = {
     <m:ModDef> => Item::ModDef(m),
     <e:StructDef> => Item::StructDef(e),
     <e:UnionDef> => Item::UnionDef(e),
+    <e:PortDef> => Item::PortDef(e),
 }
 
 Visibility: Visibility = {
@@ -68,6 +69,26 @@ Alt: Alt = {
     <ident:Id> "(" <typs:TypeList> ")" ";" => Alt(ident, typs),
 }
 
+PortDef: PortDef = {
+    <ll:@L> <vis:Visibility> "port" <name:Id> "{"
+        <channels:Channel*>
+    "}" <rr:@R> => {
+        PortDef {
+            name,
+            channels,
+        }
+    },
+}
+
+Channel: Channel = {
+    <dir:ChannelDir> <id:Id> ":" <typ:Type> ";" => Channel(dir, id, typ),
+}
+
+ChannelDir: ChannelDir = {
+    "mosi" => ChannelDir::Mosi,
+    "miso" => ChannelDir::Miso,
+}
+
 TypeList: Vec<Arc<Type>> = {
     <args:((Type ("," Type)* ","?)?)> => {
         if let Some((typ, args, _comma)) = args {
@@ -84,8 +105,9 @@ TypeList: Vec<Arc<Type>> = {
 
 Decl: Decl = {
     <c:SimpleComponent> => Decl::SimpleComponent(c),
-    <c:Wire> => Decl::Wire(c),
     <m:Submodule> => Decl::Submodule(m),
+    <p:Port> => Decl::Port(p),
+    <c:Wire> => Decl::Wire(c),
 }
 
 SimpleComponent: SimpleComponent = {
@@ -128,13 +150,22 @@ SimpleComponent: SimpleComponent = {
     },
 }
 
+Submodule: Submodule = {
+    "mod" <name:Id> "of" <moddef:Path> => Submodule { name, moddef },
+}
+
+Port: Port = {
+    <role:PortRole> "port" <name:Id> "of" <portdef:Path> => Port { role, name, portdef },
+}
+
+PortRole: PortRole = {
+    "master" => PortRole::Master,
+    "slave" => PortRole::Slave,
+}
+
 Wire: Wire = {
     <target:Path> ":=" <e:Expr> => Wire(target, WireType::Continuous, e),
     <target:Path> "<=" <e:Expr> => Wire(target, WireType::Latched, e),
-}
-
-Submodule: Submodule = {
-    "mod" <name:Id> "of" <moddef:Path> => Submodule { name, moddef },
 }
 
 Type: Arc<Type> = {

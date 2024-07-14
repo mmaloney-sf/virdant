@@ -14,6 +14,7 @@ pub enum Item {
     ModDef(ModDef),
     StructDef(StructDef),
     UnionDef(UnionDef),
+    PortDef(PortDef),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
@@ -44,9 +45,26 @@ pub struct UnionDef {
 pub struct Alt(pub Ident, pub Vec<Arc<Type>>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PortDef {
+    pub name: Ident,
+    pub channels: Vec<Channel>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ChannelDir {
+    Mosi,
+    Miso,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Channel(pub ChannelDir, pub Ident, pub Arc<Type>);
+
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Decl {
     SimpleComponent(SimpleComponent),
     Submodule(Submodule),
+    Port(Port),
     Wire(Wire),
 }
 
@@ -115,6 +133,20 @@ pub enum WireType {
 pub struct Submodule {
     pub name: Ident,
     pub moddef: Path,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum PortRole {
+    Master,
+    Slave,
+}
+
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Port {
+    pub name: Ident,
+    pub role: PortRole,
+    pub portdef: Path,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

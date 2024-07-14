@@ -24,6 +24,7 @@ pub enum Item {
     ModDef(ModDef),
     UnionDef(UnionDef),
     StructDef(StructDef),
+    PortDef(PortDef),
 }
 
 impl From<Item> for Path {
@@ -33,6 +34,7 @@ impl From<Item> for Path {
             Item::ModDef(moddef) => moddef.into(),
             Item::UnionDef(uniondef) => uniondef.into(),
             Item::StructDef(structdef) => structdef.into(),
+            Item::PortDef(portdef) => portdef.into(),
         }
     }
 }
@@ -88,6 +90,7 @@ define_fq_type!(Package);
 define_fq_type!(ModDef);
 define_fq_type!(UnionDef);
 define_fq_type!(StructDef);
+define_fq_type!(PortDef);
 
 define_fq_type!(Component);
 define_fq_type!(Alt);
@@ -112,6 +115,12 @@ impl AsItem for UnionDef {
 impl AsItem for StructDef {
     fn as_item(&self) -> Item {
         Item::StructDef(self.clone())
+    }
+}
+
+impl AsItem for PortDef {
+    fn as_item(&self) -> Item {
+        Item::PortDef(self.clone())
     }
 }
 

@@ -47,6 +47,8 @@ fn items(db: &dyn ItemResolutionQ, package: Package) -> VirdantResult<Vec<Item>>
                     errors.add(VirdantError::Other(format!("Duplicate item name in package {package_path}: {name}")))
                 }
             },
+            ast::Item::PortDef(_) => todo!(),
+
         }
     }
     Ok(items)

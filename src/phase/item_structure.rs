@@ -34,6 +34,7 @@ fn moddef_components(db: &dyn ItemStructureQ, moddef: ModDef) -> VirdantResult<V
                 }
             },
             ast::Decl::Wire(_) => (),
+            ast::Decl::Port(_) => todo!(),
         }
     }
     errors.check()?;

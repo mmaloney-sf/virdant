@@ -12,17 +12,17 @@ pub trait AstQ: salsa::Database {
     #[salsa::input]
     fn sources(&self) -> HashMap<String, Arc<String>>;
 
-    fn packages(&self) -> Vec<Package>;
+    fn packages(&self) -> Vec<PackageId>;
 
-    fn package_ast(&self, package: Package) -> VirdantResult<ast::Package>;
-    fn moddef_ast(&self, moddef: ModDef) -> VirdantResult<ast::ModDef>;
-    fn uniondef_ast(&self, uniondef: UnionDef) -> VirdantResult<ast::UnionDef>;
+    fn package_ast(&self, package: PackageId) -> VirdantResult<ast::Package>;
+    fn moddef_ast(&self, moddef: ModDefId) -> VirdantResult<ast::ModDef>;
+    fn uniondef_ast(&self, uniondef: UnionDefId) -> VirdantResult<ast::UnionDef>;
 
     // TODO MOVE THIS
-    fn imports(&self, package: Package) -> VirdantResult<Vec<Package>>;
+    fn imports(&self, package: PackageId) -> VirdantResult<Vec<PackageId>>;
 }
 
-fn packages(db: &dyn AstQ) -> Vec<Package> {
+fn packages(db: &dyn AstQ) -> Vec<PackageId> {
     let mut packages: Vec<String> = vec![];
 
     for package_name in db.sources().keys() {
@@ -33,7 +33,7 @@ fn packages(db: &dyn AstQ) -> Vec<Package> {
     packages.into_iter().map(|package| Path::from(package).into()).collect()
 }
 
-fn package_ast(db: &dyn AstQ, package: Package) -> Result<ast::Package, VirdantError> {
+fn package_ast(db: &dyn AstQ, package: PackageId) -> Result<ast::Package, VirdantError> {
     let sources = db.sources();
     let package_name: String = Path::from(package).to_string();
     if let Some(input) = sources.get(&package_name) {
@@ -43,7 +43,7 @@ fn package_ast(db: &dyn AstQ, package: Package) -> Result<ast::Package, VirdantE
     }
 }
 
-fn moddef_ast(db: &dyn AstQ, moddef: ModDef) -> Result<ast::ModDef, VirdantError> {
+fn moddef_ast(db: &dyn AstQ, moddef: ModDefId) -> Result<ast::ModDef, VirdantError> {
     let package_ast = db.package_ast(moddef.package())?;
     let mut result: Option<ast::ModDef> = None;
 
@@ -69,7 +69,7 @@ fn moddef_ast(db: &dyn AstQ, moddef: ModDef) -> Result<ast::ModDef, VirdantError
     }
 }
 
-fn uniondef_ast(db: &dyn AstQ, uniontype: UnionDef) -> Result<ast::UnionDef, VirdantError> {
+fn uniondef_ast(db: &dyn AstQ, uniontype: UnionDefId) -> Result<ast::UnionDef, VirdantError> {
     let package_ast = db.package_ast(uniontype.package())?;
     let mut result: Option<ast::UnionDef> = None;
 
@@ -96,7 +96,7 @@ fn uniondef_ast(db: &dyn AstQ, uniontype: UnionDef) -> Result<ast::UnionDef, Vir
 }
 
 
-fn imports(db: &dyn AstQ, package: Package) -> VirdantResult<Vec<Package>> {
+fn imports(db: &dyn AstQ, package: PackageId) -> VirdantResult<Vec<PackageId>> {
     let package_ast = db.package_ast(package)?;
     let mut errors = ErrorReport::new();
     let mut packages = HashSet::new();

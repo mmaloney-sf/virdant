@@ -4,15 +4,15 @@ use super::*;
 
 #[salsa::query_group(TypeResolutionQStorage)]
 pub trait TypeResolutionQ: item_resolution::ItemResolutionQ {
-    fn resolve_typ(&self, typ: Arc<ast::Type>, from: Package) -> VirdantResult<Type>;
+    fn resolve_typ(&self, typ: Arc<ast::Type>, from: PackageId) -> VirdantResult<Type>;
 
     fn method_sig(&self, typ: Type, method: Ident) -> VirdantResult<MethodSig>;
     fn ctor_sig(&self, typ: Type, ctor: Ident) -> VirdantResult<CtorSig>;
 
-    fn component_typ(&self, component: Component) -> VirdantResult<Type>;
+    fn component_typ(&self, component: ComponentId) -> VirdantResult<Type>;
 }
 
-fn resolve_typ(db: &dyn TypeResolutionQ, typ: Arc<ast::Type>, from: Package) -> VirdantResult<Type> {
+fn resolve_typ(db: &dyn TypeResolutionQ, typ: Arc<ast::Type>, from: PackageId) -> VirdantResult<Type> {
     Ok(match typ.as_ref() {
         ast::Type::Clock => Type::Clock,
         ast::Type::Word(w) => Type::Word(*w),
@@ -21,11 +21,11 @@ fn resolve_typ(db: &dyn TypeResolutionQ, typ: Arc<ast::Type>, from: Package) -> 
             let typ_args = vec![];
 
             match db.item(path.clone(), from)? {
-                Item::Package(_) => todo!(),
-                Item::ModDef(_) => todo!(),
-                Item::UnionDef(uniondef) => Type::Union(uniondef, typ_args),
-                Item::StructDef(structdef) => Type::Struct(structdef, typ_args),
-                Item::PortDef(_) => todo!(),
+                ItemId::Package(_) => todo!(),
+                ItemId::ModDef(_) => todo!(),
+                ItemId::UnionDef(uniondef) => Type::Union(uniondef, typ_args),
+                ItemId::StructDef(structdef) => Type::Struct(structdef, typ_args),
+                ItemId::PortDef(_) => todo!(),
             }
         },
     })
@@ -93,13 +93,13 @@ fn ctor_sig(db: &dyn TypeResolutionQ, typ: Type, ctor: Ident) -> VirdantResult<C
     Err(VirdantError::Unknown)
 }
 
-fn component_typ(db: &dyn TypeResolutionQ, component: Component) -> VirdantResult<Type> {
+fn component_typ(db: &dyn TypeResolutionQ, component: ComponentId) -> VirdantResult<Type> {
     let moddef_ast = db.moddef_ast(component.moddef()).unwrap();
 
     for decl in &moddef_ast.decls {
         if let ast::Decl::SimpleComponent(simplecomponent) = decl {
             if simplecomponent.name == component.name() {
-                let package = Package("test".into());
+                let package = PackageId("test".into());
                 let typ = db.resolve_typ(simplecomponent.typ.clone(), package)?;
                 return Ok(typ);
             }

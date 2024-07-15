@@ -6,12 +6,12 @@ use std::sync::Arc;
 
 #[salsa::query_group(ItemDependencyQStorage)]
 pub trait ItemDependencyQ: super::item_resolution::ItemResolutionQ {
-    fn moddef_item_dependencies(&self, moddef: ModDef) -> VirdantResult<Vec<Item>>;
+    fn moddef_item_dependencies(&self, moddef: ModDefId) -> VirdantResult<Vec<ItemId>>;
 }
 
-fn moddef_item_dependencies(db: &dyn ItemDependencyQ, moddef: ModDef) -> VirdantResult<Vec<Item>> {
+fn moddef_item_dependencies(db: &dyn ItemDependencyQ, moddef: ModDefId) -> VirdantResult<Vec<ItemId>> {
     let mut errors = ErrorReport::new();
-    let mut dependencies: HashSet<Item> = HashSet::new();
+    let mut dependencies: HashSet<ItemId> = HashSet::new();
     let moddef_ast = db.moddef_ast(moddef.clone())?;
 
     for decl in &moddef_ast.decls {
@@ -42,9 +42,9 @@ fn moddef_item_dependencies(db: &dyn ItemDependencyQ, moddef: ModDef) -> Virdant
 
 fn moddef_item_dependencies_simplecomponent(
     db: &dyn ItemDependencyQ,
-    moddef: ModDef,
+    moddef: ModDefId,
     simplecomponent: &ast::SimpleComponent,
-) -> VirdantResult<Vec<Item>> {
+) -> VirdantResult<Vec<ItemId>> {
     let mut items = vec![];
     if let ast::Type::TypeRef(name) = simplecomponent.typ.as_ref() {
         let item = db.item(name.clone(), moddef.package())?;
@@ -59,6 +59,6 @@ fn moddef_item_dependencies_simplecomponent(
     Ok(items)
 }
 
-fn expr_item_dependencies(_db: &dyn ItemDependencyQ, _expr: Arc<ast::Expr>) -> VirdantResult<Vec<Item>> {
+fn expr_item_dependencies(_db: &dyn ItemDependencyQ, _expr: Arc<ast::Expr>) -> VirdantResult<Vec<ItemId>> {
     Ok(vec![])
 }

@@ -5,10 +5,10 @@ use super::*;
 
 #[salsa::query_group(TypecheckQStorage)]
 pub trait TypecheckQ: type_resolution::TypeResolutionQ {
-    fn typecheck_expr(&self, moddef: ModDef, expr: Arc<ast::Expr>, typ: Type, ctx: Context<Path, Type>) -> VirdantResult<Arc<TypedExpr>>;
-    fn typeinfer_expr(&self, moddef: ModDef, expr: Arc<ast::Expr>, ctx: Context<Path, Type>) -> VirdantResult<Arc<TypedExpr>>;
+    fn typecheck_expr(&self, moddef: ModDefId, expr: Arc<ast::Expr>, typ: Type, ctx: Context<Path, Type>) -> VirdantResult<Arc<TypedExpr>>;
+    fn typeinfer_expr(&self, moddef: ModDefId, expr: Arc<ast::Expr>, ctx: Context<Path, Type>) -> VirdantResult<Arc<TypedExpr>>;
 
-    fn moddef_reference_type(&self, moddef: ModDef, path: Path) -> VirdantResult<Type>;
+    fn moddef_reference_type(&self, moddef: ModDefId, path: Path) -> VirdantResult<Type>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -100,7 +100,7 @@ fn pow(n: u64, k: u64) -> u64 {
 
 fn typecheck_expr(
     db: &dyn TypecheckQ,
-    moddef: ModDef,
+    moddef: ModDefId,
     expr: Arc<ast::Expr>,
     typ: Type,
     ctx: Context<Path, Type>,
@@ -260,7 +260,7 @@ fn typecheck_expr(
 
 fn typeinfer_expr(
     db: &dyn TypecheckQ,
-    moddef: ModDef,
+    moddef: ModDefId,
     expr: Arc<ast::Expr>,
     ctx: Context<Path, Type>,
 ) -> VirdantResult<Arc<TypedExpr>> {
@@ -332,7 +332,7 @@ fn typeinfer_expr(
     }
 }
 
-fn moddef_reference_type(db: &dyn TypecheckQ, moddef: ModDef, path: Path) -> VirdantResult<Type> {
+fn moddef_reference_type(db: &dyn TypecheckQ, moddef: ModDefId, path: Path) -> VirdantResult<Type> {
     let moddef_ast = db.moddef_ast(moddef.clone())?;
     for decl in &moddef_ast.decls {
         match decl {

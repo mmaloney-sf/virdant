@@ -7,14 +7,14 @@ use super::astq;
 
 #[salsa::query_group(ItemResolutionQStorage)]
 pub trait ItemResolutionQ: astq::AstQ {
-    fn items(&self, package: Package) -> VirdantResult<Vec<Item>>;
+    fn items(&self, package: PackageId) -> VirdantResult<Vec<ItemId>>;
 
-    fn moddefs(&self, package: Package) -> VirdantResult<Vec<ModDef>>;
+    fn moddefs(&self, package: PackageId) -> VirdantResult<Vec<ModDefId>>;
 
-    fn item(&self, item: Path, from: Package) -> VirdantResult<Item>;
+    fn item(&self, item: Path, from: PackageId) -> VirdantResult<ItemId>;
 }
 
-fn items(db: &dyn ItemResolutionQ, package: Package) -> VirdantResult<Vec<Item>> {
+fn items(db: &dyn ItemResolutionQ, package: PackageId) -> VirdantResult<Vec<ItemId>> {
     let mut items = vec![];
     let mut item_names = HashSet::new();
     let mut errors = ErrorReport::new();
@@ -25,24 +25,24 @@ fn items(db: &dyn ItemResolutionQ, package: Package) -> VirdantResult<Vec<Item>>
         match item {
             ast::Item::ModDef(moddef_ast) => {
                 let name = moddef_ast.name.clone();
-                let moddef: ModDef = package_path.join(&name.as_path()).into();
-                items.push(Item::ModDef(moddef));
+                let moddef: ModDefId = package_path.join(&name.as_path()).into();
+                items.push(ItemId::ModDef(moddef));
                 if !item_names.insert(name.clone()) {
                     errors.add(VirdantError::Other(format!("Duplicate item name in package {package_path}: {name}")))
                 }
             },
             ast::Item::StructDef(structdef_ast) => {
                 let name = structdef_ast.name.clone();
-                let structdef: StructDef = package_path.join(&name.as_path()).into();
-                items.push(Item::StructDef(structdef));
+                let structdef: StructDefId = package_path.join(&name.as_path()).into();
+                items.push(ItemId::StructDef(structdef));
                 if !item_names.insert(name.clone()) {
                     errors.add(VirdantError::Other(format!("Duplicate item name in package {package_path}: {name}")))
                 }
             },
             ast::Item::UnionDef(uniondef_ast) => {
                 let name = uniondef_ast.name.clone();
-                let uniondef: UnionDef = package_path.join(&name.as_path()).into();
-                items.push(Item::UnionDef(uniondef));
+                let uniondef: UnionDefId = package_path.join(&name.as_path()).into();
+                items.push(ItemId::UnionDef(uniondef));
                 if !item_names.insert(name.clone()) {
                     errors.add(VirdantError::Other(format!("Duplicate item name in package {package_path}: {name}")))
                 }
@@ -54,11 +54,11 @@ fn items(db: &dyn ItemResolutionQ, package: Package) -> VirdantResult<Vec<Item>>
     Ok(items)
 }
 
-fn moddefs(db: &dyn ItemResolutionQ, package: Package) -> VirdantResult<Vec<ModDef>> {
+fn moddefs(db: &dyn ItemResolutionQ, package: PackageId) -> VirdantResult<Vec<ModDefId>> {
     let moddefs = db.items(package)?
         .into_iter()
         .filter_map(|item| {
-            if let Item::ModDef(moddef) = item {
+            if let ItemId::ModDef(moddef) = item {
                 Some(moddef)
             } else {
                 None
@@ -68,11 +68,11 @@ fn moddefs(db: &dyn ItemResolutionQ, package: Package) -> VirdantResult<Vec<ModD
     Ok(moddefs)
 }
 
-fn item(db: &dyn ItemResolutionQ, path: Path, from: Package) -> VirdantResult<Item> {
+fn item(db: &dyn ItemResolutionQ, path: Path, from: PackageId) -> VirdantResult<ItemId> {
     let imported_packages = db.imports(from.clone())?;
-    let path_package = Package::from(path.head().as_path());
+    let path_package = PackageId::from(path.head().as_path());
 
-    if imported_packages.contains(&Package::from(path.head().as_path())) {
+    if imported_packages.contains(&PackageId::from(path.head().as_path())) {
         // try to interpret the path as imported_package.rest.of.path
         for item in db.items(path_package)? {
             let item_path: Path = item.clone().into();

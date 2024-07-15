@@ -25,22 +25,22 @@ pub struct Db {
 impl salsa::Database for Db {}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Item {
-    Package(Package),
-    ModDef(ModDef),
-    UnionDef(UnionDef),
-    StructDef(StructDef),
-    PortDef(PortDef),
+pub enum ItemId {
+    Package(PackageId),
+    ModDef(ModDefId),
+    UnionDef(UnionDefId),
+    StructDef(StructDefId),
+    PortDef(PortDefId),
 }
 
-impl From<Item> for Path {
-    fn from(item: Item) -> Self {
+impl From<ItemId> for Path {
+    fn from(item: ItemId) -> Self {
         match item {
-            Item::Package(package) => package.into(),
-            Item::ModDef(moddef) => moddef.into(),
-            Item::UnionDef(uniondef) => uniondef.into(),
-            Item::StructDef(structdef) => structdef.into(),
-            Item::PortDef(portdef) => portdef.into(),
+            ItemId::Package(package) => package.into(),
+            ItemId::ModDef(moddef) => moddef.into(),
+            ItemId::UnionDef(uniondef) => uniondef.into(),
+            ItemId::StructDef(structdef) => structdef.into(),
+            ItemId::PortDef(portdef) => portdef.into(),
         }
     }
 }
@@ -90,17 +90,17 @@ macro_rules! define_fq_type {
     };
 }
 
-define_fq_type!(Package);
+define_fq_type!(PackageId);
 
 // Items
-define_fq_type!(ModDef);
-define_fq_type!(UnionDef);
-define_fq_type!(StructDef);
-define_fq_type!(PortDef);
+define_fq_type!(ModDefId);
+define_fq_type!(UnionDefId);
+define_fq_type!(StructDefId);
+define_fq_type!(PortDefId);
 
-define_fq_type!(Component);
-define_fq_type!(Alt);
-define_fq_type!(Field);
+define_fq_type!(ComponentId);
+define_fq_type!(AltId);
+define_fq_type!(FieldId);
 
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub struct MethodSig(Vec<Type>, Type);
@@ -109,44 +109,44 @@ pub struct MethodSig(Vec<Type>, Type);
 pub struct CtorSig(Vec<Type>, Type);
 
 pub trait AsItem {
-    fn as_item(&self) -> Item;
+    fn as_item(&self) -> ItemId;
 }
 
-impl AsItem for ModDef {
-    fn as_item(&self) -> Item {
-        Item::ModDef(self.clone())
+impl AsItem for ModDefId {
+    fn as_item(&self) -> ItemId {
+        ItemId::ModDef(self.clone())
     }
 }
 
-impl AsItem for UnionDef {
-    fn as_item(&self) -> Item {
-        Item::UnionDef(self.clone())
+impl AsItem for UnionDefId {
+    fn as_item(&self) -> ItemId {
+        ItemId::UnionDef(self.clone())
     }
 }
 
-impl AsItem for StructDef {
-    fn as_item(&self) -> Item {
-        Item::StructDef(self.clone())
+impl AsItem for StructDefId {
+    fn as_item(&self) -> ItemId {
+        ItemId::StructDef(self.clone())
     }
 }
 
-impl AsItem for PortDef {
-    fn as_item(&self) -> Item {
-        Item::PortDef(self.clone())
+impl AsItem for PortDefId {
+    fn as_item(&self) -> ItemId {
+        ItemId::PortDef(self.clone())
     }
 }
 
-impl Component {
-    pub fn moddef(&self) -> ModDef {
+impl ComponentId {
+    pub fn moddef(&self) -> ModDefId {
         let path: Path = self.clone().into();
-        ModDef(path.parent())
+        ModDefId(path.parent())
     }
 }
 
 pub trait FQName {
     fn fqname(&self) -> Path;
 
-    fn package(&self) -> Package {
+    fn package(&self) -> PackageId {
         let fqname = &self.fqname();
         let parts = fqname.parts();
         Path::from(parts[0]).into()
@@ -179,8 +179,8 @@ pub enum Type {
     Clock,
     Bool,
     Word(Width),
-    Union(UnionDef, Vec<TypeArg>),
-    Struct(StructDef, Vec<TypeArg>),
+    Union(UnionDefId, Vec<TypeArg>),
+    Struct(StructDefId, Vec<TypeArg>),
 }
 
 impl std::fmt::Display for Type {
@@ -233,7 +233,7 @@ fn phase() {
     let mut db = Db::default();
     let sources: Vec<(String, Arc<String>)> = vec![
         (
-            "edge".to_string(), 
+            "edge".to_string(),
             Arc::new("
                 mod EdgeDetector {
                     incoming clock : Clock;
@@ -248,7 +248,7 @@ fn phase() {
             ".to_string()),
         ),
         (
-            "test".to_string(), 
+            "test".to_string(),
             Arc::new("
                 import edge;
 
@@ -289,18 +289,18 @@ fn phase() {
     eprintln!("ITEMS: {items:?}");
     eprintln!();
 
-    let deps = db.moddef_item_dependencies(ModDef("test.Test".into())).unwrap();
+    let deps = db.moddef_item_dependencies(ModDefId("test.Test".into())).unwrap();
     eprintln!("DEPS:");
     eprintln!("{deps:?}");
     eprintln!();
 
 
-    let components = db.moddef_components(ModDef("test.Test".into())).unwrap();
+    let components = db.moddef_components(ModDefId("test.Test".into())).unwrap();
     eprintln!("test.Test COMPONENTS:");
     eprintln!("{components:?}");
     eprintln!();
 
-    let alts = db.uniondef_alts(UnionDef("test.ValidByte".into())).unwrap();
+    let alts = db.uniondef_alts(UnionDefId("test.ValidByte".into())).unwrap();
     eprintln!("test.ValidByte ALTS");
     eprintln!("{alts:?}");
     eprintln!();
@@ -313,7 +313,7 @@ fn phase() {
         for decl in &moddef_ast.decls {
             if let ast::Decl::SimpleComponent(simplecomponent) = decl {
                 if simplecomponent.name == component.name() {
-                    let package = Package("test".into());
+                    let package = PackageId("test".into());
                     let typ = db.resolve_typ(simplecomponent.typ.clone(), package).unwrap();
                     eprintln!("{typ:?}");
                     has_type = true;

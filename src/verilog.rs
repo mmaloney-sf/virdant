@@ -42,7 +42,7 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
-    fn verilog_moddef(&mut self, moddef: ModDef) -> VirdantResult<()> {
+    fn verilog_moddef(&mut self, moddef: ModDefId) -> VirdantResult<()> {
         let moddef_name: Ident = moddef.name();
         writeln!(self.writer, "module {}(", moddef_name.clone())?;
         let ports = self.db.moddef_port_names(moddef_name.clone())?;

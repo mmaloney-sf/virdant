@@ -3,10 +3,9 @@ use std::collections::HashSet;
 use crate::common::*;
 use crate::ast;
 use super::*;
-use super::astq;
 
 #[salsa::query_group(ItemResolutionQStorage)]
-pub trait ItemResolutionQ: astq::AstQ {
+pub trait ItemResolutionQ: imports::ImportsQ {
     fn items(&self, package: PackageId) -> VirdantResult<Vec<ItemId>>;
 
     fn moddefs(&self, package: PackageId) -> VirdantResult<Vec<ModDefId>>;
@@ -69,7 +68,7 @@ fn moddefs(db: &dyn ItemResolutionQ, package: PackageId) -> VirdantResult<Vec<Mo
 }
 
 fn item(db: &dyn ItemResolutionQ, path: Path, from: PackageId) -> VirdantResult<ItemId> {
-    let imported_packages = db.imports(from.clone())?;
+    let imported_packages = db.package_imports(from.clone())?;
     let path_package = PackageId::from(path.head().as_path());
 
     if imported_packages.contains(&PackageId::from(path.head().as_path())) {

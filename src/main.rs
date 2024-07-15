@@ -65,6 +65,8 @@ fn main() {
 }
 
 pub fn sim(filename: &str, top: &str, trace: Option<&str>, delay: usize) {
+    todo!()
+    /*
     let package = std::fs::read_to_string(filename).unwrap();
 
     let mut sim = if let Some(_trace) = trace {
@@ -72,7 +74,8 @@ pub fn sim(filename: &str, top: &str, trace: Option<&str>, delay: usize) {
 //    virdant::sim::simulator_with_trace(&package, top, &mut fout).unwrap()
         todo!()
     } else {
-        virdant::sim::simulator(&package, top).unwrap()
+//        virdant::sim::simulator(&package, top).unwrap()
+        todo!()
     };
 
     sim.poke("top.reset".into(), Value::Word(1, 1));
@@ -96,6 +99,7 @@ pub fn sim(filename: &str, top: &str, trace: Option<&str>, delay: usize) {
             std::thread::sleep(std::time::Duration::from_millis(delay as u64));
         }
     }
+*/
 }
 
 pub fn verilog() {

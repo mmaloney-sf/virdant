@@ -1,20 +1,26 @@
 pub mod astq;
+pub mod imports;
 pub mod item_resolution;
 pub mod item_dependency;
 pub mod structure;
 pub mod type_resolution;
 pub mod typecheck;
+pub mod check;
 pub mod layout;
 
 use crate::common::*;
 
+use std::collections::HashMap;
+
 #[salsa::database(
     astq::AstQStorage,
+    imports::ImportsQStorage,
     item_resolution::ItemResolutionQStorage,
     item_dependency::ItemDependencyQStorage,
     structure::StructureQStorage,
     type_resolution::TypeResolutionQStorage,
     typecheck::TypecheckQStorage,
+    check::CheckQStorage,
     layout::LayoutQStorage,
 )]
 #[derive(Default)]
@@ -23,6 +29,23 @@ pub struct Db {
 }
 
 impl salsa::Database for Db {}
+
+impl Db {
+    pub fn new() -> Db {
+        use self::astq::*;
+        let mut db = Db::default();
+        let sources = HashMap::new();
+        db.set_sources(sources);
+        db
+    }
+
+    pub fn set_source(&mut self, package: &str, text: &str) {
+        use self::astq::*;
+        let mut sources = self.sources();
+        sources.insert(package.into(), Arc::new(text.to_string()));
+        self.set_sources(sources);
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ItemId {
@@ -235,56 +258,48 @@ fn phase() {
     use self::item_dependency::*;
     use self::structure::*;
     use self::type_resolution::*;
+    use self::check::*;
 
-    let mut db = Db::default();
-    let sources: Vec<(String, Arc<String>)> = vec![
-        (
-            "edge".to_string(),
-            Arc::new("
-                mod EdgeDetector {
-                    incoming clock : Clock;
-                    incoming inp : Word[1];
-                    incoming out : Word[1];
+    let mut db = Db::new();
 
-                    reg prev_inp : Word[1] on clock;
-                    prev_inp <= inp;
+    let edge_source = "
+        mod EdgeDetector {
+            incoming clock : Clock;
+            incoming inp : Word[1];
+            incoming out : Word[1];
 
-                    out := inp->and(prev_inp->not());
-                }
-            ".to_string()),
-        ),
-        (
-            "test".to_string(),
-            Arc::new("
-                import edge;
+            reg prev_inp : Word[1] on clock;
+            prev_inp <= inp;
 
-                union type ValidByte {
-                    Invalid();
-                    Valid(Word[8]);
-                }
+            out := inp->and(prev_inp->not());
+        }
+    ";
 
-                union type Foo {
-                    Foo();
-                    Bar(Word[1]);
-                }
+    eprintln!("Setting edge source");
+    db.set_source("edge", edge_source);
 
-                union type Bar {
-                }
+    let top_source = "
+        import edge;
 
-                mod Test {
-                    incoming inp : Foo;
-                    incoming inp2 : Bar;
+        mod Top {
+            mod edge of EdgeDetector;
+        }
+    ";
 
-                    mod submod of Submod;
-                    mod edge of edge.EdgeDetector;
-                }
+    eprintln!("Setting top source");
+    db.set_source("top", top_source);
 
-                mod Submod {
-                }
-            ".to_string()),
-        ),
-    ];
-    db.set_sources(sources.into_iter().collect());
+    let packages = db.packages();
+    eprintln!("packages:");
+    for package in packages {
+
+        eprintln!("    {package}");
+    }
+    eprintln!();
+
+    db.check().unwrap();
+
+    /*
     let package_ast = db.package_ast(Path::from("test").into()).unwrap();
     eprintln!("package:");
     eprintln!("{package_ast:?}");
@@ -299,46 +314,12 @@ fn phase() {
     eprintln!("DEPS:");
     eprintln!("{deps:?}");
     eprintln!();
-
-
-    let components = db.moddef_components(ModDefId("test.Test".into())).unwrap();
-    eprintln!("test.Test COMPONENTS:");
-    eprintln!("{components:?}");
-    eprintln!();
-
-    let alts = db.uniondef_alts(UnionDefId("test.ValidByte".into())).unwrap();
-    eprintln!("test.ValidByte ALTS");
-    eprintln!("{alts:?}");
-    eprintln!();
-
-    eprintln!("Component types:");
-    for component in &components {
-        eprint!("    {component} : ");
-        let moddef_ast = db.moddef_ast(component.moddef()).unwrap();
-        let mut has_type = false;
-        for decl in &moddef_ast.decls {
-            if let ast::Decl::SimpleComponent(simplecomponent) = decl {
-                if simplecomponent.name == component.name() {
-                    let package = PackageId("test".into());
-                    let typ = db.resolve_typ(simplecomponent.typ.clone(), package).unwrap();
-                    eprintln!("{typ:?}");
-                    has_type = true;
-                }
-            }
-        }
-        if !has_type {
-            eprintln!("(submodule)");
-        }
-    }
-    eprintln!();
+*/
 }
 
 pub fn compile_verilog(input: &str) -> VirdantResult<()> {
-    use crate::phase::astq::AstQ;
-
-    let mut db = Db::default();
-    let sources = vec![("top".to_string(), Arc::new(input.to_string()))];
-    db.set_sources(sources.into_iter().collect());
+    let mut db = Db::new();
+    db.set_source("top", input);
 
     let mut stdout = std::io::stdout();
     db.verilog(&mut stdout)?;

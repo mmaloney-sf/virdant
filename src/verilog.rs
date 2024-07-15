@@ -5,6 +5,7 @@ use crate::context::Context;
 
 use crate::phase::*;
 use crate::phase::astq::*;
+use crate::phase::imports::*;
 use crate::phase::item_resolution::*;
 use crate::phase::typecheck::*;
 use crate::phase::structure::*;

@@ -16,3 +16,5 @@ pub mod verilog;
 //pub mod db;
 //pub mod elab;
 //pub mod sim;
+
+pub mod topological_sort;

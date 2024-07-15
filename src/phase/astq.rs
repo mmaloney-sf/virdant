@@ -4,7 +4,6 @@ use crate::common::*;
 use super::*;
 
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::sync::Arc;
 
 #[salsa::query_group(AstQStorage)]
@@ -17,9 +16,6 @@ pub trait AstQ: salsa::Database {
     fn package_ast(&self, package: PackageId) -> VirdantResult<ast::Package>;
     fn moddef_ast(&self, moddef: ModDefId) -> VirdantResult<ast::ModDef>;
     fn uniondef_ast(&self, uniondef: UnionDefId) -> VirdantResult<ast::UnionDef>;
-
-    // TODO MOVE THIS
-    fn imports(&self, package: PackageId) -> VirdantResult<Vec<PackageId>>;
 }
 
 fn packages(db: &dyn AstQ) -> Vec<PackageId> {
@@ -93,18 +89,4 @@ fn uniondef_ast(db: &dyn AstQ, uniontype: UnionDefId) -> Result<ast::UnionDef, V
     } else {
         Err(VirdantError::Other(format!("Unknown alt type {uniontype}")))
     }
-}
-
-
-fn imports(db: &dyn AstQ, package: PackageId) -> VirdantResult<Vec<PackageId>> {
-    let package_ast = db.package_ast(package)?;
-    let mut errors = ErrorReport::new();
-    let mut packages = HashSet::new();
-    for ast::PackageImport(package_name) in &package_ast.imports {
-        if !packages.insert(package_name.as_path().into()) {
-            errors.add(VirdantError::Other(format!("Duplicate import: {package_name}")));
-        }
-    }
-    errors.check()?;
-    Ok(packages.into_iter().collect())
 }

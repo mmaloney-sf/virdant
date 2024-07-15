@@ -6,7 +6,16 @@ use std::sync::Arc;
 
 #[salsa::query_group(ItemDependencyQStorage)]
 pub trait ItemDependencyQ: super::item_resolution::ItemResolutionQ {
-    fn moddef_item_dependencies(&self, moddef: ModDefId) -> VirdantResult<Vec<ItemId>>;
+    fn item_dependencies(&self, item: ItemId) -> VirdantResult<Vec<ItemId>>;
+}
+
+fn item_dependencies(db: &dyn ItemDependencyQ, item: ItemId) -> VirdantResult<Vec<ItemId>> {
+    match item {
+        ItemId::ModDef(moddef_id) => moddef_item_dependencies(db, moddef_id),
+        ItemId::UnionDef(_) => todo!(),
+        ItemId::StructDef(_) => todo!(),
+        ItemId::PortDef(_) => todo!(),
+    }
 }
 
 fn moddef_item_dependencies(db: &dyn ItemDependencyQ, moddef: ModDefId) -> VirdantResult<Vec<ItemId>> {

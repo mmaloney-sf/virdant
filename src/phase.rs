@@ -49,7 +49,6 @@ impl Db {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ItemId {
-    Package(PackageId),
     ModDef(ModDefId),
     UnionDef(UnionDefId),
     StructDef(StructDefId),
@@ -59,7 +58,6 @@ pub enum ItemId {
 impl From<ItemId> for Path {
     fn from(item: ItemId) -> Self {
         match item {
-            ItemId::Package(package) => package.into(),
             ItemId::ModDef(moddef) => moddef.into(),
             ItemId::UnionDef(uniondef) => uniondef.into(),
             ItemId::StructDef(structdef) => structdef.into(),
@@ -288,14 +286,6 @@ fn phase() {
 
     eprintln!("Setting top source");
     db.set_source("top", top_source);
-
-    let packages = db.packages();
-    eprintln!("packages:");
-    for package in packages {
-
-        eprintln!("    {package}");
-    }
-    eprintln!();
 
     db.check().unwrap();
 

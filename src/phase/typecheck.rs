@@ -11,7 +11,6 @@ pub trait TypecheckQ: type_resolution::TypeResolutionQ {
     fn moddef_reference_type(&self, moddef: ModDefId, path: Path) -> VirdantResult<Type>;
 
     fn typecheck_moddef(&self, moddef: ModDefId) -> VirdantResult<()>;
-    fn typecheck_package(&self, package: PackageId) -> VirdantResult<()>;
     fn typecheck(&self, moddef: ModDefId) -> VirdantResult<()>;
 }
 
@@ -357,10 +356,6 @@ fn moddef_reference_type(db: &dyn TypecheckQ, moddef: ModDefId, path: Path) -> V
 }
 
 fn typecheck_moddef(db: &dyn TypecheckQ, moddef: ModDefId) -> VirdantResult<()> {
-    todo!()
-}
-
-fn typecheck_package(db: &dyn TypecheckQ, package: PackageId) -> VirdantResult<()> {
     todo!()
 }
 

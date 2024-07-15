@@ -4,7 +4,15 @@ use super::*;
 
 #[salsa::query_group(CheckQStorage)]
 pub trait CheckQ: typecheck::TypecheckQ {
+    fn check_package(&self, package: PackageId) -> VirdantResult<()>;
+
     fn check(&self) -> VirdantResult<()>;
+}
+
+fn check_package(db: &dyn CheckQ, package: PackageId) -> VirdantResult<()> {
+    eprintln!("Checking package {package}");
+
+    Ok(())
 }
 
 fn check(db: &dyn CheckQ) -> VirdantResult<()> {
@@ -19,7 +27,7 @@ fn check(db: &dyn CheckQ) -> VirdantResult<()> {
     let sorted_packages = topological_sort(&package_dependencies)?;
 
     for package in sorted_packages {
-        eprintln!("Package {package}");
+        db.check_package(package)?;
     }
 
     Ok(())

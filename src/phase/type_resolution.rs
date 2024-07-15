@@ -21,7 +21,6 @@ fn resolve_typ(db: &dyn TypeResolutionQ, typ: Arc<ast::Type>, from: PackageId) -
             let typ_args = vec![];
 
             match db.item(path.clone(), from)? {
-                ItemId::Package(_) => todo!(),
                 ItemId::ModDef(_) => todo!(),
                 ItemId::UnionDef(uniondef) => Type::Union(uniondef, typ_args),
                 ItemId::StructDef(structdef) => Type::Struct(structdef, typ_args),

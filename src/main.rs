@@ -3,7 +3,7 @@ use virdant::parse::parse_package;
 use virdant::value::*;
 use virdant::common::*;
 use virdant::types::Type;
-use virdant::db;
+use virdant::phase;
 
 use clap::Parser;
 
@@ -35,15 +35,17 @@ fn main() {
     let args = Args::parse();
     if args.compile {
         let package_text = std::fs::read_to_string(args.filename).unwrap();
-        let mut db = db::Db::default();
-        use db::*;
-        db.set_source(Arc::new(package_text.to_string()));
-        if let Err(e) = db.check() {
-            eprintln!("{e:?}");
-            std::process::exit(-1);
-        }
+        let mut db = phase::Db::default();
+            use virdant::phase::astq::AstQ;
+        let sources = vec![
+            (
+                "main".to_string(),
+                Arc::new(package_text.to_string()),
+            ),
+        ];
+        db.set_sources(sources.into_iter().collect());
 
-        if let Err(e) = db::compile_verilog(&package_text) {
+        if let Err(e) = phase::compile_verilog(&package_text) {
             eprintln!("{e:?}");
             std::process::exit(-1);
         }
@@ -124,7 +126,8 @@ pub fn verilog() {
         }
 
     ";
-    db::compile_verilog(package_text).unwrap();
+    //db::compile_verilog(package_text).unwrap();
+    todo!()
 }
 
 pub fn parse() {

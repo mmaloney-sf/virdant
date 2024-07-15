@@ -1,14 +1,13 @@
 use std::io::Write;
 
-use crate::ast::SimpleComponentKind;
 use crate::common::*;
-use crate::ast;
 use crate::context::Context;
 
 use crate::phase::*;
 use crate::phase::astq::*;
 use crate::phase::item_resolution::*;
 use crate::phase::typecheck::*;
+use crate::phase::structure::*;
 use crate::phase::layout::*;
 
 type SsaName = String;
@@ -42,21 +41,22 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
-    fn verilog_moddef(&mut self, moddef: ModDefId) -> VirdantResult<()> {
-        let moddef_name: Ident = moddef.name();
+    fn verilog_moddef(&mut self, moddef_id: ModDefId) -> VirdantResult<()> {
+        let moddef_name: Ident = moddef_id.name();
+        let moddef = self.db.moddef(moddef_id)?;
         writeln!(self.writer, "module {}(", moddef_name.clone())?;
-        let ports = self.db.moddef_port_names(moddef_name.clone())?;
+        let ports = moddef.ports();
         for (i, port) in ports.iter().enumerate() {
             let is_last = i + 1 == ports.len();
             self.verilog_port(moddef_name.clone(), port.clone(), is_last)?;
         }
         writeln!(self.writer, ");")?;
 
-        for submodule_ast in self.db.moddef_submodules(moddef_name.clone())? {
-            self.verilog_submodule(moddef_name.clone(), submodule_ast)?;
+        for submodule in moddef.submodules() {
+            self.verilog_submodule(moddef_name.clone(), submodule)?;
         }
 
-        for component in self.db.moddef_component_names(moddef_name.clone())? {
+        for component in moddef.internals() {
             self.verilog_component(moddef_name.clone(), component)?;
         }
 
@@ -65,26 +65,24 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
-    fn verilog_port(&mut self, moddef: Ident, port: Ident, is_last_port: bool) -> VirdantResult<()> {
-        let port_ast = self.db.moddef_component_ast(moddef.clone(), port.clone())?;
-        let typ = self.db.moddef_component_type(moddef.clone(), port.clone())?;
-//            Component::Incoming(name, typ) => {
-        //
-        let direction = match port_ast.kind {
-            SimpleComponentKind::Incoming => "input  ",
-            SimpleComponentKind::Outgoing => "output ",
-            _ => unreachable!(),
+    fn verilog_port(&mut self, moddef: Ident, port: Element, is_last_port: bool) -> VirdantResult<()> {
+        let direction = if port.is_incoming() {
+            "input  "
+        } else {
+            "output "
         };
+        let port_name = port.id().name();
+        let typ = port.typ();
 
         if let Type::Word(1) = typ {
-            write!(self.writer, "    {direction} wire            {port}")?;
+            write!(self.writer, "    {direction} wire            {port_name}")?;
         } else if let Type::Word(n) = typ {
             let max_bit = n - 1;
             let width_str = format!("[{max_bit}:0]");
             let padded_width_str = format!("{width_str: >8}");
-            write!(self.writer, "    {direction} wire  {padded_width_str} {port}")?;
+            write!(self.writer, "    {direction} wire  {padded_width_str} {port_name}")?;
         } else if let Type::Clock = typ {
-            write!(self.writer, "    {direction} wire            {port}")?;
+            write!(self.writer, "    {direction} wire            {port_name}")?;
         } else {
             todo!()
         }
@@ -98,72 +96,76 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
-    fn verilog_component(&mut self, moddef: Ident, component: Ident) -> VirdantResult<()> {
-        let component_ast = self.db.moddef_component_ast(moddef.clone(), component.clone())?;
-        match component_ast.kind {
-            SimpleComponentKind::Incoming => (),
-            SimpleComponentKind::Outgoing => {
-                let expr = self.db.moddef_typecheck_wire(moddef.clone(), component.clone().as_path())?;
-                let typ = expr.typ();
-                writeln!(self.writer, "    // outgoing {component} : {typ}")?;
-                let ssa = self.verilog_expr(expr, Context::empty())?;
-                writeln!(self.writer, "    assign {component} = {ssa};")?;
-                writeln!(self.writer)?;
-            },
-            SimpleComponentKind::Node => {
-                let expr = self.db.moddef_typecheck_wire(moddef.clone(), component.clone().as_path())?;
-                let typ = expr.typ();
-                let width_str = make_width_str(self.db, typ.clone());
-                writeln!(self.writer, "    // node {component} : {typ}")?;
-                writeln!(self.writer, "    wire {width_str} {component};")?;
-                let ssa = self.verilog_expr(expr, Context::empty())?;
-                writeln!(self.writer, "    assign {component} = {ssa};")?;
-                writeln!(self.writer)?;
-            },
-            SimpleComponentKind::Reg => {
-                let expr = self.db.moddef_typecheck_wire(moddef.clone(), component.clone().as_path())?;
-                let typ = expr.typ();
-                let width_str = make_width_str(self.db, typ.clone());
-                writeln!(self.writer, "    // reg {component} : {typ}")?;
-                writeln!(self.writer, "    reg  {width_str} {component};")?;
-                let clk = component_ast.clock.unwrap();
-                let connect_ssa = self.verilog_expr(expr.clone(), Context::empty())?;
-                writeln!(self.writer, "    always @(posedge {clk}) begin")?;
-                writeln!(self.writer, "        {component} <= {connect_ssa};")?;
-                writeln!(self.writer, "    end")?;
-                writeln!(self.writer)?;
-                writeln!(self.writer, "    initial begin")?;
-                writeln!(self.writer, "        {component} <= 0;")?;
-                writeln!(self.writer, "    end")?;
-                writeln!(self.writer)?;
-            },
+    fn verilog_component(&mut self, moddef: Ident, component: Element) -> VirdantResult<()> {
+        if component.is_outgoing() {
+            let expr = component.driver();
+            let typ = component.typ();
+            let component_name = component.id().name();
+            writeln!(self.writer, "    // outgoing {component_name} : {typ}")?;
+            let ssa = self.verilog_expr(expr, Context::empty())?;
+            writeln!(self.writer, "    assign {component_name} = {ssa};")?;
+            writeln!(self.writer)?;
+        } else if component.is_node() {
+            let expr = component.driver();
+            let typ = expr.typ();
+            let width_str = make_width_str(self.db, typ.clone());
+            let component_name = component.id().name();
+            writeln!(self.writer, "    // node {component_name} : {typ}")?;
+            writeln!(self.writer, "    wire {width_str} {component_name};")?;
+            let ssa = self.verilog_expr(expr, Context::empty())?;
+            writeln!(self.writer, "    assign {component_name} = {ssa};")?;
+            writeln!(self.writer)?;
+        } else if component.is_reg() {
+            let expr = component.driver();
+            let typ = expr.typ();
+            let width_str = make_width_str(self.db, typ.clone());
+            let component_name = component.id().name();
+            writeln!(self.writer, "    // reg {component_name} : {typ}")?;
+            writeln!(self.writer, "    reg  {width_str} {component_name};")?;
+            let clk = "clock"; //component.clock().unwrap();
+            let connect_ssa = self.verilog_expr(expr.clone(), Context::empty())?;
+            writeln!(self.writer, "    always @(posedge {clk}) begin")?;
+            writeln!(self.writer, "        {component_name} <= {connect_ssa};")?;
+            writeln!(self.writer, "    end")?;
+            writeln!(self.writer)?;
+            writeln!(self.writer, "    initial begin")?;
+            writeln!(self.writer, "        {component_name} <= 0;")?;
+            writeln!(self.writer, "    end")?;
+            writeln!(self.writer)?;
         }
+
         Ok(())
     }
 
-    fn verilog_submodule(&mut self, moddef: Ident, submodule: ast::Submodule) -> VirdantResult<()> {
-        let ports = self.db.moddef_port_names(submodule.moddef.as_ident().unwrap())?;
+    fn verilog_submodule(&mut self, moddef: Ident, submodule: Submodule) -> VirdantResult<()> {
+        let submodule_moddef = self.db.moddef(submodule.moddef())?;
+        let ports = submodule_moddef.ports();
 
         for port in &ports {
-            let typ = self.db.moddef_component_type(submodule.moddef.as_ident().unwrap(), port.clone())?;
+            let typ = port.typ();
             let width_str = make_width_str(self.db, typ);
-            writeln!(self.writer, "    wire {width_str} __TEMP_{sm}_{port};", sm = submodule.name)?;
+            let submodule_name = submodule.id().name();
+            let port_name = port.id().name();
+            writeln!(self.writer, "    wire {width_str} __TEMP_{submodule_name}_{port_name};")?;
         }
 
 //        for Wire(path, _wire_type, expr) in &self.db.moddef_typecheck_wire(moddef.name.clone(), submodule.name.clone())? {
 
         for port in &ports {
-            if let Ok(expr) = self.db.moddef_typecheck_wire(moddef.clone(), submodule.name.as_path().join(&port.clone().as_path())) {
-                let gs = self.verilog_expr(expr, Context::empty())?;
-                writeln!(self.writer, "    assign __TEMP_{sm}_{port} = {gs};", sm = submodule.name)?;
-            }
+            let expr = port.driver();
+            let gs = self.verilog_expr(expr, Context::empty())?;
+            let submodule_name = submodule.id().name();
+            let port_name = port.id().name();
+            writeln!(self.writer, "    assign __TEMP_{submodule_name}_{port_name} = {gs};")?;
         }
 
 
-        writeln!(self.writer, "    {} {}(", submodule.moddef, submodule.name)?;
+        writeln!(self.writer, "    {} {}(", submodule_moddef.id().name(), submodule.id().name())?;
         for (i, port) in ports.iter().enumerate() {
             let last_port = i + 1 == ports.len();
-            write!(self.writer, "        .{port}(__TEMP_{sm}_{port})", sm = submodule.name)?;
+            let submodule_name = submodule.id().name();
+            let port_name = port.id().name();
+            write!(self.writer, "        .{port_name}(__TEMP_{submodule_name}_{port_name})")?;
             if last_port {
                 writeln!(self.writer)?;
             } else {

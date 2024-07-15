@@ -40,7 +40,6 @@ pub fn compile_mlir(input: &str) -> VirdantResult<()> {
     package.mlir(&mut stdout).map_err(|_err| VirdantError::Other("EEK".to_string()))?;
     Ok(())
 }
-*/
 
 pub fn compile_verilog(input: &str) -> VirdantResult<()> {
     let mut db = Db::default();
@@ -50,3 +49,4 @@ pub fn compile_verilog(input: &str) -> VirdantResult<()> {
     db.verilog(&mut stdout)?;
     Ok(())
 }
+*/

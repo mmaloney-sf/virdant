@@ -1,7 +1,7 @@
 pub mod astq;
 pub mod item_resolution;
 pub mod item_dependency;
-pub mod item_structure;
+pub mod structure;
 pub mod type_resolution;
 pub mod typecheck;
 pub mod layout;
@@ -12,7 +12,7 @@ use crate::common::*;
     astq::AstQStorage,
     item_resolution::ItemResolutionQStorage,
     item_dependency::ItemDependencyQStorage,
-    item_structure::ItemStructureQStorage,
+    structure::StructureQStorage,
     type_resolution::TypeResolutionQStorage,
     typecheck::TypecheckQStorage,
     layout::LayoutQStorage,
@@ -146,6 +146,12 @@ impl ComponentId {
 pub trait FQName {
     fn fqname(&self) -> Path;
 
+    fn name(&self) -> Ident {
+        let fqname = &self.fqname();
+        let parts = fqname.parts();
+        Path::from(parts[parts.len() - 1]).as_ident().unwrap()
+    }
+
     fn package(&self) -> PackageId {
         let fqname = &self.fqname();
         let parts = fqname.parts();
@@ -227,7 +233,7 @@ fn phase() {
     use self::astq::*;
     use self::item_resolution::*;
     use self::item_dependency::*;
-    use self::item_structure::*;
+    use self::structure::*;
     use self::type_resolution::*;
 
     let mut db = Db::default();
@@ -327,7 +333,6 @@ fn phase() {
     eprintln!();
 }
 
-/*
 pub fn compile_verilog(input: &str) -> VirdantResult<()> {
     use crate::phase::astq::AstQ;
 
@@ -339,4 +344,3 @@ pub fn compile_verilog(input: &str) -> VirdantResult<()> {
     db.verilog(&mut stdout)?;
     Ok(())
 }
-*/

@@ -9,6 +9,10 @@ pub trait TypecheckQ: type_resolution::TypeResolutionQ {
     fn typeinfer_expr(&self, moddef: ModDefId, expr: Arc<ast::Expr>, ctx: Context<Path, Type>) -> VirdantResult<Arc<TypedExpr>>;
 
     fn moddef_reference_type(&self, moddef: ModDefId, path: Path) -> VirdantResult<Type>;
+
+    fn typecheck_moddef(&self, moddef: ModDefId) -> VirdantResult<()>;
+    fn typecheck_package(&self, package: PackageId) -> VirdantResult<()>;
+    fn typecheck(&self, moddef: ModDefId) -> VirdantResult<()>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -350,4 +354,16 @@ fn moddef_reference_type(db: &dyn TypecheckQ, moddef: ModDefId, path: Path) -> V
     }
 
     Err(VirdantError::Other(format!("Component not found: `{path}` in `{moddef}`")))
+}
+
+fn typecheck_moddef(db: &dyn TypecheckQ, moddef: ModDefId) -> VirdantResult<()> {
+    todo!()
+}
+
+fn typecheck_package(db: &dyn TypecheckQ, package: PackageId) -> VirdantResult<()> {
+    todo!()
+}
+
+fn typecheck(db: &dyn TypecheckQ, moddef: ModDefId) -> VirdantResult<()> {
+    todo!()
 }

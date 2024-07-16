@@ -9,7 +9,7 @@ pub trait TypeResolutionQ: item_dependency::ItemDependencyQ {
     fn method_sig(&self, typ: Type, method: Ident) -> VirdantResult<MethodSig>;
     fn ctor_sig(&self, typ: Type, ctor: Ident) -> VirdantResult<CtorSig>;
 
-    fn component_typ(&self, component: ModDefElementId) -> VirdantResult<Type>;
+    fn component_typ(&self, component_id: ComponentId) -> VirdantResult<Type>;
 }
 
 fn resolve_typ(db: &dyn TypeResolutionQ, typ: Arc<ast::Type>, from: PackageId) -> VirdantResult<Type> {
@@ -92,12 +92,12 @@ fn ctor_sig(db: &dyn TypeResolutionQ, typ: Type, ctor: Ident) -> VirdantResult<C
     Err(VirdantError::Unknown)
 }
 
-fn component_typ(db: &dyn TypeResolutionQ, component: ModDefElementId) -> VirdantResult<Type> {
-    let moddef_ast = db.moddef_ast(component.moddef()).unwrap();
+fn component_typ(db: &dyn TypeResolutionQ, component_id: ComponentId) -> VirdantResult<Type> {
+    let moddef_ast = db.moddef_ast(component_id.moddef()).unwrap();
 
     for decl in &moddef_ast.decls {
         if let ast::Decl::Component(simplecomponent) = decl {
-            if simplecomponent.name == component.name() {
+            if simplecomponent.name == component_id.name() {
                 let package = PackageId::from_ident("test".into());
                 let typ = db.resolve_typ(simplecomponent.typ.clone(), package)?;
                 return Ok(typ);

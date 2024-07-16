@@ -87,12 +87,7 @@ fn check_wires_typecheck(db: &dyn CheckQ, moddef_id: ModDefId) -> VirdantResult<
 
     for decl  in &moddef_ast.decls {
         if let ast::Decl::Wire(ast::Wire(target, _wire_type, expr)) = decl {
-            let element_id = follow_path(db, target.clone(), ItemId::ModDef(moddef_id.clone()))?;
-            let component_id: ModDefElementId = if let ElementId::ModDef(component_id) = element_id {
-                component_id
-            } else {
-                todo!()
-            };
+            let component_id = follow_path(db, target.clone(), ItemId::ModDef(moddef_id.clone()))?;
             let target_typ = db.component_typ(component_id)?;
             let typed_expr = db.typecheck_expr(moddef_id.clone(), expr.clone(), target_typ, Context::empty())?;
             eprintln!("{typed_expr:?}");
@@ -107,7 +102,7 @@ fn check_wires_correct_wiretype(_db: &dyn CheckQ, _moddef_id: ModDefId) -> Virda
     Ok(())
 }
 
-fn resolve_element(db: &dyn CheckQ, item_id: ItemId, name: Ident) -> VirdantResult<ElementId> {
+fn resolve_element(db: &dyn CheckQ, item_id: ItemId, name: Ident) -> VirdantResult<ComponentId> {
     for element_id in db.item_elements(item_id)? {
         if element_id.name() == name {
             return Ok(element_id);
@@ -116,11 +111,11 @@ fn resolve_element(db: &dyn CheckQ, item_id: ItemId, name: Ident) -> VirdantResu
     Err(VirdantError::Unknown)
 }
 
-fn follow_path(db: &dyn CheckQ, target: Path, item_id: ItemId) -> VirdantResult<ElementId> {
+fn follow_path(db: &dyn CheckQ, target: Path, item_id: ItemId) -> VirdantResult<ComponentId> {
     eprintln!("follow_path({target}, {item_id})");
     let mut current_item_id = item_id;
     let mut remaining_path: Option<Path> = Some(target.clone());
-    let mut current_element: ElementId = resolve_element(db, current_item_id.clone(), target.head())?;
+    let mut current_element: ComponentId = resolve_element(db, current_item_id.clone(), target.head())?;
 
     while let Some(path) = remaining_path {
         current_element = resolve_element(db, current_item_id.clone(), path.head())?;

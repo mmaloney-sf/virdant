@@ -1,3 +1,5 @@
+use crate::ast::Package;
+
 use super::*;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -38,20 +40,10 @@ pub struct PortDefId(PackageId, Ident);
 ////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub enum ElementId {
-    ModDef(ModDefElementId),
-    UnionDef(UnionDefElementId),
-    StructDef(StructDefElementId),
-}
+pub struct ElementId(ItemId, Ident);
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct ModDefElementId(ModDefId, Ident);
-
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct UnionDefElementId(UnionDefId, Ident);
-
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct StructDefElementId(StructDefId, Ident);
+pub struct ComponentId(ModDefId, Ident);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -68,6 +60,10 @@ pub trait Named {
 
 pub trait HasPackage {
     fn package(&self) -> PackageId;
+}
+
+pub trait HasItem {
+    fn item(&self) -> ItemId;
 }
 
 pub trait AsElement {
@@ -129,54 +125,6 @@ macro_rules! item_id {
     }
 }
 
-macro_rules! element_id {
-    ($ctor:ident, $name:ident, $item:ident, $item_lowercase:ident) => {
-        impl AsElement for $name {
-            fn as_element(&self) -> ElementId {
-                ElementId::$ctor(self.clone())
-            }
-        }
-
-        impl std::fmt::Display for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{}::{}", self.package(), self.name())
-            }
-        }
-
-        impl std::fmt::Debug for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{self}")
-            }
-        }
-
-        impl Named for $name {
-            fn name(&self) -> Ident {
-                self.1.clone()
-            }
-        }
-
-        impl HasPackage for $name {
-            fn package(&self) -> PackageId {
-                self.0.package()
-            }
-        }
-
-        impl $name {
-            pub(crate) fn from_ident(item_id: $item, name: Ident) -> Self {
-                $name(item_id, name)
-            }
-
-            pub fn $item_lowercase(&self) -> $item {
-                self.0.clone()
-            }
-
-            pub fn item(&self) -> ItemId {
-                self.0.as_item()
-            }
-        }
-    }
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Impls
@@ -194,6 +142,12 @@ impl std::fmt::Display for ItemId {
     }
 }
 
+impl std::fmt::Display for ComponentId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}::{}::{}", self.item().package(), self.item(), self.name())
+    }
+}
+
 impl std::fmt::Display for ElementId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}::{}::{}", self.item().package(), self.item(), self.name())
@@ -202,11 +156,7 @@ impl std::fmt::Display for ElementId {
 
 impl ElementId {
     pub fn item(&self) -> ItemId {
-        match self {
-            ElementId::ModDef(component) => component.item(),
-            ElementId::UnionDef(alt) => alt.item(),
-            ElementId::StructDef(field) => field.item(),
-        }
+        self.0.clone()
     }
 }
 
@@ -224,15 +174,12 @@ impl HasPackage for ItemId {
 debug_impl!(PackageId);
 debug_impl!(ItemId);
 debug_impl!(ElementId);
+debug_impl!(ComponentId);
 
 item_id!(ModDef, ModDefId);
 item_id!(UnionDef, UnionDefId);
 item_id!(StructDef, StructDefId);
 item_id!(PortDef, PortDefId);
-
-element_id!(ModDef, ModDefElementId, ModDefId, moddef);
-element_id!(UnionDef, UnionDefElementId, UnionDefId, uniondef);
-element_id!(StructDef, StructDefElementId, StructDefId, structdef);
 
 impl Named for ItemId {
     fn name(&self) -> Ident {
@@ -247,11 +194,7 @@ impl Named for ItemId {
 
 impl Named for ElementId {
     fn name(&self) -> Ident {
-        match self {
-            ElementId::ModDef(component) => component.name(),
-            ElementId::UnionDef(alt) => alt.name(),
-            ElementId::StructDef(field) => field.name(),
-        }
+        self.1.clone()
     }
 }
 
@@ -264,5 +207,53 @@ impl Named for PackageId {
 impl PackageId {
     pub(crate) fn from_ident(package: Ident) -> Self {
         PackageId(package)
+    }
+}
+
+impl ElementId {
+    pub(crate) fn from_ident(item_id: ItemId, name: Ident) -> Self {
+        ElementId(item_id, name)
+    }
+}
+
+impl ComponentId {
+    pub(crate) fn from_ident(moddef_id: ModDefId, name: Ident) -> Self {
+        ComponentId(moddef_id, name)
+    }
+}
+
+impl AsElement for ElementId {
+    fn as_element(&self) -> ElementId {
+        self.clone()
+    }
+}
+
+impl AsElement for ComponentId {
+    fn as_element(&self) -> ElementId {
+        ElementId::from_ident(self.0.as_item(), self.1.clone())
+    }
+}
+
+impl HasItem for ItemId {
+    fn item(&self) -> ItemId {
+        self.clone()
+    }
+}
+
+impl HasItem for ComponentId {
+    fn item(&self) -> ItemId {
+        self.0.as_item()
+    }
+}
+
+impl ComponentId {
+    pub fn moddef(&self) -> ModDefId {
+        self.0.clone()
+    }
+}
+
+impl Named for ComponentId {
+    fn name(&self) -> Ident {
+        self.1.clone()
     }
 }

@@ -20,7 +20,7 @@ pub struct ModDef {
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Component {
-    id: ElementId,
+    id: ComponentId,
     typ: Type,
     kind: ast::ComponentKind,
     driver: Arc<TypedExpr>,
@@ -28,7 +28,7 @@ pub struct Component {
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Submodule {
-    id: ElementId,
+    id: ComponentId,
     moddef_id: ModDefId,
 }
 
@@ -56,7 +56,7 @@ impl ModDef {
 }
 
 impl Component {
-    pub fn id(&self) -> ElementId {
+    pub fn id(&self) -> ComponentId {
         self.id.clone()
     }
 
@@ -96,12 +96,7 @@ impl Component {
         if self.is_reg() {
             eprintln!("HACK on clock {}:{}", file!(), line!());
 
-            let component_id: ModDefElementId = if let ElementId::ModDef(component_id) = self.id() {
-                component_id
-            } else {
-                todo!()
-            };
-            let component_id: ModDefElementId = ModDefElementId::from_ident(component_id.moddef(), "clock".into());
+            let component_id: ComponentId = self.id();
             Some(TypedExpr::Reference(Type::Clock, Referent::Component(component_id)).into())
         } else {
             None
@@ -110,7 +105,7 @@ impl Component {
 }
 
 impl Submodule {
-    pub fn id(&self) -> ElementId {
+    pub fn id(&self) -> ComponentId {
         self.id.clone()
     }
 
@@ -132,7 +127,7 @@ fn moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<ModDef> {
             ast::Decl::Component(component) => {
                 components.push(
                     Component {
-                        id: ElementId::ModDef(ModDefElementId::from_ident(moddef_id.clone(), component.name.clone())),
+                        id: ComponentId::from_ident(moddef_id.clone(), component.name.clone()),
                         typ: todo!(),
                         kind: todo!(),
                         driver: todo!(),

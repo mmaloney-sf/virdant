@@ -33,7 +33,7 @@ pub enum TypedExpr {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Referent {
-    Component(ModDefElementId),
+    Component(ComponentId),
     Local(Ident),
 }
 
@@ -287,7 +287,7 @@ fn typeinfer_expr(
                 } 
             }
             let actual_typ = db.moddef_reference_type(moddef_id.clone(), path.clone())?;
-            let component_id: ModDefElementId = db.resolve_target(moddef_id.clone(), path.clone())?;
+            let component_id: ComponentId = db.resolve_target(moddef_id.clone(), path.clone())?;
             Ok(TypedExpr::Reference(actual_typ, Referent::Component(component_id)).into())
         },
         ast::Expr::Word(lit) => {

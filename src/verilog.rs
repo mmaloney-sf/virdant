@@ -35,7 +35,7 @@ struct Verilog<'a> {
 impl<'a> Verilog<'a> {
     fn verilog_packages(&mut self) -> VirdantResult<()> {
         for package in self.db.packages() {
-            for moddef in self.db.moddefs(package)? {
+            for moddef in self.db.package_moddefs(package)? {
                 self.verilog_moddef(moddef)?;
             }
         }

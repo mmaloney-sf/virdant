@@ -1,9 +1,10 @@
 pub mod astq;
 pub mod imports;
 pub mod item_resolution;
+pub mod item_namespace;
 pub mod item_dependency;
-pub mod structure;
 pub mod type_resolution;
+pub mod structure;
 pub mod typecheck;
 pub mod check;
 pub mod layout;
@@ -16,6 +17,7 @@ use std::collections::HashMap;
     astq::AstQStorage,
     imports::ImportsQStorage,
     item_resolution::ItemResolutionQStorage,
+    item_namespace::ItemNamespaceQStorage,
     item_dependency::ItemDependencyQStorage,
     structure::StructureQStorage,
     type_resolution::TypeResolutionQStorage,

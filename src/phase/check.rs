@@ -4,18 +4,20 @@ use super::*;
 
 #[salsa::query_group(CheckQStorage)]
 pub trait CheckQ: typecheck::TypecheckQ {
-    fn check_package(&self, package: PackageId) -> VirdantResult<()>;
-
     fn check(&self) -> VirdantResult<()>;
 }
 
 fn check_package(db: &dyn CheckQ, package: PackageId) -> VirdantResult<()> {
     eprintln!("Checking package {package}");
 
+    for item in db.package_items(package)? {
+    }
+
     Ok(())
 }
 
 fn check(db: &dyn CheckQ) -> VirdantResult<()> {
+    let mut errors = ErrorReport::new();
     let packages = db.packages();
     let mut package_dependencies = HashMap::new();
 
@@ -27,8 +29,9 @@ fn check(db: &dyn CheckQ) -> VirdantResult<()> {
     let sorted_packages = topological_sort(&package_dependencies)?;
 
     for package in sorted_packages {
-        db.check_package(package)?;
+        errors.add_on_err(check_package(db, package));
     }
 
+    errors.check()?;
     Ok(())
 }

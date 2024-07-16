@@ -81,6 +81,16 @@ impl ErrorReport {
         self.errors.push(error.into());
     }
 
+    pub fn add_on_err<T>(&mut self, result: VirdantResult<T>) -> Option<T> {
+        match result {
+            Ok(t) => Some(t),
+            Err(err) => {
+                self.add(err);
+                None
+            },
+        }
+    }
+
     pub fn check(self) -> Result<(), VirdantError> {
         if self.errors.len() == 0 {
             Ok(())

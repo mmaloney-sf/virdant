@@ -6,14 +6,29 @@ use super::*;
 
 #[salsa::query_group(ItemResolutionQStorage)]
 pub trait ItemResolutionQ: imports::ImportsQ {
-    fn items(&self, package: PackageId) -> VirdantResult<Vec<ItemId>>;
+    fn items(&self) -> VirdantResult<Vec<ItemId>>;
 
-    fn moddefs(&self, package: PackageId) -> VirdantResult<Vec<ModDefId>>;
+    fn package_items(&self, package: PackageId) -> VirdantResult<Vec<ItemId>>;
+
+    fn package_moddefs(&self, package: PackageId) -> VirdantResult<Vec<ModDefId>>;
 
     fn item(&self, item: Path, from: PackageId) -> VirdantResult<ItemId>;
 }
 
-fn items(db: &dyn ItemResolutionQ, package: PackageId) -> VirdantResult<Vec<ItemId>> {
+fn items(db: &dyn ItemResolutionQ) -> VirdantResult<Vec<ItemId>> {
+    let mut errors = ErrorReport::new();
+    let mut items = vec![];
+    for package in db.packages() {
+        match db.package_items(package) {
+            Ok(package_items) => items.extend(package_items),
+            Err(err) => errors.add(err),
+        }
+    }
+    errors.check()?;
+    Ok(items)
+}
+
+fn package_items(db: &dyn ItemResolutionQ, package: PackageId) -> VirdantResult<Vec<ItemId>> {
     let mut items = vec![];
     let mut item_names = HashSet::new();
     let mut errors = ErrorReport::new();
@@ -53,8 +68,8 @@ fn items(db: &dyn ItemResolutionQ, package: PackageId) -> VirdantResult<Vec<Item
     Ok(items)
 }
 
-fn moddefs(db: &dyn ItemResolutionQ, package: PackageId) -> VirdantResult<Vec<ModDefId>> {
-    let moddefs = db.items(package)?
+fn package_moddefs(db: &dyn ItemResolutionQ, package: PackageId) -> VirdantResult<Vec<ModDefId>> {
+    let moddefs = db.package_items(package)?
         .into_iter()
         .filter_map(|item| {
             if let ItemId::ModDef(moddef) = item {
@@ -73,7 +88,7 @@ fn item(db: &dyn ItemResolutionQ, path: Path, from: PackageId) -> VirdantResult<
 
     if imported_packages.contains(&PackageId::from(path.head().as_path())) {
         // try to interpret the path as imported_package.rest.of.path
-        for item in db.items(path_package)? {
+        for item in db.package_items(path_package)? {
             let item_path: Path = item.clone().into();
             if item_path == path {
                 return Ok(item);
@@ -82,7 +97,7 @@ fn item(db: &dyn ItemResolutionQ, path: Path, from: PackageId) -> VirdantResult<
     } else {
         // otherwise, treat it as a local path
         for package in db.packages() {
-            for item in db.items(package)? {
+            for item in db.package_items(package)? {
                 let item_path: Path = item.clone().into();
                 if item_path == Path::from(from.clone()).join(&path) {
                     return Ok(item);

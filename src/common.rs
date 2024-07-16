@@ -1,6 +1,5 @@
 pub use internment::Intern;
 pub use std::sync::Arc;
-use crate::types::Type;
 
 pub type Val = u64;
 pub type Width = u64;
@@ -47,7 +46,7 @@ pub enum VirdantError {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeError {
-    TypeMismatch(Arc<Type>, Arc<Type>),
+//    TypeMismatch(Arc<Type>, Arc<Type>),
     CantInfer,
     Other(String),
     Unknown,

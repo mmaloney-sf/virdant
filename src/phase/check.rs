@@ -57,11 +57,13 @@ fn check_no_dup_imports(db: &dyn CheckQ, package_id: PackageId) -> VirdantResult
 }
 
 fn check_item_no_dup_names(db: &dyn CheckQ, item_id: ItemId) -> VirdantResult<()> {
-    db.item_elements(item_id)?;
+    db.item_elements(item_id)
+        .map_err(|err| VirdantError::Other("Failed Check: Item No Dup Names".into()).because(err))?;
     Ok(())
 }
 
 fn check_all_dep_items_exist(db: &dyn CheckQ, item_id: ItemId) -> VirdantResult<()> {
-    db.item_dependencies(item_id)?;
+    db.item_dependencies(item_id)
+        .map_err(|err| VirdantError::Other("Failed Check: All Dep Items Exist".into()).because(err))?;
     Ok(())
 }

@@ -41,7 +41,14 @@ pub enum VirdantError {
     ParseError(String),
     Io(String),
     Other(String),
+    Because(Box<VirdantError>, Box<VirdantError>),
     Unknown,
+}
+
+impl VirdantError {
+    pub fn because(self, cause: VirdantError) -> VirdantError {
+        VirdantError::Because(Box::new(self), Box::new(cause))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

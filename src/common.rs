@@ -196,8 +196,8 @@ impl Path {
         parts[0..parts.len()-1].join(".").into()
     }
 
-    pub fn parts(&self) -> Vec<&str> {
-        self.0.split('.').collect()
+    pub fn parts(&self) -> Vec<Ident> {
+        self.0.split('.').map(|id| id.into()).collect()
     }
 
     pub fn is_local(&self) -> bool {
@@ -222,12 +222,16 @@ impl Path {
 
     pub fn head(&self) -> Ident {
         let parts = self.parts();
-        parts[0].into()
+        parts[0].clone()
     }
 
-    pub fn tail(&self) -> Path {
+    pub fn tail(&self) -> Option<Path> {
         let parts = self.parts();
-        parts[1..].join(".").into()
+        if parts.len() > 1 {
+            Some(parts[1..].join(".").into())
+        } else {
+            None
+        }
     }
 }
 

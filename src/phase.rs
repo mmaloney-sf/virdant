@@ -181,6 +181,18 @@ pub struct MethodSig(Vec<Type>, Type);
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub struct CtorSig(Vec<Type>, Type);
 
+impl std::fmt::Display for ItemId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.fqname())
+    }
+}
+
+impl std::fmt::Display for ElementId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.fqname())
+    }
+}
+
 pub trait AsItem {
     fn as_item(&self) -> ItemId;
 }
@@ -222,13 +234,13 @@ pub trait FQName {
     fn name(&self) -> Ident {
         let fqname = &self.fqname();
         let parts = fqname.parts();
-        Path::from(parts[parts.len() - 1]).as_ident().unwrap()
+        Path::from(parts[parts.len() - 1].clone()).as_ident().unwrap()
     }
 
     fn package(&self) -> PackageId {
         let fqname = &self.fqname();
         let parts = fqname.parts();
-        Path::from(parts[0]).into()
+        Path::from(parts[0].clone()).into()
     }
 }
 

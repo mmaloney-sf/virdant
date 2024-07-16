@@ -182,7 +182,7 @@ impl<'a> Verilog<'a> {
                 let ssa = ctx.lookup(x).unwrap();
                 Ok(format!("{ssa}"))
             },
-            TypedExpr::Reference(_typ, Referent::Element(component_id)) => {
+            TypedExpr::Reference(_typ, Referent::Component(component_id)) => {
                 let path: Path = component_id.clone().into();
                 if path.is_local() {
                     Ok(format!("{path}"))

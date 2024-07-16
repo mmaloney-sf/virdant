@@ -121,9 +121,48 @@ define_fq_type!(UnionDefId);
 define_fq_type!(StructDefId);
 define_fq_type!(PortDefId);
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ElementId {
+    Component(ComponentId),
+    Alt(AltId),
+    Field(FieldId),
+}
+
+impl FQName for ElementId {
+    fn fqname(&self) -> Path {
+        match self {
+            ElementId::Component(component) => component.fqname(),
+            ElementId::Alt(alt) => alt.fqname(),
+            ElementId::Field(field) => field.fqname(),
+        }
+    }
+}
+
 define_fq_type!(ComponentId);
 define_fq_type!(AltId);
 define_fq_type!(FieldId);
+
+pub trait AsElement {
+    fn as_element(&self) -> ElementId;
+}
+
+impl AsElement for ComponentId {
+    fn as_element(&self) -> ElementId {
+        ElementId::Component(self.clone())
+    }
+}
+
+impl AsElement for AltId {
+    fn as_element(&self) -> ElementId {
+        ElementId::Alt(self.clone())
+    }
+}
+
+impl AsElement for FieldId {
+    fn as_element(&self) -> ElementId {
+        ElementId::Field(self.clone())
+    }
+}
 
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub struct MethodSig(Vec<Type>, Type);

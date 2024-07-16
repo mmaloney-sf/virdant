@@ -2,7 +2,6 @@ use crate::common::*;
 use crate::context::*;
 use crate::ast;
 use super::*;
-use super::ComponentId;
 
 #[salsa::query_group(TypecheckQStorage)]
 pub trait TypecheckQ: type_resolution::TypeResolutionQ {
@@ -34,7 +33,7 @@ pub enum TypedExpr {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Referent {
-    Element(ComponentId),
+    Component(ComponentId),
     Local(Ident),
 }
 
@@ -291,7 +290,7 @@ fn typeinfer_expr(
             let actual_typ = db.moddef_reference_type(moddef, path.clone())?;
 
             let component_id: ComponentId = path.clone().into();
-            Ok(TypedExpr::Reference(actual_typ, Referent::Element(component_id)).into())
+            Ok(TypedExpr::Reference(actual_typ, Referent::Component(component_id)).into())
         },
         ast::Expr::Word(lit) => {
             if let Some(n) = lit.width {

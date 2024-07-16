@@ -20,7 +20,7 @@ pub struct ModDef {
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Element {
-    id: ComponentId,
+    id: ElementId,
     typ: Type,
     kind: ast::ComponentKind,
     driver: Arc<TypedExpr>,
@@ -28,7 +28,7 @@ pub struct Element {
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Submodule {
-    id: ComponentId,
+    id: ElementId,
     moddef_id: ModDefId,
 }
 
@@ -56,7 +56,7 @@ impl ModDef {
 }
 
 impl Element {
-    pub fn id(&self) -> ComponentId {
+    pub fn id(&self) -> ElementId {
         self.id.clone()
     }
 
@@ -95,7 +95,7 @@ impl Element {
     pub fn clock(&self) -> Option<Arc<TypedExpr>> {
         if self.is_reg() {
             eprintln!("HACK on clock {}:{}", file!(), line!());
-            Some(TypedExpr::Reference(Type::Clock, Referent::Element(Path::from("clock").into())).into())
+            Some(TypedExpr::Reference(Type::Clock, Referent::Component(Path::from("clock").into())).into())
         } else {
             None
         }
@@ -103,7 +103,7 @@ impl Element {
 }
 
 impl Submodule {
-    pub fn id(&self) -> ComponentId {
+    pub fn id(&self) -> ElementId {
         self.id.clone()
     }
 

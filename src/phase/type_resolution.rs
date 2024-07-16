@@ -3,7 +3,7 @@ use crate::ast;
 use super::*;
 
 #[salsa::query_group(TypeResolutionQStorage)]
-pub trait TypeResolutionQ: item_resolution::ItemResolutionQ {
+pub trait TypeResolutionQ: item_dependency::ItemDependencyQ {
     fn resolve_typ(&self, typ: Arc<ast::Type>, from: PackageId) -> VirdantResult<Type>;
 
     fn method_sig(&self, typ: Type, method: Ident) -> VirdantResult<MethodSig>;
@@ -96,7 +96,7 @@ fn component_typ(db: &dyn TypeResolutionQ, component: ComponentId) -> VirdantRes
     let moddef_ast = db.moddef_ast(component.moddef()).unwrap();
 
     for decl in &moddef_ast.decls {
-        if let ast::Decl::SimpleComponent(simplecomponent) = decl {
+        if let ast::Decl::Component(simplecomponent) = decl {
             if simplecomponent.name == component.name() {
                 let package = PackageId("test".into());
                 let typ = db.resolve_typ(simplecomponent.typ.clone(), package)?;

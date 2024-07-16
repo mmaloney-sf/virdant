@@ -354,7 +354,7 @@ fn moddef_reference_type(db: &dyn TypecheckQ, moddef: ModDefId, path: Path) -> V
     let moddef_ast = db.moddef_ast(moddef.clone())?;
     for decl in &moddef_ast.decls {
         match decl {
-            ast::Decl::SimpleComponent(c) if c.name.as_path() == path => {
+            ast::Decl::Component(c) if c.name.as_path() == path => {
                 let typ = db.resolve_typ(c.typ.clone(), moddef.package())?;
                 return Ok(typ);
             },

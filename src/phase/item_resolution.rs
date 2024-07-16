@@ -5,7 +5,7 @@ use crate::ast;
 use super::*;
 
 #[salsa::query_group(ItemResolutionQStorage)]
-pub trait ItemResolutionQ: imports::ImportsQ {
+pub trait ItemResolutionQ: imports::ImportsQ + item_namespace::ItemNamespaceQ {
     fn items(&self) -> VirdantResult<Vec<ItemId>>;
 
     fn package_items(&self, package: PackageId) -> VirdantResult<Vec<ItemId>>;

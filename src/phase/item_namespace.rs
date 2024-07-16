@@ -25,7 +25,7 @@ fn moddef_elements(db: &dyn ItemNamespaceQ, moddef_id: ModDefId) -> VirdantResul
     let moddef_ast = db.moddef_ast(moddef_id.clone())?;
     for decl in &moddef_ast.decls {
          let name = match decl {
-            ast::Decl::SimpleComponent(simplecomponent) => Some(&simplecomponent.name),
+            ast::Decl::Component(component) => Some(&component.name),
             ast::Decl::Submodule(submodule) => Some(&submodule.name),
             ast::Decl::Port(port) => Some(&port.name),
             ast::Decl::Wire(_) => None,

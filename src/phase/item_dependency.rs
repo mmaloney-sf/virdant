@@ -25,8 +25,8 @@ fn moddef_item_dependencies(db: &dyn ItemDependencyQ, moddef: ModDefId) -> Virda
 
     for decl in &moddef_ast.decls {
         match decl {
-            ast::Decl::SimpleComponent(simplecomponent) => {
-                match moddef_item_dependencies_simplecomponent(db, moddef.clone(), simplecomponent) {
+            ast::Decl::Component(component) => {
+                match moddef_item_dependencies_simplecomponent(db, moddef.clone(), component) {
                     Ok(deps) => dependencies.extend(deps),
                     Err(e) => errors.add(e),
                 }

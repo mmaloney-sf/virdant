@@ -62,7 +62,7 @@ pub struct Channel(pub ChannelDir, pub Ident, pub Arc<Type>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Decl {
-    SimpleComponent(Component),
+    Component(Component),
     Submodule(Submodule),
     Port(Port),
     Wire(Wire),

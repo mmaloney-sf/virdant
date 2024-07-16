@@ -104,16 +104,16 @@ TypeList: Vec<Arc<Type>> = {
 }
 
 Decl: Decl = {
-    <c:SimpleComponent> => Decl::SimpleComponent(c),
+    <c:Component> => Decl::Component(c),
     <m:Submodule> => Decl::Submodule(m),
     <p:Port> => Decl::Port(p),
     <c:Wire> => Decl::Wire(c),
 }
 
-SimpleComponent: SimpleComponent = {
+Component: Component = {
     "incoming" <name:Id> ":" <typ:Type> => {
-        SimpleComponent {
-            kind: SimpleComponentKind::Incoming,
+        Component {
+            kind: ComponentKind::Incoming,
             name,
             typ: typ,
             clock: None,
@@ -121,8 +121,8 @@ SimpleComponent: SimpleComponent = {
         }
     },
     "outgoing" <name:Id> ":" <typ:Type> => {
-        SimpleComponent {
-            kind: SimpleComponentKind::Outgoing,
+        Component {
+            kind: ComponentKind::Outgoing,
             name,
             typ: typ,
             clock: None,
@@ -130,8 +130,8 @@ SimpleComponent: SimpleComponent = {
         }
     },
     "node" <name:Id> ":" <typ:Type> => {
-        SimpleComponent {
-            kind: SimpleComponentKind::Node,
+        Component {
+            kind: ComponentKind::Node,
             name,
             typ: typ,
             clock: None,
@@ -140,8 +140,8 @@ SimpleComponent: SimpleComponent = {
     },
     "reg" <name:Id> ":" <typ:Type> "on" <clock:Path> => {
 //        let reset = rst.map(|s| s.1); // .1 ignores the "reset" keyword
-        SimpleComponent {
-            kind: SimpleComponentKind::Reg,
+        Component {
+            kind: ComponentKind::Reg,
             name,
             typ,
             clock: Some(clock),

@@ -291,6 +291,7 @@ impl std::fmt::Debug for Type {
 
 #[test]
 fn phase() {
+    #![allow(unused)]
     use crate::ast;
     use self::astq::*;
     use self::item_resolution::*;

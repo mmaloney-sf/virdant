@@ -42,15 +42,15 @@ fn moddef_names_unique(db: &dyn ItemNamespaceQ, moddef_id: ModDefId) -> VirdantR
     Ok(())
 }
 
-fn uniondef_names_unique(db: &dyn ItemNamespaceQ, uniondef_id: UnionDefId) -> VirdantResult<()> {
+fn uniondef_names_unique(_db: &dyn ItemNamespaceQ, _uniondef_id: UnionDefId) -> VirdantResult<()> {
     todo!()
 }
 
-fn structdef_names_unique(db: &dyn ItemNamespaceQ, structdef_id: StructDefId) -> VirdantResult<()> {
+fn structdef_names_unique(_db: &dyn ItemNamespaceQ, _structdef_id: StructDefId) -> VirdantResult<()> {
     todo!()
 }
 
-fn portdef_names_unique(db: &dyn ItemNamespaceQ, portdef_id: PortDefId) -> VirdantResult<()> {
+fn portdef_names_unique(_db: &dyn ItemNamespaceQ, _portdef_id: PortDefId) -> VirdantResult<()> {
     todo!()
 }
 

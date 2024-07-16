@@ -5,7 +5,6 @@ use crate::context::Context;
 
 use crate::phase::*;
 use crate::phase::astq::*;
-use crate::phase::imports::*;
 use crate::phase::item_resolution::*;
 use crate::phase::typecheck::*;
 use crate::phase::structure::*;
@@ -49,16 +48,16 @@ impl<'a> Verilog<'a> {
         let ports = moddef.ports();
         for (i, port) in ports.iter().enumerate() {
             let is_last = i + 1 == ports.len();
-            self.verilog_port(moddef_name.clone(), port.clone(), is_last)?;
+            self.verilog_port(port.clone(), is_last)?;
         }
         writeln!(self.writer, ");")?;
 
         for submodule in moddef.submodules() {
-            self.verilog_submodule(moddef_name.clone(), submodule)?;
+            self.verilog_submodule(submodule)?;
         }
 
         for component in moddef.internals() {
-            self.verilog_component(moddef_name.clone(), component)?;
+            self.verilog_component(component)?;
         }
 
         writeln!(self.writer, "endmodule")?;
@@ -66,7 +65,7 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
-    fn verilog_port(&mut self, moddef: Ident, port: Element, is_last_port: bool) -> VirdantResult<()> {
+    fn verilog_port(&mut self, port: Element, is_last_port: bool) -> VirdantResult<()> {
         let direction = if port.is_incoming() {
             "input  "
         } else {
@@ -97,7 +96,7 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
-    fn verilog_component(&mut self, moddef: Ident, component: Element) -> VirdantResult<()> {
+    fn verilog_component(&mut self, component: Element) -> VirdantResult<()> {
         if component.is_outgoing() {
             let expr = component.driver();
             let typ = component.typ();
@@ -138,7 +137,7 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
-    fn verilog_submodule(&mut self, moddef: Ident, submodule: Submodule) -> VirdantResult<()> {
+    fn verilog_submodule(&mut self, submodule: Submodule) -> VirdantResult<()> {
         let submodule_moddef = self.db.moddef(submodule.moddef())?;
         let ports = submodule_moddef.ports();
 

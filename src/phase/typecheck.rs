@@ -45,6 +45,7 @@ pub enum TypedPat {
     Otherwise(Type),
 }
 
+/*
 impl TypedPat {
     fn from(pat: &ast::Pat, typ: Type, db: &dyn TypecheckQ) -> VirdantResult<TypedPat> {
         match pat {
@@ -76,6 +77,7 @@ impl TypedPat {
         }
     }
 }
+*/
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TypedMatchArm(pub TypedPat, pub Arc<TypedExpr>);
@@ -162,12 +164,13 @@ fn typecheck_expr(
 
             Ok(TypedExpr::MethodCall(typ, typed_subject, method.clone(), typed_args).into())
         },
-        ast::Expr::Ctor(ctor, args) => {
+        ast::Expr::Ctor(_ctor, _args) => {
             //todo!();
             // Is the ctor valid?
             // What is the signature of the ctor?
             // asdf
             todo!();
+            /*
             let arg_types: Vec<Type> = todo!(); // db.alttypedef_ctor_argtypes(typ.name(), ctor.clone())?;
             if args.len() != arg_types.len() {
                 return Err(VirdantError::Other("Wrong number of args".into()));
@@ -178,6 +181,7 @@ fn typecheck_expr(
                 typed_args.push(typed_arg);
             }
             Ok(TypedExpr::Ctor(typ, ctor.clone(), typed_args).into())
+*/
         },
         ast::Expr::As(subject, expected_typ) => {
             let expected_type_resolved = db.resolve_typ(expected_typ.clone(), moddef.package())?;
@@ -224,7 +228,9 @@ fn typecheck_expr(
             let typed_b = db.typecheck_expr(moddef, b.clone(), typ.clone(), new_ctx)?;
             Ok(TypedExpr::Let(typed_b.typ(), x.clone(), ascription.clone(), typed_e, typed_b).into())
         },
-        ast::Expr::Match(subject, _ascription, arms) => {
+        ast::Expr::Match(_subject, _ascription, _arms) => {
+            todo!()
+            /*
             let typed_subject = db.typeinfer_expr(moddef.clone(), subject.clone(), ctx.clone())?;
             let ctors: VirdantResult<Vec<Ident>> = todo!(); // db.alttypedef_ctors(typed_subject.typ().name())
             ctors
@@ -262,6 +268,7 @@ fn typecheck_expr(
             }
             // TODO type ascription
             Ok(TypedExpr::Match(typ.clone(), typed_subject, None, typed_arms).into())
+*/
         },
     }
 }
@@ -353,7 +360,7 @@ fn moddef_reference_type(db: &dyn TypecheckQ, moddef: ModDefId, path: Path) -> V
                 return Ok(typ);
             },
             ast::Decl::Submodule(submodule) if submodule.name.as_path() == path.parent() => {
-                let component = todo!();
+                let _component = todo!();
                 // path.parts()[1].into()
 //                return db.component_typ(submodule.moddef, );
             },
@@ -364,10 +371,10 @@ fn moddef_reference_type(db: &dyn TypecheckQ, moddef: ModDefId, path: Path) -> V
     Err(VirdantError::Other(format!("Component not found: `{path}` in `{moddef}`")))
 }
 
-fn typecheck_moddef(db: &dyn TypecheckQ, moddef: ModDefId) -> VirdantResult<()> {
+fn typecheck_moddef(_db: &dyn TypecheckQ, _moddef: ModDefId) -> VirdantResult<()> {
     todo!()
 }
 
-fn typecheck(db: &dyn TypecheckQ, moddef: ModDefId) -> VirdantResult<()> {
+fn typecheck(_db: &dyn TypecheckQ, _moddef: ModDefId) -> VirdantResult<()> {
     todo!()
 }

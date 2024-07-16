@@ -1,5 +1,4 @@
 use crate::common::*;
-use crate::context::*;
 use crate::ast;
 use super::*;
 
@@ -135,7 +134,7 @@ impl UnionLayout {
     }
 
     pub fn ctor_slots(&self, ctor: Ident) -> Vec<(Offset, Width)> {
-        for (ctor_name, slots) in &self.slots {
+        for (_ctor_name, slots) in &self.slots {
             let mut results = vec![];
             for i in 0..slots.0.len() {
                 results.push(self.ctor_slot(ctor.clone(), i));

@@ -1,8 +1,4 @@
-use virdant::context::Context;
-use virdant::parse::parse_package;
-use virdant::value::*;
 use virdant::common::*;
-use virdant::types::Type;
 use virdant::phase;
 
 use clap::Parser;
@@ -50,9 +46,10 @@ fn main() {
             std::process::exit(-1);
         }
     } else if args.sim {
-        let top = args.top.unwrap_or_else(|| "Top".into());
-        let trace = args.trace.as_ref().map(|s| s.as_str());
-        sim(&args.filename, &top, trace, args.delay.unwrap_or(400));
+//        let top = args.top.unwrap_or_else(|| "Top".into());
+//        let trace = args.trace.as_ref().map(|s| s.as_str());
+//        sim(&args.filename, &top, trace, args.delay.unwrap_or(400));
+        todo!()
     } else if args.mlir {
         /*
         let package_text = std::fs::read_to_string(args.filename).unwrap();
@@ -64,6 +61,7 @@ fn main() {
     }
 }
 
+/*
 pub fn sim(filename: &str, top: &str, trace: Option<&str>, delay: usize) {
     todo!()
     /*
@@ -101,7 +99,9 @@ pub fn sim(filename: &str, top: &str, trace: Option<&str>, delay: usize) {
     }
 */
 }
+*/
 
+/*
 pub fn verilog() {
     let package_text = "
 
@@ -163,3 +163,4 @@ pub fn value_context_to_type_context(ctx: Context<Path, Value>) -> Context<Path,
     let new_ctx: Vec<(Path, Arc<Type>)> = ctx.into_inner().into_iter().map(|(path, value)| (path, value.type_of().into())).collect();
     Context::from(new_ctx)
 }
+*/

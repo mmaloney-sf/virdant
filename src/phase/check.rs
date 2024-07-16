@@ -7,11 +7,11 @@ pub trait CheckQ: typecheck::TypecheckQ {
     fn check(&self) -> VirdantResult<()>;
 }
 
-fn check_package(db: &dyn CheckQ, package: PackageId) -> VirdantResult<()> {
+fn check_package(_db: &dyn CheckQ, package: PackageId) -> VirdantResult<()> {
     eprintln!("Checking package {package}");
 
-    for item in db.package_items(package)? {
-    }
+//    for item in db.package_items(package)? {
+//    }
 
     Ok(())
 }

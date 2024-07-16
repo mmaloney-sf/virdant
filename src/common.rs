@@ -11,6 +11,19 @@ pub type StaticIndex = u64;
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Ident(Intern<String>);
 
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct QualIdent(Option<Intern<String>>, Intern<String>);
+
+impl From<(Option<String>, String)> for QualIdent {
+    fn from(value: (Option<String>, String)) -> Self {
+        if let Some(package) = value.0 {
+            QualIdent(Some(package.into()), value.1.into())
+        } else {
+            QualIdent(None, value.1.into())
+        }
+    }
+}
+
 impl std::borrow::Borrow<str> for Ident {
     fn borrow(&self) -> &str {
         &self.0
@@ -23,6 +36,12 @@ pub struct Path(Intern<String>);
 impl std::fmt::Debug for Ident {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(f, "{}", self.0)
+    }
+}
+
+impl std::fmt::Debug for QualIdent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{:?}", self.0)
     }
 }
 

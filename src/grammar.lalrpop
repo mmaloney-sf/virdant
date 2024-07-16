@@ -244,7 +244,7 @@ ExprIf: Arc<Expr> = {
 
 ExprCall: Arc<Expr> = {
 //    <ll:@L> <name:Ctor> <rr:@R> =>  Arc::new(Expr::Call(name, vec![], vec![])),
-    <ll:@L> <name:Ctor> "(" <es:ExprList> ")" <rr:@R> =>  Arc::new(Expr::Ctor(name, es)),                            
+    <ll:@L> <name:Ctor> "(" <es:ExprList> ")" <rr:@R> =>  Arc::new(Expr::Ctor(name, es)),
 
     "cat" "(" <es:ExprList> ")" => {
         Arc::new(Expr::Cat(es))
@@ -412,6 +412,18 @@ Ctor: Ident = {
     },
 }
 
+QualId: QualIdent = {
+    <ll:@L> <id:r"([_A-Za-z][_A-Za-z0-9]*::)?[_A-Za-z][_A-Za-z0-9]*"> <rr:@R> => {
+        let parts: Vec<&str> = id.split("::").collect();
+
+        if parts.len() == 2 {
+            QualIdent::from((Some(parts[0].into()), parts[1].into()))
+        } else {
+            QualIdent::from((None, parts[0].into()))
+        }
+    },
+}
+
 Id: Ident = {
     <ll:@L> <id:r"[_A-Za-z][_A-Za-z0-9]*"> <rr:@R> => {
         id.into()
@@ -423,5 +435,10 @@ match {
     r"[\r\n]*" => {},
     r"/\*[^*]*\*/" => {},
     r" " => {},
-    _,
+} else {
+    r"([_A-Za-z][_A-Za-z0-9]*::)?[_A-Za-z][_A-Za-z0-9]*"
+} else {
+    r"[_A-Za-z][_A-Za-z0-9]*"
+} else {
+    _
 }

@@ -26,12 +26,12 @@ fn packages(db: &dyn AstQ) -> Vec<PackageId> {
     }
 
     packages.sort();
-    packages.into_iter().map(|package| Path::from(package).into()).collect()
+    packages.into_iter().map(|package| PackageId::from_ident(package.into())).collect()
 }
 
 fn package_ast(db: &dyn AstQ, package: PackageId) -> Result<ast::Package, VirdantError> {
     let sources = db.sources();
-    let package_name: String = Path::from(package).to_string();
+    let package_name = package.name().to_string();
     if let Some(input) = sources.get(&package_name) {
         parse::parse_package(&input)
     } else {

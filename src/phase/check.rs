@@ -25,6 +25,7 @@ fn check(db: &dyn CheckQ) -> VirdantResult<()> {
         for moddef_id in db.package_moddefs(package_id)? {
             check_all_targets_uniquely_driven(db, moddef_id.clone())?;
             check_wires_typecheck(db, moddef_id.clone())?;
+            check_wires_correct_wiretype(db, moddef_id.clone())?;
             check_clocks_typecheck(db, moddef_id.clone())?;
             check_no_reads_from_sinks(db, moddef_id.clone())?;
         }
@@ -85,14 +86,24 @@ fn check_wires_typecheck(db: &dyn CheckQ, moddef_id: ModDefId) -> VirdantResult<
 
 
     for decl  in &moddef_ast.decls {
-        if let ast::Decl::Wire(ast::Wire(target, wire_type, expr)) = decl {
+        if let ast::Decl::Wire(ast::Wire(target, _wire_type, expr)) = decl {
             let element_id = follow_path(db, target.clone(), ItemId::ModDef(moddef_id.clone()))?;
-            let component_id: ComponentId = todo!(); // target...
+            let component_id: ModDefElementId = if let ElementId::ModDef(component_id) = element_id {
+                component_id
+            } else {
+                todo!()
+            };
             let target_typ = db.component_typ(component_id)?;
-            let _typed_expr = db.typecheck_expr(moddef_id.clone(), expr.clone(), target_typ, Context::empty())?;
+            let typed_expr = db.typecheck_expr(moddef_id.clone(), expr.clone(), target_typ, Context::empty())?;
+            eprintln!("{typed_expr:?}");
         }
     }
 
+    Ok(())
+}
+
+fn check_wires_correct_wiretype(_db: &dyn CheckQ, _moddef_id: ModDefId) -> VirdantResult<()> {
+    eprintln!("SKIP check_wires_correct_wiretype");
     Ok(())
 }
 

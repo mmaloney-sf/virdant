@@ -4,6 +4,7 @@ use crate::common::*;
 use crate::context::Context;
 
 use crate::phase::*;
+use crate::phase::check::CheckQ;
 use crate::phase::astq::*;
 use crate::phase::item_resolution::*;
 use crate::phase::typecheck::*;
@@ -20,6 +21,7 @@ impl Db {
             gensym: 0,
         };
 
+        verilog.db.check()?;
         verilog.verilog_packages()?;
         Ok(())
     }
@@ -44,6 +46,7 @@ impl<'a> Verilog<'a> {
     fn verilog_moddef(&mut self, moddef_id: ModDefId) -> VirdantResult<()> {
         let moddef_name: Ident = moddef_id.name();
         let moddef = self.db.moddef(moddef_id)?;
+        eprintln!("HERE --------------------------------------------------------------------------------");
         writeln!(self.writer, "module {}(", moddef_name.clone())?;
         let ports = moddef.ports();
         for (i, port) in ports.iter().enumerate() {
@@ -65,7 +68,7 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
-    fn verilog_port(&mut self, port: Element, is_last_port: bool) -> VirdantResult<()> {
+    fn verilog_port(&mut self, port: Component, is_last_port: bool) -> VirdantResult<()> {
         let direction = if port.is_incoming() {
             "input  "
         } else {
@@ -96,7 +99,7 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
-    fn verilog_component(&mut self, component: Element) -> VirdantResult<()> {
+    fn verilog_component(&mut self, component: Component) -> VirdantResult<()> {
         if component.is_outgoing() {
             let expr = component.driver();
             let typ = component.typ();
@@ -183,7 +186,7 @@ impl<'a> Verilog<'a> {
                 Ok(format!("{ssa}"))
             },
             TypedExpr::Reference(_typ, Referent::Component(component_id)) => {
-                let path: Path = component_id.clone().into();
+                let path: Path = component_id.name().into();
                 if path.is_local() {
                     Ok(format!("{path}"))
                 } else {

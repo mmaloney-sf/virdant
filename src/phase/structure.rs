@@ -7,19 +7,19 @@ use super::*;
 use super::typecheck::TypedExpr;
 
 #[salsa::query_group(StructureQStorage)]
-pub trait StructureQ: typecheck::TypecheckQ {
+pub trait StructureQ: check::CheckQ {
     fn moddef(&self, moddef: ModDefId) -> VirdantResult<ModDef>;
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ModDef {
     id: ModDefId,
-    elements: Vec<Element>,
+    components: Vec<Component>,
     submodules: Vec<Submodule>,
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub struct Element {
+pub struct Component {
     id: ElementId,
     typ: Type,
     kind: ast::ComponentKind,
@@ -38,15 +38,15 @@ impl ModDef {
         self.id.clone()
     }
 
-    pub fn elements(&self) -> Vec<Element> {
-        self.elements.clone()
+    pub fn elements(&self) -> Vec<Component> {
+        self.components.clone()
     }
 
-    pub fn ports(&self) -> Vec<Element> {
+    pub fn ports(&self) -> Vec<Component> {
         self.elements().into_iter().filter(|el| el.is_port()).collect()
     }
 
-    pub fn internals(&self) -> Vec<Element> {
+    pub fn internals(&self) -> Vec<Component> {
         self.elements().into_iter().filter(|el| el.is_internal()).collect()
     }
 
@@ -55,7 +55,7 @@ impl ModDef {
     }
 }
 
-impl Element {
+impl Component {
     pub fn id(&self) -> ElementId {
         self.id.clone()
     }
@@ -95,7 +95,14 @@ impl Element {
     pub fn clock(&self) -> Option<Arc<TypedExpr>> {
         if self.is_reg() {
             eprintln!("HACK on clock {}:{}", file!(), line!());
-            Some(TypedExpr::Reference(Type::Clock, Referent::Component(Path::from("clock").into())).into())
+
+            let component_id: ModDefElementId = if let ElementId::ModDef(component_id) = self.id() {
+                component_id
+            } else {
+                todo!()
+            };
+            let component_id: ModDefElementId = ModDefElementId::from_ident(component_id.moddef(), "clock".into());
+            Some(TypedExpr::Reference(Type::Clock, Referent::Component(component_id)).into())
         } else {
             None
         }
@@ -112,9 +119,38 @@ impl Submodule {
     }
 }
 
-fn moddef(db: &dyn StructureQ, moddef: ModDefId) -> VirdantResult<ModDef> {
-    db.typecheck(moddef.clone())?;
-    todo!()
+fn moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<ModDef> {
+    db.check()?;
+
+    let mut components = vec![];
+    let mut submodules = vec![];
+
+    let moddef_ast = db.moddef_ast(moddef_id.clone())?;
+
+    for decl in &moddef_ast.decls {
+        match decl {
+            ast::Decl::Component(component) => {
+                components.push(
+                    Component {
+                        id: ElementId::ModDef(ModDefElementId::from_ident(moddef_id.clone(), component.name.clone())),
+                        typ: todo!(),
+                        kind: todo!(),
+                        driver: todo!(),
+                    }
+                )
+            },
+            ast::Decl::Submodule(submodule) => todo!(),
+            ast::Decl::Port(port) => todo!(),
+            ast::Decl::Wire(wire) => todo!(),
+        }
+    }
+
+    let moddef = ModDef {
+        id: moddef_id,
+        components,
+        submodules,
+    };
+    Ok(moddef)
 }
 
     /*

@@ -1,5 +1,6 @@
 use virdant::common::*;
 use virdant::phase;
+use virdant::phase::check::CheckQ;
 
 use clap::Parser;
 
@@ -41,7 +42,10 @@ fn main() {
         ];
         db.set_sources(sources.into_iter().collect());
 
-        if let Err(e) = phase::compile_verilog(&package_text) {
+        db.check().unwrap();
+
+        let mut stdout = std::io::stdout();
+        if let Err(e) = db.verilog(&mut stdout) {
             eprintln!("{e:?}");
             std::process::exit(-1);
         }

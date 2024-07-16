@@ -33,7 +33,7 @@ pub enum TypedExpr {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Referent {
-    Component(ComponentId),
+    Component(ModDefElementId),
     Local(Ident),
 }
 
@@ -111,14 +111,14 @@ fn pow(n: u64, k: u64) -> u64 {
 
 fn typecheck_expr(
     db: &dyn TypecheckQ,
-    moddef: ModDefId,
+    moddef_id: ModDefId,
     expr: Arc<ast::Expr>,
     typ: Type,
     ctx: Context<Ident, Type>,
 ) -> VirdantResult<Arc<TypedExpr>> {
     match expr.as_ref() {
         ast::Expr::Reference(path) => {
-            let expr = db.typeinfer_expr(moddef, expr.clone(), ctx)?;
+            let expr = db.typeinfer_expr(moddef_id, expr.clone(), ctx)?;
             let actual_typ = expr.typ();
             if typ != actual_typ {
                 Err(VirdantError::Other(format!("Wrong types: {path} is {typ} vs {actual_typ}")))
@@ -144,7 +144,7 @@ fn typecheck_expr(
         ast::Expr::Vec(_) => todo!(),
         ast::Expr::Struct(_, _) => todo!(),
         ast::Expr::MethodCall(subject, method, args) => {
-            let typed_subject = db.typeinfer_expr(moddef.clone(), subject.clone(), ctx.clone())?;
+            let typed_subject = db.typeinfer_expr(moddef_id.clone(), subject.clone(), ctx.clone())?;
             let MethodSig(arg_types, ret_type) = db.method_sig(typed_subject.typ(), method.clone())?;
 
             if ret_type != typ {
@@ -157,7 +157,7 @@ fn typecheck_expr(
 
             let mut typed_args = vec![];
             for (arg, arg_type) in args.iter().zip(arg_types) {
-                let typed_arg = db.typecheck_expr(moddef.clone(), arg.clone(), arg_type, ctx.clone())?;
+                let typed_arg = db.typecheck_expr(moddef_id.clone(), arg.clone(), arg_type, ctx.clone())?;
                 typed_args.push(typed_arg);
             }
 
@@ -183,8 +183,8 @@ fn typecheck_expr(
 */
         },
         ast::Expr::As(subject, expected_typ) => {
-            let expected_type_resolved = db.resolve_typ(expected_typ.clone(), moddef.package())?;
-            let typed_subject = db.typecheck_expr(moddef.clone(), subject.clone(), expected_type_resolved.clone(), ctx)?;
+            let expected_type_resolved = db.resolve_typ(expected_typ.clone(), moddef_id.package())?;
+            let typed_subject = db.typecheck_expr(moddef_id.clone(), subject.clone(), expected_type_resolved.clone(), ctx)?;
             if expected_type_resolved != typ {
                 return Err(VirdantError::Unknown);
             } else {
@@ -192,7 +192,7 @@ fn typecheck_expr(
             }
         },
         ast::Expr::Idx(_subject, _i) => {
-            let typed_expr = db.typeinfer_expr(moddef, expr, ctx)?;
+            let typed_expr = db.typeinfer_expr(moddef_id, expr, ctx)?;
             if typed_expr.typ() != typ {
                 Err(VirdantError::Unknown)
             } else {
@@ -200,7 +200,7 @@ fn typecheck_expr(
             }
         },
         ast::Expr::IdxRange(_subject, _j, _i) => {
-            let typed_expr = db.typeinfer_expr(moddef, expr, ctx)?;
+            let typed_expr = db.typeinfer_expr(moddef_id, expr, ctx)?;
             if typed_expr.typ() != typ {
                 Err(VirdantError::Unknown)
             } else {
@@ -209,22 +209,22 @@ fn typecheck_expr(
         },
         ast::Expr::Cat(_) => todo!(),
         ast::Expr::If(c, a, b) => {
-            let typed_c = db.typecheck_expr(moddef.clone(), c.clone(), Type::Word(1), ctx.clone())?;
-            let typed_a = db.typecheck_expr(moddef.clone(), a.clone(), typ.clone(), ctx.clone())?;
-            let typed_b = db.typecheck_expr(moddef.clone(), b.clone(), typ.clone(), ctx.clone())?;
+            let typed_c = db.typecheck_expr(moddef_id.clone(), c.clone(), Type::Word(1), ctx.clone())?;
+            let typed_a = db.typecheck_expr(moddef_id.clone(), a.clone(), typ.clone(), ctx.clone())?;
+            let typed_b = db.typecheck_expr(moddef_id.clone(), b.clone(), typ.clone(), ctx.clone())?;
             Ok(TypedExpr::If(typ, typed_c, typed_a, typed_b).into())
         },
         ast::Expr::Let(x, ascription, e, b) => {
             let typed_e = match ascription {
                 Some(ascribed_typ) => {
-                    let resolved_ascribed_typ = db.resolve_typ(ascribed_typ.clone(), moddef.package())?;
-                    db.typecheck_expr(moddef.clone(), e.clone(), resolved_ascribed_typ, ctx.clone())?
+                    let resolved_ascribed_typ = db.resolve_typ(ascribed_typ.clone(), moddef_id.package())?;
+                    db.typecheck_expr(moddef_id.clone(), e.clone(), resolved_ascribed_typ, ctx.clone())?
                 },
-                None => db.typeinfer_expr(moddef.clone(), e.clone(), ctx.clone())?,
+                None => db.typeinfer_expr(moddef_id.clone(), e.clone(), ctx.clone())?,
             };
 
             let new_ctx = ctx.extend(x.clone(), typed_e.typ());
-            let typed_b = db.typecheck_expr(moddef, b.clone(), typ.clone(), new_ctx)?;
+            let typed_b = db.typecheck_expr(moddef_id, b.clone(), typ.clone(), new_ctx)?;
             Ok(TypedExpr::Let(typed_b.typ(), x.clone(), ascription.clone(), typed_e, typed_b).into())
         },
         ast::Expr::Match(_subject, _ascription, _arms) => {
@@ -274,7 +274,7 @@ fn typecheck_expr(
 
 fn typeinfer_expr(
     db: &dyn TypecheckQ,
-    moddef: ModDefId,
+    moddef_id: ModDefId,
     expr: Arc<ast::Expr>,
     ctx: Context<Ident, Type>,
 ) -> VirdantResult<Arc<TypedExpr>> {
@@ -286,10 +286,8 @@ fn typeinfer_expr(
                     return Ok(TypedExpr::Reference(actual_typ, Referent::Local(ident)).into());
                 } 
             }
-
-            let actual_typ = db.moddef_reference_type(moddef, path.clone())?;
-
-            let component_id: ComponentId = path.clone().into();
+            let actual_typ = db.moddef_reference_type(moddef_id.clone(), path.clone())?;
+            let component_id: ModDefElementId = db.resolve_target(moddef_id.clone(), path.clone())?;
             Ok(TypedExpr::Reference(actual_typ, Referent::Component(component_id)).into())
         },
         ast::Expr::Word(lit) => {
@@ -302,7 +300,7 @@ fn typeinfer_expr(
         ast::Expr::Vec(_) => todo!(),
         ast::Expr::Struct(_, _) => todo!(),
         ast::Expr::MethodCall(subject, method, args) => {
-            let typed_subject = db.typeinfer_expr(moddef.clone(), subject.clone(), ctx.clone())?;
+            let typed_subject = db.typeinfer_expr(moddef_id.clone(), subject.clone(), ctx.clone())?;
             let MethodSig(arg_types, ret_typ) = db.method_sig(typed_subject.typ(), method.clone())?;
 
             if args.len() != arg_types.len() {
@@ -311,7 +309,7 @@ fn typeinfer_expr(
 
             let mut typed_args = vec![];
             for (arg, arg_type) in args.iter().zip(arg_types) {
-                let typed_arg = db.typecheck_expr(moddef.clone(), arg.clone(), arg_type, ctx.clone())?;
+                let typed_arg = db.typecheck_expr(moddef_id.clone(), arg.clone(), arg_type, ctx.clone())?;
                 typed_args.push(typed_arg);
             }
 
@@ -323,12 +321,12 @@ fn typeinfer_expr(
         ast::Expr::As(_, _) => todo!(),
         ast::Expr::Idx(subject, i) => {
             eprintln!("TODO: Check i fits in the size of the subject");
-            let typed_subject = db.typeinfer_expr(moddef.clone(), subject.clone(), ctx)?;
+            let typed_subject = db.typeinfer_expr(moddef_id.clone(), subject.clone(), ctx)?;
             Ok(TypedExpr::Idx(Type::Word(1), typed_subject, *i).into())
         },
         ast::Expr::IdxRange(subject, j, i) => {
             eprintln!("TODO: Check i fits in the size of the subject");
-            let typed_subject = db.typeinfer_expr(moddef.clone(), subject.clone(), ctx)?;
+            let typed_subject = db.typeinfer_expr(moddef_id.clone(), subject.clone(), ctx)?;
             Ok(TypedExpr::IdxRange(Type::Word(j - i), typed_subject, *j, *i).into())
         },
         ast::Expr::Cat(_) => todo!(),
@@ -336,14 +334,14 @@ fn typeinfer_expr(
         ast::Expr::Let(x, ascription, e, b) => {
             let typed_e = match ascription {
                 Some(ascribed_typ) => {
-                    let resolved_ascribed_typ = db.resolve_typ(ascribed_typ.clone(), moddef.package())?;
-                    db.typecheck_expr(moddef.clone(), e.clone(), resolved_ascribed_typ, ctx.clone())?
+                    let resolved_ascribed_typ = db.resolve_typ(ascribed_typ.clone(), moddef_id.package())?;
+                    db.typecheck_expr(moddef_id.clone(), e.clone(), resolved_ascribed_typ, ctx.clone())?
                 },
-                None => db.typeinfer_expr(moddef.clone(), e.clone(), ctx.clone())?,
+                None => db.typeinfer_expr(moddef_id.clone(), e.clone(), ctx.clone())?,
             };
 
             let new_ctx = ctx.extend(x.clone(), typed_e.typ());
-            let typed_b = db.typeinfer_expr(moddef, b.clone(), new_ctx)?;
+            let typed_b = db.typeinfer_expr(moddef_id, b.clone(), new_ctx)?;
             Ok(TypedExpr::Let(typed_b.typ(), x.clone(), ascription.clone(), typed_e, typed_b).into())
         },
         ast::Expr::Match(_subject, _ascription, _arms) => Err(TypeError::CantInfer.into()),

@@ -32,8 +32,8 @@ fn moddef_elements(db: &dyn ItemNamespaceQ, moddef_id: ModDefId) -> VirdantResul
         };
 
         if let Some(component_name) = name {
-            let component_id: ComponentId = Path::from(moddef_id.fqname().join(&component_name.as_path())).into();
-            let element_id = ElementId::Component(component_id);
+            let component_id = ModDefElementId::from_ident(moddef_id.clone(), component_name.clone());
+            let element_id = component_id.as_element();
             if !element_ids.insert(element_id) {
                 errors.add(VirdantError::Other(format!("Duplicate component in {moddef_id}: {component_name}")));
             }

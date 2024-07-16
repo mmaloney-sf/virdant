@@ -19,7 +19,7 @@ pub trait ItemResolutionQ: imports::ImportsQ + item_namespace::ItemNamespaceQ {
 
 fn resolve_package(db: &dyn ItemResolutionQ, package_name: Ident) -> VirdantResult<PackageId> {
     for package in db.packages() {
-        if package.fqname() == package_name.as_path() {
+        if package.name() == package_name {
             return Ok(package);
         }
     }
@@ -39,37 +39,36 @@ fn items(db: &dyn ItemResolutionQ) -> VirdantResult<Vec<ItemId>> {
     Ok(items)
 }
 
-fn package_items(db: &dyn ItemResolutionQ, package: PackageId) -> VirdantResult<Vec<ItemId>> {
+fn package_items(db: &dyn ItemResolutionQ, package_id: PackageId) -> VirdantResult<Vec<ItemId>> {
     let mut items = vec![];
     let mut item_names = HashSet::new();
     let mut errors = ErrorReport::new();
-    let package_ast = db.package_ast(package.clone())?;
-    let package_path: Path = package.into();
+    let package_ast = db.package_ast(package_id.clone())?;
 
     for item in &package_ast.items {
         match item {
             ast::Item::ModDef(moddef_ast) => {
                 let name = moddef_ast.name.clone();
-                let moddef: ModDefId = package_path.join(&name.as_path()).into();
+                let moddef = ModDefId::from_ident(package_id.clone(), name.clone());
                 items.push(ItemId::ModDef(moddef));
                 if !item_names.insert(name.clone()) {
-                    errors.add(VirdantError::Other(format!("Duplicate item name in package {package_path}: {name}")))
+                    errors.add(VirdantError::Other(format!("Duplicate item name in package {name}.")))
                 }
             },
             ast::Item::StructDef(structdef_ast) => {
                 let name = structdef_ast.name.clone();
-                let structdef: StructDefId = package_path.join(&name.as_path()).into();
+                let structdef = StructDefId::from_ident(package_id.clone(), name.clone());
                 items.push(ItemId::StructDef(structdef));
                 if !item_names.insert(name.clone()) {
-                    errors.add(VirdantError::Other(format!("Duplicate item name in package {package_path}: {name}")))
+                    errors.add(VirdantError::Other(format!("Duplicate item name in package {name}")))
                 }
             },
             ast::Item::UnionDef(uniondef_ast) => {
                 let name = uniondef_ast.name.clone();
-                let uniondef: UnionDefId = package_path.join(&name.as_path()).into();
+                let uniondef = UnionDefId::from_ident(package_id.clone(), name.clone());
                 items.push(ItemId::UnionDef(uniondef));
                 if !item_names.insert(name.clone()) {
-                    errors.add(VirdantError::Other(format!("Duplicate item name in package {package_path}: {name}")))
+                    errors.add(VirdantError::Other(format!("Duplicate item name in package {name}")))
                 }
             },
             ast::Item::PortDef(_) => todo!(),

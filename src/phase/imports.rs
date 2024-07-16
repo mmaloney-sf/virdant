@@ -5,18 +5,20 @@ use super::*;
 use std::collections::HashSet;
 
 #[salsa::query_group(ImportsQStorage)]
-pub trait ImportsQ: astq::AstQ {
-    fn package_imports(&self, package: PackageId) -> VirdantResult<Vec<PackageId>>;
+pub trait ImportsQ: resolve::ResolveQ {
+    fn package_imports(&self, package_id: PackageId) -> VirdantResult<Vec<PackageId>>;
 
 //   fn imports(&self) -> VirdantResult<Vec<PackageId>>;
 }
 
-fn package_imports(db: &dyn ImportsQ, package: PackageId) -> VirdantResult<Vec<PackageId>> {
-    let package_ast = db.package_ast(package)?;
+fn package_imports(db: &dyn ImportsQ, package_id: PackageId) -> VirdantResult<Vec<PackageId>> {
+    let package_ast = db.package_ast(package_id)?;
     let mut errors = ErrorReport::new();
     let mut packages = HashSet::new();
+
     for ast::PackageImport(package_name) in &package_ast.imports {
-        if !packages.insert(package_name.as_path().into()) {
+        let imported_package_id = PackageId::from_ident(package_name.clone());
+        if !packages.insert(imported_package_id) {
             errors.add(VirdantError::Other(format!("Duplicate import: {package_name}")));
         }
     }

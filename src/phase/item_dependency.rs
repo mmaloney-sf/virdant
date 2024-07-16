@@ -52,7 +52,7 @@ fn moddef_item_dependencies(db: &dyn ItemDependencyQ, moddef: ModDefId) -> Virda
 fn moddef_item_dependencies_simplecomponent(
     db: &dyn ItemDependencyQ,
     moddef: ModDefId,
-    simplecomponent: &ast::SimpleComponent,
+    simplecomponent: &ast::Component,
 ) -> VirdantResult<Vec<ItemId>> {
     let mut items = vec![];
     if let ast::Type::TypeRef(name) = simplecomponent.typ.as_ref() {

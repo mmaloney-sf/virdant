@@ -62,16 +62,16 @@ pub struct Channel(pub ChannelDir, pub Ident, pub Arc<Type>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Decl {
-    SimpleComponent(SimpleComponent),
+    SimpleComponent(Component),
     Submodule(Submodule),
     Port(Port),
     Wire(Wire),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SimpleComponent {
+pub struct Component {
     pub name: Ident,
-    pub kind: SimpleComponentKind,
+    pub kind: ComponentKind,
     pub typ: Arc<Type>,
     pub clock: Option<Path>,
     pub reset: Option<Arc<Expr>>,
@@ -86,7 +86,7 @@ pub enum Type {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum SimpleComponentKind {
+pub enum ComponentKind {
     Incoming,
     Outgoing,
     Node,

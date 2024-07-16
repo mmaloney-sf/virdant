@@ -1,6 +1,6 @@
 use structure::typecheck::Referent;
 
-use crate::ast::SimpleComponentKind;
+use crate::ast::ComponentKind;
 use crate::{ast, common::*};
 use super::*;
 
@@ -22,7 +22,7 @@ pub struct ModDef {
 pub struct Element {
     id: ComponentId,
     typ: Type,
-    kind: ast::SimpleComponentKind,
+    kind: ast::ComponentKind,
     driver: Arc<TypedExpr>,
 }
 
@@ -73,19 +73,19 @@ impl Element {
     }
 
     pub fn is_reg(&self) -> bool {
-        self.kind == SimpleComponentKind::Reg
+        self.kind == ComponentKind::Reg
     }
 
     pub fn is_incoming(&self) -> bool {
-        self.kind == SimpleComponentKind::Incoming
+        self.kind == ComponentKind::Incoming
     }
 
     pub fn is_outgoing(&self) -> bool {
-        self.kind == SimpleComponentKind::Outgoing
+        self.kind == ComponentKind::Outgoing
     }
 
     pub fn is_node(&self) -> bool {
-        self.kind == SimpleComponentKind::Node
+        self.kind == ComponentKind::Node
     }
 
     pub fn driver(&self) -> Arc<TypedExpr> {

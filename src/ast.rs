@@ -82,7 +82,7 @@ pub enum Type {
     Clock,
     Word(Width),
     Vec(Arc<Type>, usize),
-    TypeRef(Path),
+    TypeRef(QualIdent),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -132,7 +132,7 @@ pub enum WireType {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Submodule {
     pub name: Ident,
-    pub moddef: Path,
+    pub moddef: QualIdent,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -146,7 +146,7 @@ pub enum PortRole {
 pub struct Port {
     pub name: Ident,
     pub role: PortRole,
-    pub portdef: Path,
+    pub portdef: QualIdent,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

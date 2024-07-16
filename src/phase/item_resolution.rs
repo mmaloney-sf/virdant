@@ -12,7 +12,18 @@ pub trait ItemResolutionQ: imports::ImportsQ + item_namespace::ItemNamespaceQ {
 
     fn package_moddefs(&self, package: PackageId) -> VirdantResult<Vec<ModDefId>>;
 
-    fn item(&self, item: Path, from: PackageId) -> VirdantResult<ItemId>;
+    fn item(&self, item: QualIdent, package: PackageId) -> VirdantResult<ItemId>;
+
+    fn resolve_package(&self, package: Ident) -> VirdantResult<PackageId>;
+}
+
+fn resolve_package(db: &dyn ItemResolutionQ, package_name: Ident) -> VirdantResult<PackageId> {
+    for package in db.packages() {
+        if package.fqname() == package_name.as_path() {
+            return Ok(package);
+        }
+    }
+    Err(VirdantError::Unknown)
 }
 
 fn items(db: &dyn ItemResolutionQ) -> VirdantResult<Vec<ItemId>> {
@@ -82,29 +93,22 @@ fn package_moddefs(db: &dyn ItemResolutionQ, package: PackageId) -> VirdantResul
     Ok(moddefs)
 }
 
-fn item(db: &dyn ItemResolutionQ, path: Path, from: PackageId) -> VirdantResult<ItemId> {
-    let imported_packages = db.package_imports(from.clone())?;
-    let path_package = PackageId::from(path.head().as_path());
+fn item(db: &dyn ItemResolutionQ, item: QualIdent, package_id: PackageId) -> VirdantResult<ItemId> {
+    let imported_packages = db.package_imports(package_id.clone())?;
 
-    if imported_packages.contains(&PackageId::from(path.head().as_path())) {
-        // try to interpret the path as imported_package.rest.of.path
-        for item in db.package_items(path_package)? {
-            let item_path: Path = item.clone().into();
-            if item_path == path {
-                return Ok(item);
-            }
-        }
+    let item_package_id = if let Some(namespace) = item.namespace() {
+        db.resolve_package(namespace)?
     } else {
-        // otherwise, treat it as a local path
-        for package in db.packages() {
-            for item in db.package_items(package)? {
-                let item_path: Path = item.clone().into();
-                if item_path == Path::from(from.clone()).join(&path) {
-                    return Ok(item);
-                }
+        package_id
+    };
+
+    if imported_packages.contains(&item_package_id) {
+        for package_item in db.package_items(item_package_id.clone())? {
+            if package_item.name() == item.name() {
+                return Ok(package_item);
             }
         }
     }
 
-    Err(VirdantError::Other(format!("Could not resolve item for path: {path}")))
+    Err(VirdantError::Other(format!("Could not resolve item: {item}")))
 }

@@ -68,6 +68,17 @@ impl From<ItemId> for Path {
     }
 }
 
+impl FQName for ItemId {
+    fn fqname(&self) -> Path {
+        match self {
+            ItemId::ModDef(moddef) => moddef.fqname(),
+            ItemId::UnionDef(uniondef) => uniondef.fqname(),
+            ItemId::StructDef(structdef) => structdef.fqname(),
+            ItemId::PortDef(portdef) => portdef.fqname(),
+        }
+    }
+}
+
 macro_rules! define_fq_type {
     ($name:ident) => {
         #[derive(Clone, PartialEq, Eq, Hash)]
@@ -322,7 +333,7 @@ fn phase() {
         import edge;
 
         mod Top {
-            mod edge of EdgeDetector;
+            mod edge of edge::EdgeDetector;
         }
     ";
 

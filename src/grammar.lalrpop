@@ -11,7 +11,7 @@ pub Package: Package = {
 }
 
 PackageImport: PackageImport = {
-    "import" <ident:Id> ";" => PackageImport(ident),
+    "import" <ident:Ident> ";" => PackageImport(ident),
 }
 
 Item: Item = {
@@ -32,7 +32,7 @@ Visibility: Visibility = {
 }
 
 ModDef: ModDef = {
-    <v:Visibility> "mod" <name:Id> "{"
+    <v:Visibility> "mod" <name:Ident> "{"
         <decls:(Decl ";")*>
     "}" => {
       let decls = decls.into_iter().map(|(decl, _semi)| decl).collect();
@@ -44,8 +44,8 @@ ModDef: ModDef = {
 }
 
 StructDef: StructDef = {
-    "struct" "type" <name:Id> "{"
-        <fields:(Id ":" Type ";")*>
+    "struct" "type" <name:Ident> "{"
+        <fields:(Ident ":" Type ";")*>
     "}" => {
         StructDef {
             name,
@@ -55,7 +55,7 @@ StructDef: StructDef = {
 }
 
 UnionDef: UnionDef = {
-    <ll:@L> <vis:Visibility> "union" "type" <name:Id> "{"
+    <ll:@L> <vis:Visibility> "union" "type" <name:Ident> "{"
         <alts:Alt*>
     "}" <rr:@R> => {
         UnionDef {
@@ -66,11 +66,11 @@ UnionDef: UnionDef = {
 }
 
 Alt: Alt = {
-    <ident:Id> "(" <typs:TypeList> ")" ";" => Alt(ident, typs),
+    <ident:Ident> "(" <typs:TypeList> ")" ";" => Alt(ident, typs),
 }
 
 PortDef: PortDef = {
-    <ll:@L> <vis:Visibility> "port" <name:Id> "{"
+    <ll:@L> <vis:Visibility> "port" <name:Ident> "{"
         <channels:Channel*>
     "}" <rr:@R> => {
         PortDef {
@@ -81,7 +81,7 @@ PortDef: PortDef = {
 }
 
 Channel: Channel = {
-    <dir:ChannelDir> <id:Id> ":" <typ:Type> ";" => Channel(dir, id, typ),
+    <dir:ChannelDir> <id:Ident> ":" <typ:Type> ";" => Channel(dir, id, typ),
 }
 
 ChannelDir: ChannelDir = {
@@ -111,7 +111,7 @@ Decl: Decl = {
 }
 
 Component: Component = {
-    "incoming" <name:Id> ":" <typ:Type> => {
+    "incoming" <name:Ident> ":" <typ:Type> => {
         Component {
             kind: ComponentKind::Incoming,
             name,
@@ -120,7 +120,7 @@ Component: Component = {
             reset: None,
         }
     },
-    "outgoing" <name:Id> ":" <typ:Type> => {
+    "outgoing" <name:Ident> ":" <typ:Type> => {
         Component {
             kind: ComponentKind::Outgoing,
             name,
@@ -129,7 +129,7 @@ Component: Component = {
             reset: None,
         }
     },
-    "node" <name:Id> ":" <typ:Type> => {
+    "node" <name:Ident> ":" <typ:Type> => {
         Component {
             kind: ComponentKind::Node,
             name,
@@ -138,7 +138,7 @@ Component: Component = {
             reset: None,
         }
     },
-    "reg" <name:Id> ":" <typ:Type> "on" <clock:Path> => {
+    "reg" <name:Ident> ":" <typ:Type> "on" <clock:Path> => {
 //        let reset = rst.map(|s| s.1); // .1 ignores the "reset" keyword
         Component {
             kind: ComponentKind::Reg,
@@ -151,11 +151,11 @@ Component: Component = {
 }
 
 Submodule: Submodule = {
-    "mod" <name:Id> "of" <moddef:Path> => Submodule { name, moddef },
+    "mod" <name:Ident> "of" <moddef:QualIdent> => Submodule { name, moddef },
 }
 
 Port: Port = {
-    <role:PortRole> "port" <name:Id> "of" <portdef:Path> => Port { role, name, portdef },
+    <role:PortRole> "port" <name:Ident> "of" <portdef:QualIdent> => Port { role, name, portdef },
 }
 
 PortRole: PortRole = {
@@ -171,7 +171,7 @@ Wire: Wire = {
 Type: Arc<Type> = {
     "Clock" => Arc::new(Type::Clock),
     "Word" "[" <w:Nat> "]" => Arc::new(Type::Word(w)),
-    <path:Path> => Arc::new(Type::TypeRef(path)),
+    <path:QualIdent> => Arc::new(Type::TypeRef(path)),
 }
 
 pub Expr: Arc<Expr> = {
@@ -182,7 +182,7 @@ pub Expr: Arc<Expr> = {
 }
 
 ExprLet: Arc<Expr> = {
-    <ll:@L> "let" <x:Id> <ascription:(":" Type)?> "=" <e:Expr> "in"
+    <ll:@L> "let" <x:Ident> <ascription:(":" Type)?> "=" <e:Expr> "in"
     <b:Expr> <rr:@R> => {
         let type_ascription = ascription.map(|(_of, typ)| typ);
         Arc::new(Expr::Let(x, type_ascription, e, b))
@@ -207,7 +207,7 @@ Pat: Pat = {
     <id:Ctor> "(" <subpats:PatList> ")" => {
         Pat::At(id.as_str().into(), subpats)
     },
-    <id:Id> => Pat::Bind(id.into()),
+    <id:Ident> => Pat::Bind(id.into()),
     "otherwise" => Pat::Otherwise,
 }
 
@@ -250,10 +250,10 @@ ExprCall: Arc<Expr> = {
         Arc::new(Expr::Cat(es))
     },
 
-//    <ll:@L> <name:Id> "(" <es:ExprList> ")" <rr:@R> => {
+//    <ll:@L> <name:Ident> "(" <es:ExprList> ")" <rr:@R> => {
 //        Arc::new(Expr::FnCall(name, es))
 //    },
-    <ll:@L> <s:ExprCall> "->" <name:Id> "(" <es:ExprList> ")" <rr:@R> => {
+    <ll:@L> <s:ExprCall> "->" <name:Ident> "(" <es:ExprList> ")" <rr:@R> => {
         Arc::new(Expr::MethodCall(s, name, es))
     },
     <ll:@L> <s:ExprCall> "->" "as" "(" <typ:Type> ")" <rr:@R> => {
@@ -263,7 +263,7 @@ ExprCall: Arc<Expr> = {
 }
 
 ExprIdx: Arc<Expr> = {
-//    <ll:@L> <e:ExprIdx> "->" <field:Id> <rr:@R> => Arc::new(Expr::IdxField(e, field.clone())),
+//    <ll:@L> <e:ExprIdx> "->" <field:Ident> <rr:@R> => Arc::new(Expr::IdxField(e, field.clone())),
     <e:ExprIdx> "[" <i:Nat> "]" => Arc::new(Expr::Idx(e, i)),
     <ll:@L> <e:ExprIdx> "[" <j:Nat> ".." <i:Nat> "]" <rr:@R> => Arc::new(Expr::IdxRange(e, j, i)),
     <e:ExprBase> => e,
@@ -280,7 +280,7 @@ ExprBase: Arc<Expr> = {
 }
 
 FieldExprList: Vec<(String, Arc<Expr>)> = {
-    <fields:((Id "=" Expr ("," Id "=" Expr)* ","?)?)> => {
+    <fields:((Ident "=" Expr ("," Ident "=" Expr)* ","?)?)> => {
         if let Some((name, _eqsign, expr, fields, _comma)) = fields {
             let mut results = vec![(name.to_string(), expr)];
             for (_comma, name, _eqsign, expr) in fields {
@@ -304,7 +304,7 @@ ExprWith: Arc<Expr> = {
 
 ExprWidthEdit: WithEdit = {
   "this" "[" <n:Nat> "]" "=" <e:Expr> ";" => WithEdit::Idx(n, e),
-  "this" "->" <id:Id> "]" "=" <e:Expr> ";" => WithEdit::Field(id, e),
+  "this" "->" <id:Ident> "]" "=" <e:Expr> ";" => WithEdit::Field(id, e),
 }
 */
 
@@ -342,7 +342,7 @@ ExprReference: Arc<Expr> = {
 
 
 Path: Path = {
-    <id0:Id> <ids:("." Id)*> => {
+    <id0:Ident> <ids:("." Ident)*> => {
         let mut parts = vec![id0.to_string()];
         for (_, id) in ids {
           parts.push(id.to_string());
@@ -412,19 +412,18 @@ Ctor: Ident = {
     },
 }
 
-QualId: QualIdent = {
-    <ll:@L> <id:r"([_A-Za-z][_A-Za-z0-9]*::)?[_A-Za-z][_A-Za-z0-9]*"> <rr:@R> => {
+QualIdent: QualIdent = {
+    <ll:@L> <id:r"[_A-Za-z][_A-Za-z0-9]*::[_A-Za-z][_A-Za-z0-9]*"> <rr:@R> => {
         let parts: Vec<&str> = id.split("::").collect();
-
-        if parts.len() == 2 {
-            QualIdent::from((Some(parts[0].into()), parts[1].into()))
-        } else {
-            QualIdent::from((None, parts[0].into()))
-        }
+        assert_eq!(parts.len(), 2);
+        let namespace: Option<Ident> = Some(parts[0].into());
+        let name: Ident = parts[1].into();
+        QualIdent::new(namespace, name)
     },
+        <id:Ident> => QualIdent::new(None, id)
 }
 
-Id: Ident = {
+Ident: Ident = {
     <ll:@L> <id:r"[_A-Za-z][_A-Za-z0-9]*"> <rr:@R> => {
         id.into()
     },
@@ -435,10 +434,5 @@ match {
     r"[\r\n]*" => {},
     r"/\*[^*]*\*/" => {},
     r" " => {},
-} else {
-    r"([_A-Za-z][_A-Za-z0-9]*::)?[_A-Za-z][_A-Za-z0-9]*"
-} else {
-    r"[_A-Za-z][_A-Za-z0-9]*"
-} else {
-    _
+    _,
 }

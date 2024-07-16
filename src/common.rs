@@ -12,15 +12,23 @@ pub type StaticIndex = u64;
 pub struct Ident(Intern<String>);
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct QualIdent(Option<Intern<String>>, Intern<String>);
+pub struct QualIdent(Option<Ident>, Ident);
 
-impl From<(Option<String>, String)> for QualIdent {
-    fn from(value: (Option<String>, String)) -> Self {
-        if let Some(package) = value.0 {
-            QualIdent(Some(package.into()), value.1.into())
+impl QualIdent {
+    pub fn new(namespace: Option<Ident>, name: Ident) -> Self {
+        if let Some(package) = namespace {
+            QualIdent(Some(package), name)
         } else {
-            QualIdent(None, value.1.into())
+            QualIdent(None, name)
         }
+    }
+
+    pub fn namespace(&self) -> Option<Ident> {
+        self.0.clone()
+    }
+
+    pub fn name(&self) -> Ident {
+        self.1.clone()
     }
 }
 
@@ -41,7 +49,7 @@ impl std::fmt::Debug for Ident {
 
 impl std::fmt::Debug for QualIdent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(f, "{:?}", self.0)
+        write!(f, "{}", self)
     }
 }
 
@@ -130,6 +138,17 @@ impl ErrorReport {
 impl std::fmt::Display for Ident {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(f, "{}", self.0)
+    }
+}
+
+impl std::fmt::Display for QualIdent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        let name = self.name();
+        if let Some(namespace) = self.namespace() {
+            write!(f, "{namespace}::{name}")
+        } else {
+            write!(f, "{name}")
+        }
     }
 }
 

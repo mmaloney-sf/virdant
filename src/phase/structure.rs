@@ -1,3 +1,5 @@
+use structure::typecheck::Referent;
+
 use crate::ast::SimpleComponentKind;
 use crate::{ast, common::*};
 use super::*;
@@ -93,7 +95,7 @@ impl Element {
     pub fn clock(&self) -> Option<Arc<TypedExpr>> {
         if self.is_reg() {
             eprintln!("HACK on clock {}:{}", file!(), line!());
-            Some(TypedExpr::Reference(Type::Clock, "clock".into()).into())
+            Some(TypedExpr::Reference(Type::Clock, Referent::Element(Path::from("clock").into())).into())
         } else {
             None
         }

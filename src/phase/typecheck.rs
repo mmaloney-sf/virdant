@@ -2,11 +2,12 @@ use crate::common::*;
 use crate::context::*;
 use crate::ast;
 use super::*;
+use super::ComponentId;
 
 #[salsa::query_group(TypecheckQStorage)]
 pub trait TypecheckQ: type_resolution::TypeResolutionQ {
-    fn typecheck_expr(&self, moddef: ModDefId, expr: Arc<ast::Expr>, typ: Type, ctx: Context<Path, Type>) -> VirdantResult<Arc<TypedExpr>>;
-    fn typeinfer_expr(&self, moddef: ModDefId, expr: Arc<ast::Expr>, ctx: Context<Path, Type>) -> VirdantResult<Arc<TypedExpr>>;
+    fn typecheck_expr(&self, moddef: ModDefId, expr: Arc<ast::Expr>, typ: Type, ctx: Context<Ident, Type>) -> VirdantResult<Arc<TypedExpr>>;
+    fn typeinfer_expr(&self, moddef: ModDefId, expr: Arc<ast::Expr>, ctx: Context<Ident, Type>) -> VirdantResult<Arc<TypedExpr>>;
 
     fn moddef_reference_type(&self, moddef: ModDefId, path: Path) -> VirdantResult<Type>;
 
@@ -16,7 +17,7 @@ pub trait TypecheckQ: type_resolution::TypeResolutionQ {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypedExpr {
-    Reference(Type, Path),
+    Reference(Type, Referent),
     Word(Type, ast::WordLit),
     Vec(Type, Vec<Arc<TypedExpr>>),
     Struct(Type, Ident, Vec<(Ident, Arc<TypedExpr>)>),
@@ -29,6 +30,12 @@ pub enum TypedExpr {
     If(Type, Arc<TypedExpr>, Arc<TypedExpr>, Arc<TypedExpr>),
     Let(Type, Ident, Option<Arc<ast::Type>>, Arc<TypedExpr>, Arc<TypedExpr>),
     Match(Type, Arc<TypedExpr>, Option<Arc<Type>>, Vec<TypedMatchArm>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Referent {
+    Element(ComponentId),
+    Local(Ident),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -106,20 +113,18 @@ fn typecheck_expr(
     moddef: ModDefId,
     expr: Arc<ast::Expr>,
     typ: Type,
-    ctx: Context<Path, Type>,
+    ctx: Context<Ident, Type>,
 ) -> VirdantResult<Arc<TypedExpr>> {
     match expr.as_ref() {
         ast::Expr::Reference(path) => {
-            let actual_typ = if let Some(actual_typ) = ctx.lookup(path) {
-                actual_typ
-            } else {
-                db.moddef_reference_type(moddef, path.clone())?
-            };
+            let expr = db.typeinfer_expr(moddef, expr.clone(), ctx)?;
+            let actual_typ = expr.typ();
             if typ != actual_typ {
                 Err(VirdantError::Other(format!("Wrong types: {path} is {typ} vs {actual_typ}")))
             } else {
-                Ok(TypedExpr::Reference(typ, path.clone()).into())
+                Ok(expr)
             }
+
         },
         ast::Expr::Word(lit) => {
             match (typ.clone(), lit.width) {
@@ -215,7 +220,7 @@ fn typecheck_expr(
                 None => db.typeinfer_expr(moddef.clone(), e.clone(), ctx.clone())?,
             };
 
-            let new_ctx = ctx.extend(x.as_path(), typed_e.typ());
+            let new_ctx = ctx.extend(x.clone(), typed_e.typ());
             let typed_b = db.typecheck_expr(moddef, b.clone(), typ.clone(), new_ctx)?;
             Ok(TypedExpr::Let(typed_b.typ(), x.clone(), ascription.clone(), typed_e, typed_b).into())
         },
@@ -241,7 +246,7 @@ fn typecheck_expr(
                         for (subpat, arg_typ) in subpats.iter().zip(arg_typs) {
                             if let ast::Pat::Bind(x) = subpat {
                                 eprintln!("Extending ctx with {x} : {arg_typ}");
-                                new_ctx = new_ctx.extend(x.as_path(), arg_typ);
+                                new_ctx = new_ctx.extend(x.clone(), arg_typ);
                             } else {
                                 return Err(VirdantError::Unknown);
                             }
@@ -265,17 +270,21 @@ fn typeinfer_expr(
     db: &dyn TypecheckQ,
     moddef: ModDefId,
     expr: Arc<ast::Expr>,
-    ctx: Context<Path, Type>,
+    ctx: Context<Ident, Type>,
 ) -> VirdantResult<Arc<TypedExpr>> {
     match expr.as_ref() {
         ast::Expr::Reference(path) => {
-            let typ = if let Some(actual_typ) = ctx.lookup(path) {
-                actual_typ
-            } else {
-                db.moddef_reference_type(moddef, path.clone())?
-            };
+            // is it a local reference?
+            if let Some(ident) = path.as_ident() {
+                if let Some(actual_typ) = ctx.lookup(&ident) {
+                    return Ok(TypedExpr::Reference(actual_typ, Referent::Local(ident)).into());
+                } 
+            }
 
-            Ok(TypedExpr::Reference(typ, path.clone()).into())
+            let actual_typ = db.moddef_reference_type(moddef, path.clone())?;
+
+            let component_id: ComponentId = path.clone().into();
+            Ok(TypedExpr::Reference(actual_typ, Referent::Element(component_id)).into())
         },
         ast::Expr::Word(lit) => {
             if let Some(n) = lit.width {
@@ -327,7 +336,7 @@ fn typeinfer_expr(
                 None => db.typeinfer_expr(moddef.clone(), e.clone(), ctx.clone())?,
             };
 
-            let new_ctx = ctx.extend(x.as_path(), typed_e.typ());
+            let new_ctx = ctx.extend(x.clone(), typed_e.typ());
             let typed_b = db.typeinfer_expr(moddef, b.clone(), new_ctx)?;
             Ok(TypedExpr::Let(typed_b.typ(), x.clone(), ascription.clone(), typed_e, typed_b).into())
         },

@@ -177,15 +177,16 @@ impl<'a> Verilog<'a> {
         Ok(())
     }
 
-    fn verilog_expr(&mut self, expr: Arc<TypedExpr>, ctx: Context<Path, SsaName>) -> VirdantResult<SsaName> {
+    fn verilog_expr(&mut self, expr: Arc<TypedExpr>, ctx: Context<Ident, SsaName>) -> VirdantResult<SsaName> {
         match expr.as_ref() {
-            TypedExpr::Reference(_typ, path) => {
+            TypedExpr::Reference(_typ, Referent::Local(x)) => {
+                let ssa = ctx.lookup(x).unwrap();
+                Ok(format!("{ssa}"))
+            },
+            TypedExpr::Reference(_typ, Referent::Element(component_id)) => {
+                let path: Path = component_id.clone().into();
                 if path.is_local() {
-                    if let Some(ssa) = ctx.lookup(path) {
-                        Ok(format!("{ssa}"))
-                    } else {
-                        Ok(format!("{path}"))
-                    }
+                    Ok(format!("{path}"))
                 } else {
                     let parts = path.parts();
                     let sm = &parts[0];
@@ -305,7 +306,7 @@ impl<'a> Verilog<'a> {
             TypedExpr::Let(typ, x, _ascription, e, b) => {
                 let gs = self.gensym();
                 let e_ssa = self.verilog_expr(e.clone(), ctx.clone())?;
-                let new_ctx = ctx.extend(x.as_path(), e_ssa);
+                let new_ctx = ctx.extend(x.clone(), e_ssa);
                 let b_ssa = self.verilog_expr(b.clone(), new_ctx)?;
                 let width_str = make_width_str(self.db, typ.clone());
                 writeln!(self.writer, "    wire {width_str} {gs} = {b_ssa};")?;
@@ -336,7 +337,7 @@ impl<'a> Verilog<'a> {
                                 let width_minus_1 = width - 1;
                                 if let TypedPat::Bind(_typ, x) = pat {
                                     let x_ssa = self.gensym_hint(&x.to_string());
-                                    new_ctx = new_ctx.extend(x.as_path(), x_ssa.clone());
+                                    new_ctx = new_ctx.extend(x.clone(), x_ssa.clone());
                                     let bot_bit = offset;
                                     let top_bit = offset + width - 1;
                                     writeln!(self.writer, "    // binding variable {x} to slot")?;

@@ -8,7 +8,7 @@ pub trait TypecheckQ: type_resolution::TypeResolutionQ {
     fn typecheck_expr(&self, moddef: ModDefId, expr: Arc<ast::Expr>, typ: Type, ctx: Context<Ident, Type>) -> VirdantResult<Arc<TypedExpr>>;
     fn typeinfer_expr(&self, moddef: ModDefId, expr: Arc<ast::Expr>, ctx: Context<Ident, Type>) -> VirdantResult<Arc<TypedExpr>>;
 
-    fn moddef_reference_type(&self, moddef: ModDefId, path: Path) -> VirdantResult<Type>;
+    fn moddef_reference_type(&self, moddef: ModDefId, target: PathId) -> VirdantResult<Type>;
 
     fn typecheck_moddef(&self, moddef: ModDefId) -> VirdantResult<()>;
     fn typecheck(&self, moddef: ModDefId) -> VirdantResult<()>;
@@ -286,8 +286,9 @@ fn typeinfer_expr(
                     return Ok(TypedExpr::Reference(actual_typ, Referent::Local(ident)).into());
                 } 
             }
-            let actual_typ = db.moddef_reference_type(moddef_id.clone(), path.clone())?;
-            let component_id: ComponentId = db.resolve_target(moddef_id.clone(), path.clone())?;
+            let actual_typ = db.moddef_reference_type(moddef_id.clone(), PathId::from_path(moddef_id.clone(), path.clone()))?;
+            let path_id: PathId = db.resolve_path(moddef_id.clone(), path.clone())?;
+            let component_id: ComponentId = db.resolve_component(moddef_id.clone(), path_id)?;
             Ok(TypedExpr::Reference(actual_typ, Referent::Component(component_id)).into())
         },
         ast::Expr::Word(lit) => {
@@ -348,7 +349,8 @@ fn typeinfer_expr(
     }
 }
 
-fn moddef_reference_type(db: &dyn TypecheckQ, moddef: ModDefId, path: Path) -> VirdantResult<Type> {
+fn moddef_reference_type(db: &dyn TypecheckQ, moddef: ModDefId, target: PathId) -> VirdantResult<Type> {
+    let path = target.as_path();
     let moddef_ast = db.moddef_ast(moddef.clone())?;
     for decl in &moddef_ast.decls {
         match decl {

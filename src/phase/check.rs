@@ -75,7 +75,7 @@ fn check_all_dep_items_exist(db: &dyn CheckQ, item_id: ItemId) -> VirdantResult<
     Ok(())
 }
 
-fn check_all_targets_uniquely_driven(db: &dyn CheckQ, moddef_id: ModDefId) -> VirdantResult<()> {
+fn check_all_targets_uniquely_driven(_db: &dyn CheckQ, _moddef_id: ModDefId) -> VirdantResult<()> {
     eprintln!("SKIP check_all_targets_uniquely_driven");
     Ok(())
 }
@@ -87,6 +87,7 @@ fn check_wires_typecheck(db: &dyn CheckQ, moddef_id: ModDefId) -> VirdantResult<
 
     for decl  in &moddef_ast.decls {
         if let ast::Decl::Wire(ast::Wire(target, _wire_type, expr)) = decl {
+            let target: PathId = db.resolve_path(moddef_id.clone(), target.clone())?;
             let component_id = follow_path(db, target.clone(), ItemId::ModDef(moddef_id.clone()))?;
             let target_typ = db.component_typ(component_id)?;
             let typed_expr = db.typecheck_expr(moddef_id.clone(), expr.clone(), target_typ, Context::empty())?;
@@ -111,11 +112,11 @@ fn resolve_element(db: &dyn CheckQ, item_id: ItemId, name: Ident) -> VirdantResu
     Err(VirdantError::Unknown)
 }
 
-fn follow_path(db: &dyn CheckQ, target: Path, item_id: ItemId) -> VirdantResult<ComponentId> {
+fn follow_path(db: &dyn CheckQ, target: PathId, item_id: ItemId) -> VirdantResult<ComponentId> {
     eprintln!("follow_path({target}, {item_id})");
     let mut current_item_id = item_id;
-    let mut remaining_path: Option<Path> = Some(target.clone());
-    let mut current_element: ComponentId = resolve_element(db, current_item_id.clone(), target.head())?;
+    let mut remaining_path: Option<Path> = Some(target.as_path());
+    let mut current_element: ComponentId = resolve_element(db, current_item_id.clone(), target.as_path().head())?;
 
     while let Some(path) = remaining_path {
         current_element = resolve_element(db, current_item_id.clone(), path.head())?;
@@ -127,12 +128,12 @@ fn follow_path(db: &dyn CheckQ, target: Path, item_id: ItemId) -> VirdantResult<
     Ok(current_element)
 }
 
-fn check_clocks_typecheck(db: &dyn CheckQ, moddef_id: ModDefId) -> VirdantResult<()> {
+fn check_clocks_typecheck(_db: &dyn CheckQ, _moddef_id: ModDefId) -> VirdantResult<()> {
     eprintln!("SKIP check_clocks_typecheck");
     Ok(())
 }
 
-fn check_no_reads_from_sinks(db: &dyn CheckQ, moddef_id: ModDefId) -> VirdantResult<()> {
+fn check_no_reads_from_sinks(_db: &dyn CheckQ, _moddef_id: ModDefId) -> VirdantResult<()> {
     eprintln!("SKIP check_no_reads_from_sinks");
     Ok(())
 }

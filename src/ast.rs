@@ -73,8 +73,7 @@ pub struct Component {
     pub name: Ident,
     pub kind: ComponentKind,
     pub typ: Arc<Type>,
-    pub clock: Option<Path>,
-    pub reset: Option<Arc<Expr>>,
+    pub clock: Option<Arc<Expr>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

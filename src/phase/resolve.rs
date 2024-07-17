@@ -6,7 +6,8 @@ pub trait ResolveQ: astq::AstQ {
     fn resolve_package2(&self, package_name: Ident) -> VirdantResult<PackageId>;
 
     fn resolve_element(&self, moddef_id: ModDefId, name: Ident) -> VirdantResult<ComponentId>;
-    fn resolve_target(&self, moddef_id: ModDefId, path: Path) -> VirdantResult<ComponentId>;
+    fn resolve_component(&self, moddef_id: ModDefId, target_id: PathId) -> VirdantResult<ComponentId>;
+    fn resolve_path(&self, moddef_id: ModDefId, path: Path) -> VirdantResult<PathId>;
 }
 
 fn resolve_package2(db: &dyn ResolveQ, package_name: Ident) -> VirdantResult<PackageId> {
@@ -36,12 +37,16 @@ fn resolve_element(db: &dyn ResolveQ, moddef_id: ModDefId, name: Ident) -> Virda
     Err(VirdantError::Unknown)
 }
 
-fn resolve_target(_db: &dyn ResolveQ, moddef_id: ModDefId, path: Path) -> VirdantResult<ComponentId> {
+fn resolve_component(_db: &dyn ResolveQ, moddef_id: ModDefId, target_id: PathId) -> VirdantResult<ComponentId> {
+    let path: Path = target_id.as_path();
     let parts = path.parts();
     if parts.len() == 1 {
-//        Ok(ModDefElementId::from_ident(moddef_id, path.head()))
-        todo!()
+        Ok(ComponentId::from_ident(moddef_id, parts[0].clone()))
     } else {
         todo!()
     }
+}
+
+fn resolve_path(_db: &dyn ResolveQ, moddef_id: ModDefId, path: Path) -> VirdantResult<PathId> {
+    Ok(PathId::from_path(moddef_id, path))
 }

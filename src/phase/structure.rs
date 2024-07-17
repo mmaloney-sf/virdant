@@ -125,12 +125,13 @@ fn moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<ModDef> {
     for decl in &moddef_ast.decls {
         match decl {
             ast::Decl::Component(component) => {
+                let driver: Arc<TypedExpr> = db.typecheck_expr(todo!(), todo!(), todo!(), todo!())?;
                 components.push(
                     Component {
                         id: ComponentId::from_ident(moddef_id.clone(), component.name.clone()),
-                        typ: todo!(),
-                        kind: todo!(),
-                        driver: todo!(),
+                        typ: db.resolve_typ(component.typ.clone(), moddef_id.package())?,
+                        kind: component.kind.clone(),
+                        driver,
                     }
                 )
             },

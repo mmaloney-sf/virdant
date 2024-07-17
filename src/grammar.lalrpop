@@ -117,7 +117,6 @@ Component: Component = {
             name,
             typ: typ,
             clock: None,
-            reset: None,
         }
     },
     "outgoing" <name:Ident> ":" <typ:Type> => {
@@ -126,7 +125,6 @@ Component: Component = {
             name,
             typ: typ,
             clock: None,
-            reset: None,
         }
     },
     "node" <name:Ident> ":" <typ:Type> => {
@@ -135,17 +133,14 @@ Component: Component = {
             name,
             typ: typ,
             clock: None,
-            reset: None,
         }
     },
-    "reg" <name:Ident> ":" <typ:Type> "on" <clock:Path> => {
-//        let reset = rst.map(|s| s.1); // .1 ignores the "reset" keyword
+    "reg" <name:Ident> ":" <typ:Type> "on" <clock:Expr> => {
         Component {
             kind: ComponentKind::Reg,
             name,
             typ,
             clock: Some(clock),
-            reset: None,
         }
     },
 }
@@ -337,7 +332,7 @@ ExprLit: Arc<Expr> = {
 }
 
 ExprReference: Arc<Expr> = {
-  <path: Path> => Arc::new(Expr::Reference(path))
+  <path:Path> => Arc::new(Expr::Reference(path))
 }
 
 

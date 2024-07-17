@@ -61,7 +61,7 @@ fn moddef_item_dependencies_simplecomponent(
     }
 
     if let Some(clock) = simplecomponent.clock.clone() {
-        let expr_depends = expr_item_dependencies(db, ast::Expr::Reference(clock).into())?;
+        let expr_depends = expr_item_dependencies(db, clock.into())?;
         items.extend(expr_depends);
     }
 

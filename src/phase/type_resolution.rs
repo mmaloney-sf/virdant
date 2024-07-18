@@ -38,6 +38,8 @@ fn method_sig(_db: &dyn TypeResolutionQ, typ: Type, method: Ident) -> VirdantRes
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))
             } else if method == "inc".into() {
                 Ok(MethodSig(vec![], typ.clone()))
+            } else if method == "dec".into() {
+                Ok(MethodSig(vec![], typ.clone()))
             } else if method == "sll".into() {
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))
             } else if method == "srl".into() {

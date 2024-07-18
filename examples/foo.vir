@@ -1,0 +1,14 @@
+pub mod Top {
+    incoming clock : Clock;
+    outgoing led_0 : Word[1];
+    outgoing led_1 : Word[1];
+    outgoing led_2 : Word[1];
+    outgoing led_3 : Word[1];
+    outgoing led_4 : Word[1];
+
+    led_0 := 1;
+    led_1 := 1;
+    led_2 := 1;
+    led_3 := 1;
+    led_4 := 1;
+}

@@ -1,0 +1,33 @@
+mod Alu {
+    incoming a : Word[32];
+    incoming b : Word[32];
+    incoming op : Word[4];
+    outgoing r : Word[32];
+
+    r := if op->eq(0) {
+        a->and(b)
+    } else if op->eq(1) {
+        a->add(b)
+    } else {
+        0
+    };
+
+/*
+    r := match op {
+        0 => a && b;
+        @OR  => a || b;
+        @ADD => a + b;
+        @SUB => a - b;
+        @XOR => a ^ b;
+        @LT  => zext(lt(a, b));
+        @LTU => zext(ltu(a, b));
+        @GE  => zext(ge(a, b));
+        @GEU => zext(geu(a, b));
+        @EQ  => zext(a == b);
+        @NEQ => zext(a != b);
+        @SLL => sll(a, b[5..0]);
+        @SRL => srl(a, b[5..0]);
+        @SRA => sra(a, b[5..0]);
+    };
+    */
+}

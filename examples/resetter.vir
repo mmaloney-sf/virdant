@@ -1,0 +1,13 @@
+mod Resetter {
+    incoming clock : Clock;
+    outgoing out : Word[1];
+
+    reg countdown : Word[32] on clock;
+    countdown <= if countdown->eq(0) {
+        countdown
+    } else {
+        countdown->dec()
+    };
+
+    out := countdown->eq(1);
+}

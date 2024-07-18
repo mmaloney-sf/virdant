@@ -87,7 +87,7 @@ fn load_from_top_source(path: &std::path::Path) -> VirdantResult<Db> {
 
 fn import_from_fillepath(db: &mut Db, path: &std::path::Path) -> PackageId {
     let package_name = path.file_stem().unwrap().to_string_lossy();
-    eprintln!("LOADING PACKAGE: {package_name}");
+    eprintln!("LOADING PACKAGE: {package_name} ({})", path.to_string_lossy());
     let package_text = std::fs::read_to_string(&path).unwrap();
     db.set_source(&package_name, &package_text)
 }

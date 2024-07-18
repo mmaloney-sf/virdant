@@ -134,7 +134,7 @@ impl<'a> Verilog<'a> {
             writeln!(self.writer, "    end")?;
             writeln!(self.writer)?;
             writeln!(self.writer, "    initial begin")?;
-            writeln!(self.writer, "        {component_name} <= 0;")?;
+            writeln!(self.writer, "        {component_name} <= 1;")?;
             writeln!(self.writer, "    end")?;
             writeln!(self.writer)?;
         }
@@ -253,6 +253,7 @@ impl<'a> Verilog<'a> {
                 match method.as_str() {
                     "add" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} + {};", args_ssa[0])?,
                     "inc" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} + 1;")?,
+                    "dec" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} - 1;")?,
                     "sub" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} - {};", args_ssa[0])?,
                     "and" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} & {};", args_ssa[0])?,
                     "or"  => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} | {};", args_ssa[0])?,

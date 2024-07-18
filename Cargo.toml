@@ -23,3 +23,7 @@ salsa = "0.16.1"
 [features]
 default = ["phase"]
 phase = []
+
+[[bin]]
+name = "vir"
+path = "src/main.rs"

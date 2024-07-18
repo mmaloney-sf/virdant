@@ -31,7 +31,6 @@ use std::collections::HashMap;
     check::CheckQStorage,
     layout::LayoutQStorage,
 )]
-#[derive(Default)]
 pub struct Db {
     storage: salsa::Storage<Self>,
 }
@@ -41,7 +40,9 @@ impl salsa::Database for Db {}
 impl Db {
     pub fn new() -> Db {
         use self::astq::*;
-        let mut db = Db::default();
+        let mut db = Db {
+            storage: salsa::Storage::default(),
+        };
         let sources = HashMap::new();
         db.set_sources(sources);
         db

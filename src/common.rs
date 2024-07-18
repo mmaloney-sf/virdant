@@ -14,6 +14,12 @@ pub struct Ident(Intern<String>);
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct QualIdent(Option<Ident>, Ident);
 
+impl From<Ident> for QualIdent {
+    fn from(name: Ident) -> Self {
+        QualIdent::new(None, name)
+    }
+}
+
 impl QualIdent {
     pub fn new(namespace: Option<Ident>, name: Ident) -> Self {
         if let Some(package) = namespace {
@@ -255,6 +261,11 @@ impl Path {
         } else {
             None
         }
+    }
+
+    pub fn name(&self) -> Ident {
+        let parts = self.parts();
+        parts[parts.len() - 1].clone()
     }
 }
 

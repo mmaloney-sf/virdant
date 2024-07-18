@@ -45,8 +45,7 @@ impl<'a> Verilog<'a> {
 
     fn verilog_moddef(&mut self, moddef_id: ModDefId) -> VirdantResult<()> {
         let moddef_name: Ident = moddef_id.name();
-        let moddef = self.db.moddef(moddef_id)?;
-        eprintln!("HERE --------------------------------------------------------------------------------");
+        let moddef = self.db.structure_moddef(moddef_id)?;
         writeln!(self.writer, "module {}(", moddef_name.clone())?;
         let ports = moddef.ports();
         for (i, port) in ports.iter().enumerate() {
@@ -141,7 +140,7 @@ impl<'a> Verilog<'a> {
     }
 
     fn verilog_submodule(&mut self, submodule: Submodule) -> VirdantResult<()> {
-        let submodule_moddef = self.db.moddef(submodule.moddef())?;
+        let submodule_moddef = self.db.structure_moddef(submodule.moddef())?;
         let ports = submodule_moddef.ports();
 
         for port in &ports {
@@ -155,11 +154,12 @@ impl<'a> Verilog<'a> {
 //        for Wire(path, _wire_type, expr) in &self.db.moddef_typecheck_wire(moddef.name.clone(), submodule.name.clone())? {
 
         for port in &ports {
-            let expr = port.driver().unwrap();
-            let gs = self.verilog_expr(expr, Context::empty())?;
-            let submodule_name = submodule.id().name();
-            let port_name = port.id().name();
-            writeln!(self.writer, "    assign __TEMP_{submodule_name}_{port_name} = {gs};")?;
+            if let Some(expr) = port.driver() {
+                let gs = self.verilog_expr(expr, Context::empty())?;
+                let submodule_name = submodule.id().name();
+                let port_name = port.id().name();
+                writeln!(self.writer, "    assign __TEMP_{submodule_name}_{port_name} = {gs};")?;
+            }
         }
 
 

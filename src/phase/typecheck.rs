@@ -349,25 +349,27 @@ fn typeinfer_expr(
     }
 }
 
-fn moddef_reference_type(db: &dyn TypecheckQ, moddef: ModDefId, target: PathId) -> VirdantResult<Type> {
-    let path = target.as_path();
-    let moddef_ast = db.moddef_ast(moddef.clone())?;
+fn moddef_reference_type(db: &dyn TypecheckQ, moddef_id: ModDefId, path_id: PathId) -> VirdantResult<Type> {
+    eprintln!("moddef_reference_type({moddef_id}, {path_id})");
+    // moddef_reference_type(top::Top, top::Top::edge_detector.out)
+    let path = path_id.as_path();
+    let moddef_ast = db.moddef_ast(moddef_id.clone())?;
     for decl in &moddef_ast.decls {
         match decl {
             ast::Decl::Component(c) if c.name.as_path() == path => {
-                let typ = db.resolve_typ(c.typ.clone(), moddef.package())?;
+                let typ = db.resolve_typ(c.typ.clone(), moddef_id.package())?;
                 return Ok(typ);
             },
             ast::Decl::Submodule(submodule) if submodule.name.as_path() == path.parent() => {
-                let _component = todo!();
-                // path.parts()[1].into()
-//                return db.component_typ(submodule.moddef, );
+                let submodule_moddef_id = db.moddef(submodule.moddef.clone().into(), moddef_id.package())?;
+                let port_path_id = db.resolve_path(submodule_moddef_id.clone(), path.name().as_path())?;
+                return db.moddef_reference_type(submodule_moddef_id, port_path_id);
             },
             _ => (),
         }
     }
 
-    Err(VirdantError::Other(format!("Component not found: `{path}` in `{moddef}`")))
+    Err(VirdantError::Other(format!("Component not found: `{path}` in `{moddef_id}`")))
 }
 
 fn typecheck_moddef(_db: &dyn TypecheckQ, _moddef: ModDefId) -> VirdantResult<()> {

@@ -1,5 +1,3 @@
-import edge;
-
 union type State {
     Idle(Word[4], Word[1]);
     SpinCW(Word[5], Word[4]);

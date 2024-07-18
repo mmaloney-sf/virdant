@@ -1,5 +1,6 @@
 use crate::common::*;
 use crate::ast;
+use crate::virdant_error;
 use super::*;
 
 #[salsa::query_group(LayoutQStorage)]
@@ -86,7 +87,7 @@ fn union_ctor_tag(db: &dyn LayoutQ, typ: Type, ctor: Ident) -> VirdantResult<u64
             return Ok(tag.try_into().unwrap());
         }
     }
-    Err(VirdantError::Unknown)
+    Err(virdant_error!("Unknown ctor: {ctor}"))
 }
 
 fn clog2(n: u64) -> u64 {

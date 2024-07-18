@@ -5,7 +5,7 @@ use super::*;
 use std::sync::Arc;
 
 #[salsa::query_group(ItemDependencyQStorage)]
-pub trait ItemDependencyQ: super::item_resolution::ItemResolutionQ {
+pub trait ItemDependencyQ: resolve::ResolveQ {
     fn item_dependencies(&self, item: ItemId) -> VirdantResult<Vec<ItemId>>;
 }
 

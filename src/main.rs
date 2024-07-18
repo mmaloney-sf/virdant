@@ -1,5 +1,6 @@
 use virdant::common::*;
 use virdant::phase;
+use virdant::phase::astq::AstQ;
 use virdant::phase::check::CheckQ;
 
 use clap::Parser;
@@ -7,7 +8,7 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(name = "virdant", author, version, about, long_about = None)]
 struct Args {
-    filename: String,
+    filenames: Vec<String>,
 
     #[arg(short, long, default_value_t = false)]
     compile: bool,
@@ -31,16 +32,22 @@ struct Args {
 fn main() {
     let args = Args::parse();
     if args.compile {
-        let package_text = std::fs::read_to_string(args.filename).unwrap();
-        let mut db = phase::Db::default();
-            use virdant::phase::astq::AstQ;
-        let sources = vec![
-            (
-                "main".to_string(),
-                Arc::new(package_text.to_string()),
-            ),
-        ];
-        db.set_sources(sources.into_iter().collect());
+        eprintln!("filenames: {:?}", args.filenames);
+        if args.filenames.len() == 0 {
+            eprintln!("Requires a filename");
+            std::process::exit(-1);
+        }
+
+        let mut db = phase::Db::new();
+
+        for filename in &args.filenames {
+            let path = std::path::Path::new(&filename);
+
+            let package_name = path.file_stem().unwrap().to_string_lossy();
+            eprintln!("LOADING PACKAGE: {package_name}");
+            let package_text = std::fs::read_to_string(&path).unwrap();
+            db.set_source(&package_name, &package_text);
+        }
 
         db.check().unwrap();
 

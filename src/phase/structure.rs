@@ -9,7 +9,7 @@ use super::typecheck::TypedExpr;
 
 #[salsa::query_group(StructureQStorage)]
 pub trait StructureQ: check::CheckQ {
-    fn moddef(&self, moddef: ModDefId) -> VirdantResult<ModDef>;
+    fn structure_moddef(&self, moddef: ModDefId) -> VirdantResult<ModDef>;
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
@@ -115,7 +115,7 @@ impl Submodule {
     }
 }
 
-fn moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<ModDef> {
+fn structure_moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<ModDef> {
     db.check()?;
 
     let mut components = vec![];
@@ -145,8 +145,16 @@ fn moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<ModDef> {
                     }
                 )
             },
-            ast::Decl::Submodule(submodule) => todo!(),
-            ast::Decl::Port(port) => todo!(),
+            ast::Decl::Submodule(submodule) => {
+                let moddef_id = db.moddef(submodule.moddef.clone(), moddef_id.package())?;
+                submodules.push(
+                    Submodule {
+                        id: ComponentId::from_ident(moddef_id.clone(), submodule.name.clone()),
+                        moddef_id,
+                    }
+                );
+            },
+            ast::Decl::Port(_port) => todo!(),
             ast::Decl::Wire(_wire) => (),
         }
     }

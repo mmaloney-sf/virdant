@@ -1,5 +1,5 @@
 //use crate::topological_sort::topological_sort;
-use crate::{ast, common::*, context::Context};
+use crate::{ast, common::*, context::Context, virdant_error};
 use super::*;
 
 #[salsa::query_group(CheckQStorage)]
@@ -88,7 +88,7 @@ fn check_wires_typecheck(db: &dyn CheckQ, moddef_id: ModDefId) -> VirdantResult<
     for decl  in &moddef_ast.decls {
         if let ast::Decl::Wire(ast::Wire(target, _wire_type, expr)) = decl {
             let target: PathId = db.resolve_path(moddef_id.clone(), target.clone())?;
-            let component_id = follow_path(db, target.clone(), ItemId::ModDef(moddef_id.clone()))?;
+            let component_id = db.resolve_component(moddef_id.clone(), target)?;
             let target_typ = db.component_typ(component_id)?;
             let typed_expr = db.typecheck_expr(moddef_id.clone(), expr.clone(), target_typ, Context::empty())?;
             eprintln!("{typed_expr:?}");
@@ -104,12 +104,12 @@ fn check_wires_correct_wiretype(_db: &dyn CheckQ, _moddef_id: ModDefId) -> Virda
 }
 
 fn resolve_element(db: &dyn CheckQ, item_id: ItemId, name: Ident) -> VirdantResult<ComponentId> {
-    for element_id in db.item_elements(item_id)? {
+    for element_id in db.item_elements(item_id.clone())? {
         if element_id.name() == name {
             return Ok(element_id);
         }
     }
-    Err(VirdantError::Unknown)
+    Err(virdant_error!("Unable to resolve element {name} in item {item_id}"))
 }
 
 fn follow_path(db: &dyn CheckQ, target: PathId, item_id: ItemId) -> VirdantResult<ComponentId> {

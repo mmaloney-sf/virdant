@@ -5,7 +5,7 @@ use super::*;
 use std::collections::HashSet;
 
 #[salsa::query_group(ImportsQStorage)]
-pub trait ImportsQ: resolve::ResolveQ {
+pub trait ImportsQ: astq::AstQ {
     fn package_imports(&self, package_id: PackageId) -> VirdantResult<Vec<PackageId>>;
 
 //   fn imports(&self) -> VirdantResult<Vec<PackageId>>;

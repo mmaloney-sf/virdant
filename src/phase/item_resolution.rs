@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use crate::common::*;
 use crate::ast;
+use crate::virdant_error;
 use super::*;
 
 #[salsa::query_group(ItemResolutionQStorage)]
@@ -13,6 +14,8 @@ pub trait ItemResolutionQ: imports::ImportsQ + item_namespace::ItemNamespaceQ {
     fn package_moddefs(&self, package: PackageId) -> VirdantResult<Vec<ModDefId>>;
 
     fn item(&self, item: QualIdent, package: PackageId) -> VirdantResult<ItemId>;
+
+    fn moddef(&self, moddef: QualIdent, package: PackageId) -> VirdantResult<ModDefId>;
 
     fn resolve_package(&self, package: Ident) -> VirdantResult<PackageId>;
 }
@@ -98,10 +101,10 @@ fn item(db: &dyn ItemResolutionQ, item: QualIdent, package_id: PackageId) -> Vir
     let item_package_id = if let Some(namespace) = item.namespace() {
         db.resolve_package(namespace)?
     } else {
-        package_id
+        package_id.clone()
     };
 
-    if imported_packages.contains(&item_package_id) {
+    if imported_packages.contains(&item_package_id) || item_package_id == package_id {
         for package_item in db.package_items(item_package_id.clone())? {
             if package_item.name() == item.name() {
                 return Ok(package_item);
@@ -110,4 +113,12 @@ fn item(db: &dyn ItemResolutionQ, item: QualIdent, package_id: PackageId) -> Vir
     }
 
     Err(VirdantError::Other(format!("Could not resolve item: {item}")))
+}
+
+fn moddef(db: &dyn ItemResolutionQ, moddef: QualIdent, package_id: PackageId) -> VirdantResult<ModDefId> {
+    if let ItemId::ModDef(moddef_id) = db.item(moddef.clone(), package_id)? {
+        Ok(moddef_id)
+    } else {
+        Err(virdant_error!("Item {moddef} is not a mod def"))
+    }
 }

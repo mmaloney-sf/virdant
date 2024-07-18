@@ -32,8 +32,11 @@ pub struct ModDef {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructDef {
     pub name: Ident,
-    pub fields: Vec<(Ident, Arc<Type>)>,
+    pub fields: Vec<Field>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Field(pub Ident, pub Arc<Type>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UnionDef {
@@ -97,7 +100,7 @@ pub enum Expr {
     Reference(Path),
     Word(WordLit),
     Vec(Vec<Arc<Expr>>),
-    Struct(Ident, Vec<(Field, Arc<Expr>)>),
+    Struct(Option<QualIdent>, Vec<(Ident, Arc<Expr>)>),
     MethodCall(Arc<Expr>, Ident, Vec<Arc<Expr>>),
     Ctor(Ident, Vec<Arc<Expr>>),
     As(Arc<Expr>, Arc<Type>),

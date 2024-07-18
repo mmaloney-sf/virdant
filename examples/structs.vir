@@ -1,17 +1,15 @@
 struct type Foo {
-    bar : Word[8];
+    bar : Word[1];
     baz : Word[1];
 }
 
 pub mod Top {
     incoming clk : Clock;
-    incoming reset : Word[1];
-    incoming foo : Foo;
 
-//    wire foo : Foo;
-//    foo :=
-//        Foo {
-//            bar = 0w8,
-//            baz = 1w1,
-//        };
+    node foo : Foo;
+    foo :=
+        $Foo {
+            bar = 0w1,
+            baz = 1w1,
+        };
 }

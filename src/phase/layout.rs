@@ -16,15 +16,25 @@ fn bitwidth(db: &dyn LayoutQ, typ: Type) -> VirdantResult<Width> {
         Type::Clock => Ok(1),
         Type::Bool => Ok(1),
         Type::Word(n) => Ok(n.into()),
-        Type::Struct(_structdef, _typ_args) => todo!(),
-        Type::Union(uniondef, _typ_args) => {
-            let uniondef_ast = db.uniondef_ast(uniondef.clone())?;
+        Type::Struct(structdef_id, _typ_args) => {
+            let structdef_ast = db.structdef_ast(structdef_id.clone())?;
+            let mut width = 0;
+
+            for ast::Field(_fieldname, field_typ) in structdef_ast.fields {
+                let resolved_field_typ = db.resolve_typ(field_typ.clone(), structdef_id.package())?;
+                width += bitwidth(db, resolved_field_typ)?;
+            }
+
+            Ok(width)
+        },
+        Type::Union(uniondef_id, _typ_args) => {
+            let uniondef_ast = db.uniondef_ast(uniondef_id.clone())?;
 
             let mut payload_width = 0;
             for ast::Alt(_ctor, ast_arg_typs) in &uniondef_ast.alts {
                 let mut resolved_arg_typs = vec![];
                 for ast_arg_typ in ast_arg_typs {
-                    let resolved_typ = db.resolve_typ(ast_arg_typ.clone(), uniondef.package())?;
+                    let resolved_typ = db.resolve_typ(ast_arg_typ.clone(), uniondef_id.package())?;
                     resolved_arg_typs.push(resolved_typ);
                 }
 

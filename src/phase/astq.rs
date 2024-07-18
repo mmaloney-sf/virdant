@@ -18,6 +18,7 @@ pub trait AstQ: salsa::Database {
     fn package_ast(&self, package_id: PackageId) -> VirdantResult<ast::Package>;
     fn moddef_ast(&self, moddef_id: ModDefId) -> VirdantResult<ast::ModDef>;
     fn uniondef_ast(&self, uniondef_id: UnionDefId) -> VirdantResult<ast::UnionDef>;
+    fn structdef_ast(&self, structdef_id: StructDefId) -> VirdantResult<ast::StructDef>;
 
     fn component_ast(&self, component_id: ComponentId) -> VirdantResult<ast::Component>;
 
@@ -94,7 +95,33 @@ fn uniondef_ast(db: &dyn AstQ, uniontype_id: UnionDefId) -> Result<ast::UnionDef
     if let Some(alttypedef) = result {
         Ok(alttypedef)
     } else {
-        Err(VirdantError::Other(format!("Unknown alt type {uniontype_id}")))
+        Err(VirdantError::Other(format!("Unknown uniondef {uniontype_id}")))
+    }
+}
+
+fn structdef_ast(db: &dyn AstQ, structdef_id: StructDefId) -> VirdantResult<ast::StructDef> {
+    let package_ast = db.package_ast(structdef_id.package())?;
+    let mut result: Option<ast::StructDef> = None;
+
+    for item in &package_ast.items {
+        match item {
+            ast::Item::StructDef(structdef_ast) => {
+                if structdef_ast.name == structdef_id.name() {
+                    if result.is_none() {
+                        result = Some(structdef_ast.clone());
+                    } else {
+                        return Err(VirdantError::Other("Uh oh".into()));
+                    }
+                }
+            },
+            _ => (),
+        }
+    }
+
+    if let Some(structdef_ast) = result {
+        Ok(structdef_ast)
+    } else {
+        Err(virdant_error!("Unknown structdef {structdef_id}"))
     }
 }
 

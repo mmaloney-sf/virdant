@@ -45,14 +45,19 @@ ModDef: ModDef = {
 
 StructDef: StructDef = {
     "struct" "type" <name:Ident> "{"
-        <fields:(Ident ":" Type ";")*>
+        <fields:Field*>
     "}" => {
         StructDef {
             name,
-            fields: fields.iter().map(|(name, _, typ, _)| (name.clone(), typ.clone())).collect::<Vec<_>>(),
+            fields,
         }
     },
 }
+
+Field: Field = {
+    <id:Ident> ":" <typ:Type> ";" => Field(id, typ),
+}
+
 
 UnionDef: UnionDef = {
     <ll:@L> <vis:Visibility> "union" "type" <name:Ident> "{"
@@ -266,7 +271,7 @@ ExprIdx: Arc<Expr> = {
 
 ExprBase: Arc<Expr> = {
     <e:ExprVec> => e,
-//    <e:ExprStruct> => e,
+    <e:ExprStruct> => e,
 //    <e:ExprWith> => e,
 //    <e:ExprAs> => e,
     <e:ExprLit> => e,
@@ -274,17 +279,23 @@ ExprBase: Arc<Expr> = {
     "(" <e:Expr> ")" => e,
 }
 
-FieldExprList: Vec<(String, Arc<Expr>)> = {
+FieldExprList: Vec<(Ident, Arc<Expr>)> = {
     <fields:((Ident "=" Expr ("," Ident "=" Expr)* ","?)?)> => {
         if let Some((name, _eqsign, expr, fields, _comma)) = fields {
-            let mut results = vec![(name.to_string(), expr)];
+            let mut results = vec![(name, expr)];
             for (_comma, name, _eqsign, expr) in fields {
-                results.push((name.to_string(), expr));
+                results.push((name, expr));
             }
             results
         } else {
             vec![]
         }
+    },
+}
+
+ExprStruct: Arc<Expr> = {
+    <ll:@L> "$" <id:QualIdent> "{" <fields:FieldExprList> "}" <rr:@R> => {
+        Arc::new(Expr::Struct(Some(id), fields))
     },
 }
 

@@ -20,7 +20,7 @@ pub enum TypedExpr {
     Reference(Type, Referent),
     Word(Type, ast::WordLit),
     Vec(Type, Vec<Arc<TypedExpr>>),
-    Struct(Type, Ident, Vec<(Ident, Arc<TypedExpr>)>),
+    Struct(Type, Option<QualIdent>, Vec<(Ident, Arc<TypedExpr>)>),
     MethodCall(Type, Arc<TypedExpr>, Ident, Vec<Arc<TypedExpr>>),
     Ctor(Type, Ident, Vec<Arc<TypedExpr>>),
     As(Type, Arc<TypedExpr>, Arc<ast::Type>),
@@ -142,7 +142,14 @@ fn typecheck_expr(
             }
         },
         ast::Expr::Vec(_) => todo!(),
-        ast::Expr::Struct(_, _) => todo!(),
+        ast::Expr::Struct(structname, fields) => {
+            let mut typed_fields = vec![];
+            for (fieldname, expr) in fields {
+                let typed_expr = db.typeinfer_expr(moddef_id.clone(), expr.clone(), ctx.clone())?;
+                typed_fields.push((fieldname.clone(), typed_expr));
+            }
+            Ok(TypedExpr::Struct(typ, structname.clone(), typed_fields).into())
+        },
         ast::Expr::MethodCall(subject, method, args) => {
             let typed_subject = db.typeinfer_expr(moddef_id.clone(), subject.clone(), ctx.clone())?;
             let MethodSig(arg_types, ret_type) = db.method_sig(typed_subject.typ(), method.clone())?;
@@ -179,7 +186,7 @@ fn typecheck_expr(
             let expected_type_resolved = db.resolve_typ(expected_typ.clone(), moddef_id.package())?;
             let typed_subject = db.typecheck_expr(moddef_id.clone(), subject.clone(), expected_type_resolved.clone(), ctx)?;
             if expected_type_resolved != typ {
-                return Err(VirdantError::Unknown);
+                return Err(virdant_error!("Ascription failed: {expected_type_resolved} is not the same as {typ}"));
             } else {
                 Ok(TypedExpr::As(expected_type_resolved, typed_subject.clone(), expected_typ.clone()).into())
             }
@@ -299,7 +306,7 @@ fn typeinfer_expr(
             if let Some(n) = lit.width {
                 Ok(TypedExpr::Word(Type::Word(n), lit.clone()).into())
             } else {
-                Err(VirdantError::Unknown)
+                return Err(virdant_error!("Can't infer widdth: {lit:?}"));
             }
         },
         ast::Expr::Vec(_) => todo!(),

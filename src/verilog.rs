@@ -397,10 +397,15 @@ impl<'a> Verilog<'a> {
 
                 Ok(gs)
             },
+            TypedExpr::Struct(typ, _name, fields) => {
+                let gs = self.gensym();
+                writeln!(self.writer, "    {gs} = ...{expr:?}")?;
+                todo!()
+            },
             _ => {
                 let gs = self.gensym();
                 writeln!(self.writer, "    {gs} = ...{expr:?}")?;
-                Ok(gs)
+                todo!()
             },
         }
     }

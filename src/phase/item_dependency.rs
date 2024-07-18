@@ -14,7 +14,7 @@ fn item_dependencies(db: &dyn ItemDependencyQ, item: ItemId) -> VirdantResult<Ve
     match item {
         ItemId::ModDef(moddef_id) => moddef_item_dependencies(db, moddef_id),
         ItemId::UnionDef(uniondef_id) => uniondef_item_dependencies(db, uniondef_id),
-        ItemId::StructDef(_) => Err(virdant_error!("TODO item_dependencies for structdef")),
+        ItemId::StructDef(structdef_id) => structdef_item_dependencies(db, structdef_id),
         ItemId::PortDef(_) => Err(virdant_error!("TODO item_dependencies for portdef")),
     }
 }
@@ -75,5 +75,10 @@ fn expr_item_dependencies(_db: &dyn ItemDependencyQ, _expr: Arc<ast::Expr>) -> V
 
 fn uniondef_item_dependencies(_db: &dyn ItemDependencyQ, _uniondef_id: UnionDefId) -> VirdantResult<Vec<ItemId>> {
     eprintln!("TODO uniondef_item_dependencies not implemented");
+    Ok(vec![])
+}
+
+fn structdef_item_dependencies(_db: &dyn ItemDependencyQ, _structdef_id: StructDefId) -> VirdantResult<Vec<ItemId>> {
+    eprintln!("TODO structdef_item_dependencies not implemented");
     Ok(vec![])
 }

@@ -1,5 +1,10 @@
 import edge;
 
+struct type Foo {
+    x : Word[1];
+    y : Word[1];
+}
+
 union type State {
     Idle(Word[4], Word[1]);
     SpinCW(Word[5], Word[4]);
@@ -13,6 +18,9 @@ pub mod Top {
     outgoing led_2 : Word[1];
     outgoing led_3 : Word[1];
     outgoing led_4 : Word[1];
+
+    node foo : Foo;
+    foo := $Foo{ x = 0w1, y = 0w1 };
 
     reg counter : Word[32] on clock;
     counter <= counter->inc();

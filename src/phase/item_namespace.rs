@@ -57,16 +57,13 @@ fn uniondef_elements(db: &dyn ItemNamespaceQ, uniondef_id: UnionDefId) -> Virdan
     Ok(elements)
 }
 
-fn structdef_elements(_db: &dyn ItemNamespaceQ, _structdef_id: StructDefId) -> VirdantResult<Vec<ElementId>> {
-    todo!()
-    /*
+fn structdef_elements(db: &dyn ItemNamespaceQ, structdef_id: StructDefId) -> VirdantResult<Vec<ElementId>> {
     let mut elements = vec![];
     let structdef_ast = db.structdef_ast(structdef_id.clone())?;
-    for ast::Alt(name, _sig) in structdef_ast.alts {
+    for ast::Field(name, _typ) in structdef_ast.fields {
         elements.push(ElementId::from_ident(structdef_id.clone().as_item(), name));
     }
     Ok(elements)
-    */
 }
 
 fn portdef_elements(_db: &dyn ItemNamespaceQ, _portdef_id: PortDefId) -> VirdantResult<Vec<ElementId>> {

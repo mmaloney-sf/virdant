@@ -207,7 +207,15 @@ fn typecheck_expr(
                 Ok(typed_expr)
             }
         },
-        ast::Expr::Cat(_) => todo!(),
+        ast::Expr::Cat(_) => {
+            let typed_expr = db.typeinfer_expr(moddef_id, expr.clone(), ctx)?;
+            let actual_typ = typed_expr.typ();
+            if typ != actual_typ {
+                Err(VirdantError::Other(format!("Wrong types: {typ} vs {actual_typ}")))
+            } else {
+                Ok(typed_expr)
+            }
+        },
         ast::Expr::If(c, a, b) => {
             let typed_c = db.typecheck_expr(moddef_id.clone(), c.clone(), Type::Word(1), ctx.clone())?;
             let typed_a = db.typecheck_expr(moddef_id.clone(), a.clone(), typ.clone(), ctx.clone())?;
@@ -341,7 +349,24 @@ fn typeinfer_expr(
             let typed_subject = db.typeinfer_expr(moddef_id.clone(), subject.clone(), ctx)?;
             Ok(TypedExpr::IdxRange(Type::Word(j - i), typed_subject, *j, *i).into())
         },
-        ast::Expr::Cat(_) => todo!(),
+        ast::Expr::Cat(es) => {
+            let mut typed_es = vec![];
+            let mut width = 0;
+            for e in es {
+                let typed_e = db.typeinfer_expr(moddef_id.clone(), e.clone(), ctx.clone())?;
+                let e_typ = typed_e.typ();
+                if let Type::Word(w) = e_typ {
+                    width += w;
+                } else {
+                    return Err(virdant_error!("Can't cat expression of type {e_typ}"));
+                }
+                typed_es.push(typed_e);
+            }
+
+            let typ = Type::Word(width);
+
+            Ok(TypedExpr::Cat(typ, typed_es).into())
+        },
         ast::Expr::If(_, _, _) => Err(VirdantError::Other("Can't infer".to_string())),
         ast::Expr::Let(x, ascription, e, b) => {
             let typed_e = match ascription {

@@ -50,6 +50,8 @@ fn method_sig(_db: &dyn TypeResolutionQ, typ: Type, method: Ident) -> VirdantRes
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))
             } else if method == "or".into() {
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))
+            } else if method == "xor".into() {
+                Ok(MethodSig(vec![typ.clone()], typ.clone()))
             } else if method == "lt".into() {
                 Ok(MethodSig(vec![typ.clone()], Type::Word(1)))
             } else if method == "lte".into() {

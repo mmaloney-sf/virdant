@@ -214,14 +214,15 @@ impl<'a> Verilog<'a> {
                 writeln!(self.writer, "    wire {width_str} {gs} = {};", w.value)?;
                 Ok(gs)
             },
-            TypedExpr::Cat(_typ, args) => {
+            TypedExpr::Cat(typ, args) => {
                 let gs = self.gensym();
-                let mut args_ssa: Vec<SsaName> = vec![];
+                let mut arg_ssas: Vec<SsaName> = vec![];
                 for arg in args {
                     let arg_ssa = self.verilog_expr(arg.clone(), ctx.clone())?;
-                    args_ssa.push(arg_ssa);
+                    arg_ssas.push(arg_ssa);
                 }
-                writeln!(self.writer, "    wire {gs} = {{{}}};", args_ssa.join(", "))?;
+                let width_str = make_width_str(self.db, typ.clone());
+                writeln!(self.writer, "    wire {width_str} {gs} = {{{}}};", arg_ssas.join(", "))?;
                 Ok(gs)
             },
             TypedExpr::Idx(_typ, subject, i) => {
@@ -258,6 +259,7 @@ impl<'a> Verilog<'a> {
                     "and" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} & {};", args_ssa[0])?,
                     "or"  => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} | {};", args_ssa[0])?,
                     "not" => writeln!(self.writer, "    wire {width_str} {gs} = ~{subject_ssa};")?,
+                    "xor" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} ^ {};", args_ssa[0])?,
                     "eq"  => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} == {};", args_ssa[0])?,
                     "mux" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} ? {};", args_ssa.join(" : "))?,
                     "sll" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} << {};", args_ssa.join(" : "))?,

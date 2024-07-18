@@ -1,5 +1,3 @@
-use structure::typecheck::Referent;
-
 use crate::ast::ComponentKind;
 use crate::context::Context;
 use crate::{ast, common::*};

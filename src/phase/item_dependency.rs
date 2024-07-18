@@ -73,7 +73,7 @@ fn expr_item_dependencies(_db: &dyn ItemDependencyQ, _expr: Arc<ast::Expr>) -> V
     Ok(vec![])
 }
 
-fn uniondef_item_dependencies(db: &dyn ItemDependencyQ, uniondef_id: UnionDefId) -> VirdantResult<Vec<ItemId>> {
+fn uniondef_item_dependencies(_db: &dyn ItemDependencyQ, _uniondef_id: UnionDefId) -> VirdantResult<Vec<ItemId>> {
     eprintln!("TODO uniondef_item_dependencies not implemented");
     Ok(vec![])
 }

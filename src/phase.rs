@@ -48,11 +48,12 @@ impl Db {
         db
     }
 
-    pub fn set_source(&mut self, package: &str, text: &str) {
+    pub fn set_source(&mut self, package: &str, text: &str) -> PackageId {
         use self::astq::*;
         let mut sources = self.sources();
         sources.insert(package.into(), Arc::new(text.to_string()));
         self.set_sources(sources);
+        PackageId::from_ident(package.to_string().into())
     }
 }
 

@@ -193,18 +193,15 @@ impl<'a> Verilog<'a> {
     fn verilog_expr(&mut self, expr: Arc<TypedExpr>, ctx: Context<Ident, SsaName>) -> VirdantResult<SsaName> {
         match expr.as_ref() {
             TypedExpr::Reference(_typ, Referent::Local(x)) => {
-                writeln!(self.writer, "// reference {x}");
                 let ssa = ctx.lookup(x).unwrap();
                 Ok(format!("{ssa}"))
             },
             TypedExpr::Reference(_typ, Referent::LocalComponent(component_id)) => {
                 let path: Path = component_id.name().into();
-                writeln!(self.writer, "// local reference {path}");
                 Ok(format!("{path}"))
             },
             TypedExpr::Reference(_typ, Referent::NonLocalComponent(submodule_element_id, component_id)) => {
                 let path: Path = submodule_element_id.name().as_path().join(&component_id.name().into());
-                writeln!(self.writer, "// non-local reference {path}");
                 let parts = path.parts();
                 let sm = &parts[0];
                 let port = &parts[1];

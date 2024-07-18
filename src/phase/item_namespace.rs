@@ -2,7 +2,6 @@ use std::collections::HashSet;
 
 use crate::ast;
 use crate::common::*;
-use crate::virdant_error;
 use super::*;
 
 #[salsa::query_group(ItemNamespaceQStorage)]
@@ -58,7 +57,7 @@ fn uniondef_elements(db: &dyn ItemNamespaceQ, uniondef_id: UnionDefId) -> Virdan
     Ok(elements)
 }
 
-fn structdef_elements(db: &dyn ItemNamespaceQ, structdef_id: StructDefId) -> VirdantResult<Vec<ElementId>> {
+fn structdef_elements(_db: &dyn ItemNamespaceQ, _structdef_id: StructDefId) -> VirdantResult<Vec<ElementId>> {
     todo!()
     /*
     let mut elements = vec![];

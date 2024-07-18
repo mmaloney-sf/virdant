@@ -169,6 +169,12 @@ impl HasPackage for ItemId {
     }
 }
 
+impl From<PackageId> for Ident {
+    fn from(value: PackageId) -> Self {
+        value.0.clone()
+    }
+}
+
 debug_impl!(PackageId);
 debug_impl!(ItemId);
 debug_impl!(ElementId);

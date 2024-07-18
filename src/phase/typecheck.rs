@@ -221,7 +221,12 @@ fn typecheck_expr(
             Ok(TypedExpr::Let(typed_b.typ(), x.clone(), ascription.clone(), typed_e, typed_b).into())
         },
         ast::Expr::Match(subject, ascription, arms) => {
-            let typed_subject = db.typeinfer_expr(moddef_id.clone(), subject.clone(), ctx.clone())?;
+            let typed_subject = if let Some(ascription_typ) = ascription {
+                let ascription_typ = db.resolve_typ(ascription_typ.clone(), moddef_id.package())?;
+                db.typecheck_expr(moddef_id.clone(), subject.clone(), ascription_typ, ctx.clone())?
+            } else {
+                 db.typeinfer_expr(moddef_id.clone(), subject.clone(), ctx.clone())?
+            };
 
             let uniondef_id = match typed_subject.typ() {
                 Type::Union(uniondef_id, _typeargs) => uniondef_id,

@@ -19,22 +19,20 @@ pub mod Top {
 
     mod edge_detector of edge::Edge;
     edge_detector.clock := clock;
-    edge_detector.inp   := counter[20];
+    edge_detector.inp   := counter[19];
 
     reg state : State on clock;
     state <= if edge_detector.out {
         match state {
             @Idle(round, next) => if round->lt(3) {
                 @Idle(round->inc(), next)
+            } else if next {
+                @SpinCCW(0b01000, 0)
             } else {
-                if next {
-                    @SpinCCW(0b10000, 0)
-                } else {
-                    @SpinCW(0b00001, 0)
-                }
+                @SpinCW(0b00001, 0)
             };
-            @SpinCW(x, round) => if x->eq(0b10000) {
-                if round->lt(8) {
+            @SpinCW(x, round) => if x->eq(0b01000) {
+                if round->lt(3) {
                     @SpinCW(0b00001, round->inc())
                 } else {
                     @Idle(0, 1)
@@ -43,8 +41,8 @@ pub mod Top {
                 @SpinCW(x->sll(1), round)
             };
             @SpinCCW(x, round) => if x->eq(0b00001) {
-                if round->lt(8) {
-                    @SpinCCW(0b10000, round->inc())
+                if round->lt(3) {
+                    @SpinCCW(0b01000, round->inc())
                 } else {
                     @Idle(0, 0)
                 }
@@ -68,5 +66,9 @@ pub mod Top {
     led_1 := led[1];
     led_2 := led[2];
     led_3 := led[3];
-    led_4 := led[4];
+    led_4 := match state {
+        @Idle(round, next) => next;
+        @SpinCW(leds, round) => 0;
+        @SpinCCW(leds, round) => 1;
+    };
 }

@@ -101,7 +101,7 @@ impl<'a> Verilog<'a> {
 
     fn verilog_component(&mut self, component: Component) -> VirdantResult<()> {
         if component.is_outgoing() {
-            let expr = component.driver();
+            let expr = component.driver().unwrap();
             let typ = component.typ();
             let component_name = component.id().name();
             writeln!(self.writer, "    // outgoing {component_name} : {typ}")?;
@@ -109,7 +109,7 @@ impl<'a> Verilog<'a> {
             writeln!(self.writer, "    assign {component_name} = {ssa};")?;
             writeln!(self.writer)?;
         } else if component.is_node() {
-            let expr = component.driver();
+            let expr = component.driver().unwrap();
             let typ = expr.typ();
             let width_str = make_width_str(self.db, typ.clone());
             let component_name = component.id().name();
@@ -119,7 +119,7 @@ impl<'a> Verilog<'a> {
             writeln!(self.writer, "    assign {component_name} = {ssa};")?;
             writeln!(self.writer)?;
         } else if component.is_reg() {
-            let expr = component.driver();
+            let expr = component.driver().unwrap();
             let typ = expr.typ();
             let width_str = make_width_str(self.db, typ.clone());
             let component_name = component.id().name();
@@ -155,7 +155,7 @@ impl<'a> Verilog<'a> {
 //        for Wire(path, _wire_type, expr) in &self.db.moddef_typecheck_wire(moddef.name.clone(), submodule.name.clone())? {
 
         for port in &ports {
-            let expr = port.driver();
+            let expr = port.driver().unwrap();
             let gs = self.verilog_expr(expr, Context::empty())?;
             let submodule_name = submodule.id().name();
             let port_name = port.id().name();

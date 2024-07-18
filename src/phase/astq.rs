@@ -1,6 +1,8 @@
+use crate::ast::ComponentKind;
 use crate::parse;
 use crate::ast;
 use crate::common::*;
+use crate::virdant_error;
 use super::*;
 
 use std::collections::HashMap;
@@ -19,7 +21,7 @@ pub trait AstQ: salsa::Database {
 
     fn component_ast(&self, component_id: ComponentId) -> VirdantResult<ast::Component>;
 
-    fn wire_ast(&self, path_id: PathId) -> VirdantResult<ast::Wire>;
+    fn wire_ast(&self, path_id: PathId) -> VirdantResult<Option<ast::Wire>>;
 }
 
 fn packages(db: &dyn AstQ) -> Vec<PackageId> {
@@ -108,6 +110,21 @@ fn component_ast(db: &dyn AstQ, component_id: ComponentId) -> VirdantResult<ast:
     Err(VirdantError::Unknown)
 }
 
-fn wire_ast(_db: &dyn AstQ, _path_id: PathId) -> VirdantResult<ast::Wire> {
-    todo!()
+fn wire_ast(db: &dyn AstQ, path_id: PathId) -> VirdantResult<Option<ast::Wire>> {
+    let moddef_ast = db.moddef_ast(path_id.moddef())?;
+    for decl in &moddef_ast.decls {
+        match decl {
+            ast::Decl::Wire(wire@ast::Wire(target, _, _)) if target == &path_id.as_path() => {
+                return Ok(Some(wire.clone()));
+            },
+            ast::Decl::Component(component) => {
+                // if we detect this is an `incoming` (which has no driver), return None.
+                if component.kind == ComponentKind::Incoming && component.name.as_path() == path_id.as_path() {
+                    return Ok(None);
+                }
+            },
+            _ => (),
+        }
+    }
+    Err(virdant_error!("No such wire: {}", path_id))
 }

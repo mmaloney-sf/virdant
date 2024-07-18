@@ -1,6 +1,7 @@
 use structure::typecheck::Referent;
 
 use crate::ast::ComponentKind;
+use crate::context::Context;
 use crate::{ast, common::*};
 use super::*;
 
@@ -23,7 +24,7 @@ pub struct Component {
     id: ComponentId,
     typ: Type,
     kind: ast::ComponentKind,
-    driver: Arc<TypedExpr>,
+    driver: Option<Arc<TypedExpr>>,
 }
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
@@ -88,7 +89,7 @@ impl Component {
         self.kind == ComponentKind::Node
     }
 
-    pub fn driver(&self) -> Arc<TypedExpr> {
+    pub fn driver(&self) -> Option<Arc<TypedExpr>> {
         self.driver.clone()
     }
 
@@ -125,11 +126,20 @@ fn moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<ModDef> {
     for decl in &moddef_ast.decls {
         match decl {
             ast::Decl::Component(component) => {
-                let driver: Arc<TypedExpr> = db.typecheck_expr(todo!(), todo!(), todo!(), todo!())?;
+                let typ = db.resolve_typ(component.typ.clone(), moddef_id.package())?;
+                let component_path_id = db.resolve_path(moddef_id.clone(), component.name.as_path())?;
+
+                let wire = db.wire_ast(component_path_id)?;
+
+                let driver = match wire {
+                    Some(ast::Wire(_target, _wire_type, expr)) => Some(db.typecheck_expr(moddef_id.clone(), expr, typ.clone(), Context::empty())?),
+                    None => None,
+                };
+
                 components.push(
                     Component {
                         id: ComponentId::from_ident(moddef_id.clone(), component.name.clone()),
-                        typ: db.resolve_typ(component.typ.clone(), moddef_id.package())?,
+                        typ,
                         kind: component.kind.clone(),
                         driver,
                     }
@@ -137,7 +147,7 @@ fn moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<ModDef> {
             },
             ast::Decl::Submodule(submodule) => todo!(),
             ast::Decl::Port(port) => todo!(),
-            ast::Decl::Wire(wire) => todo!(),
+            ast::Decl::Wire(_wire) => (),
         }
     }
 

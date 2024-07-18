@@ -72,6 +72,29 @@ pub enum VirdantError {
     Unknown,
 }
 
+#[macro_export]
+macro_rules! virdant_error {
+    () => {
+        VirdantError::Other(format!("Unknown Error: in file {} on line {}", file!().to_string(), line!().to_string()))
+    };
+
+    ($fmt:literal) => {
+        {
+            let prelude = format!("Unknown Error: in file {} on line {}: ", file!().to_string(), line!().to_string());
+            let msg = format!($fmt);
+            VirdantError::Other(format!("{prelude}: {msg}"))
+        }
+    };
+
+    ($fmt:literal, $($arg:expr),*) => {
+        {
+            let prelude = format!("Unknown Error: in file {} on line {}: ", file!().to_string(), line!().to_string());
+            let msg = format!($fmt, $($arg)*); 
+            VirdantError::Other(format!("{prelude}: {msg}"))
+        }
+    };
+}
+
 impl VirdantError {
     pub fn because(self, cause: VirdantError) -> VirdantError {
         VirdantError::Because(Box::new(self), Box::new(cause))

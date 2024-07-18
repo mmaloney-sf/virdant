@@ -274,4 +274,8 @@ impl PathId {
     pub(crate) fn from_path(moddef_id: ModDefId, path: Path) -> Self {
         PathId(moddef_id, path)
     }
+
+    pub fn moddef(&self) -> ModDefId {
+        self.0.clone()
+    }
 }

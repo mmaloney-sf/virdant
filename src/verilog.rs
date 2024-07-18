@@ -58,8 +58,11 @@ impl<'a> Verilog<'a> {
             self.verilog_submodule(submodule)?;
         }
 
-        for component in moddef.internals() {
-            self.verilog_component(component)?;
+
+        for component in moddef.components() {
+            if component.is_outgoing() || component.is_reg() || component.is_node() {
+                self.verilog_component(component)?;
+            }
         }
 
         writeln!(self.writer, "endmodule")?;
@@ -140,9 +143,12 @@ impl<'a> Verilog<'a> {
     }
 
     fn verilog_submodule(&mut self, submodule: Submodule) -> VirdantResult<()> {
+        writeln!(self.writer, "    // Submodule {} of {}", submodule.id(), submodule.moddef())?;
+        let moddef_id = submodule.id().moddef();
         let submodule_moddef = self.db.structure_moddef(submodule.moddef())?;
         let ports = submodule_moddef.ports();
 
+        // Create wires which bridge between the module and the submodule
         for port in &ports {
             let typ = port.typ();
             let width_str = make_width_str(self.db, typ);
@@ -151,10 +157,14 @@ impl<'a> Verilog<'a> {
             writeln!(self.writer, "    wire {width_str} __TEMP_{submodule_name}_{port_name};")?;
         }
 
-//        for Wire(path, _wire_type, expr) in &self.db.moddef_typecheck_wire(moddef.name.clone(), submodule.name.clone())? {
-
+        // Create drive the submodule's incoming ports.
         for port in &ports {
-            if let Some(expr) = port.driver() {
+            if port.is_incoming() {
+                let path = submodule.id().name().as_path().join(&port.id().name().as_path());
+                eprintln!("IN MODULE {moddef_id}");
+                eprintln!("INST'ING MODULE {}", submodule_moddef.id());
+                eprintln!("LOOKING FOR DRIVER FOR {path}");
+                let expr = submodule.driver_for(path);
                 let gs = self.verilog_expr(expr, Context::empty())?;
                 let submodule_name = submodule.id().name();
                 let port_name = port.id().name();
@@ -163,6 +173,7 @@ impl<'a> Verilog<'a> {
         }
 
 
+        // Instantiate the module and connect the intermediary wires.
         writeln!(self.writer, "    {} {}(", submodule_moddef.id().name(), submodule.id().name())?;
         for (i, port) in ports.iter().enumerate() {
             let last_port = i + 1 == ports.len();
@@ -182,19 +193,22 @@ impl<'a> Verilog<'a> {
     fn verilog_expr(&mut self, expr: Arc<TypedExpr>, ctx: Context<Ident, SsaName>) -> VirdantResult<SsaName> {
         match expr.as_ref() {
             TypedExpr::Reference(_typ, Referent::Local(x)) => {
+                writeln!(self.writer, "// reference {x}");
                 let ssa = ctx.lookup(x).unwrap();
                 Ok(format!("{ssa}"))
             },
-            TypedExpr::Reference(_typ, Referent::Component(component_id)) => {
+            TypedExpr::Reference(_typ, Referent::LocalComponent(component_id)) => {
                 let path: Path = component_id.name().into();
-                if path.is_local() {
-                    Ok(format!("{path}"))
-                } else {
-                    let parts = path.parts();
-                    let sm = &parts[0];
-                    let port = &parts[1];
-                    Ok(format!("__TEMP_{sm}_{port}"))
-                }
+                writeln!(self.writer, "// local reference {path}");
+                Ok(format!("{path}"))
+            },
+            TypedExpr::Reference(_typ, Referent::NonLocalComponent(submodule_element_id, component_id)) => {
+                let path: Path = submodule_element_id.name().as_path().join(&component_id.name().into());
+                writeln!(self.writer, "// non-local reference {path}");
+                let parts = path.parts();
+                let sm = &parts[0];
+                let port = &parts[1];
+                Ok(format!("__TEMP_{sm}_{port}"))
             },
             TypedExpr::Word(_typ, w) => {
                 let gs = self.gensym();

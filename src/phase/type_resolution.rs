@@ -1,5 +1,6 @@
 use crate::common::*;
 use crate::ast;
+use crate::virdant_error;
 use super::*;
 
 #[salsa::query_group(TypeResolutionQStorage)]
@@ -73,7 +74,7 @@ fn ctor_sig(db: &dyn TypeResolutionQ, typ: Type, ctor: Ident) -> VirdantResult<C
     let uniondef = if let Type::Union(uniondef, _args) = &typ {
         uniondef
     } else {
-        return Err(VirdantError::Unknown);
+        return Err(virdant_error!("Type is not a union {typ}"));
     };
 
     let uniondef_ast = db.uniondef_ast(uniondef.clone())?;
@@ -89,7 +90,7 @@ fn ctor_sig(db: &dyn TypeResolutionQ, typ: Type, ctor: Ident) -> VirdantResult<C
         }
     }
 
-    Err(VirdantError::Unknown)
+    Err(virdant_error!("Unknown ctor: {ctor} on type {typ}"))
 }
 
 fn component_typ(db: &dyn TypeResolutionQ, component_id: ComponentId) -> VirdantResult<Type> {
@@ -98,12 +99,11 @@ fn component_typ(db: &dyn TypeResolutionQ, component_id: ComponentId) -> Virdant
     for decl in &moddef_ast.decls {
         if let ast::Decl::Component(simplecomponent) = decl {
             if simplecomponent.name == component_id.name() {
-                let package = PackageId::from_ident("test".into());
-                let typ = db.resolve_typ(simplecomponent.typ.clone(), package)?;
+                let typ = db.resolve_typ(simplecomponent.typ.clone(), component_id.moddef().package())?;
                 return Ok(typ);
             }
         }
     }
 
-    Err(VirdantError::Unknown)
+    Err(virdant_error!("Unknown component: {component_id} could not resolve type"))
 }

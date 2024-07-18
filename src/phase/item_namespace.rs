@@ -2,16 +2,21 @@ use std::collections::HashSet;
 
 use crate::ast;
 use crate::common::*;
+use crate::virdant_error;
 use super::*;
 
 #[salsa::query_group(ItemNamespaceQStorage)]
 pub trait ItemNamespaceQ: astq::AstQ {
-    fn item_elements(&self, item_id: ItemId) -> VirdantResult<Vec<ComponentId>>;
+    fn item_elements(&self, item_id: ItemId) -> VirdantResult<Vec<ElementId>>;
 }
 
-fn item_elements(db: &dyn ItemNamespaceQ, item_id: ItemId) -> VirdantResult<Vec<ComponentId>> {
+fn item_elements(db: &dyn ItemNamespaceQ, item_id: ItemId) -> VirdantResult<Vec<ElementId>> {
     match item_id {
-        ItemId::ModDef(moddef) => moddef_components(db, moddef),
+        ItemId::ModDef(moddef) => {
+            let component_ids = moddef_components(db, moddef)?;
+            let element_ids = component_ids.into_iter().map(|component_id| component_id.as_element()).collect();
+            Ok(element_ids)
+        },
         ItemId::UnionDef(uniondef) => uniondef_elements(db, uniondef),
         ItemId::StructDef(structdef) => structdef_elements(db, structdef),
         ItemId::PortDef(portdef) => portdef_elements(db, portdef),
@@ -44,15 +49,27 @@ fn moddef_components(db: &dyn ItemNamespaceQ, moddef_id: ModDefId) -> VirdantRes
     Ok(component_ids)
 }
 
-fn uniondef_elements(_db: &dyn ItemNamespaceQ, _uniondef_id: UnionDefId) -> VirdantResult<Vec<ComponentId>> {
-    todo!()
+fn uniondef_elements(db: &dyn ItemNamespaceQ, uniondef_id: UnionDefId) -> VirdantResult<Vec<ElementId>> {
+    let mut elements = vec![];
+    let uniondef_ast = db.uniondef_ast(uniondef_id.clone())?;
+    for ast::Alt(name, _sig) in uniondef_ast.alts {
+        elements.push(ElementId::from_ident(uniondef_id.clone().as_item(), name));
+    }
+    Ok(elements)
 }
 
-fn structdef_elements(_db: &dyn ItemNamespaceQ, _structdef_id: StructDefId) -> VirdantResult<Vec<ComponentId>> {
+fn structdef_elements(db: &dyn ItemNamespaceQ, structdef_id: StructDefId) -> VirdantResult<Vec<ElementId>> {
     todo!()
+    /*
+    let mut elements = vec![];
+    let structdef_ast = db.structdef_ast(structdef_id.clone())?;
+    for ast::Alt(name, _sig) in structdef_ast.alts {
+        elements.push(ElementId::from_ident(structdef_id.clone().as_item(), name));
+    }
+    Ok(elements)
+    */
 }
 
-fn portdef_elements(_db: &dyn ItemNamespaceQ, _portdef_id: PortDefId) -> VirdantResult<Vec<ComponentId>> {
+fn portdef_elements(_db: &dyn ItemNamespaceQ, _portdef_id: PortDefId) -> VirdantResult<Vec<ElementId>> {
     todo!()
 }
-

@@ -1,0 +1,10 @@
+mod Edge {
+    incoming clock : Clock;
+    incoming inp   : Word[1];
+    outgoing out   : Word[1];
+
+    reg last : Word[1] on clock;
+    last <= inp;
+
+    out := last->not()->and(inp);
+}

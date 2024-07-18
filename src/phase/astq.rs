@@ -21,7 +21,7 @@ pub trait AstQ: salsa::Database {
 
     fn component_ast(&self, component_id: ComponentId) -> VirdantResult<ast::Component>;
 
-    fn wire_ast(&self, path_id: PathId) -> VirdantResult<Option<ast::Wire>>;
+    fn wire_ast(&self, moddef_id: ModDefId, path_id: Path) -> VirdantResult<Option<ast::Wire>>;
 }
 
 fn packages(db: &dyn AstQ) -> Vec<PackageId> {
@@ -36,12 +36,13 @@ fn packages(db: &dyn AstQ) -> Vec<PackageId> {
 }
 
 fn package_ast(db: &dyn AstQ, package_id: PackageId) -> Result<ast::Package, VirdantError> {
+    eprintln!("package_ast({package_id})");
     let sources = db.sources();
     let package_name = package_id.name().to_string();
     if let Some(input) = sources.get(&package_name) {
         parse::parse_package(&input)
     } else {
-        Err(VirdantError::Unknown)
+        Err(virdant_error!("TODO package_ast"))
     }
 }
 
@@ -107,24 +108,24 @@ fn component_ast(db: &dyn AstQ, component_id: ComponentId) -> VirdantResult<ast:
             _ => (),
         }
     }
-    Err(VirdantError::Unknown)
+    Err(virdant_error!("No component: {component_id}"))
 }
 
-fn wire_ast(db: &dyn AstQ, path_id: PathId) -> VirdantResult<Option<ast::Wire>> {
-    let moddef_ast = db.moddef_ast(path_id.moddef())?;
+fn wire_ast(db: &dyn AstQ, moddef_id: ModDefId, path: Path) -> VirdantResult<Option<ast::Wire>> {
+    let moddef_ast = db.moddef_ast(moddef_id)?;
     for decl in &moddef_ast.decls {
         match decl {
-            ast::Decl::Wire(wire@ast::Wire(target, _, _)) if target == &path_id.as_path() => {
+            ast::Decl::Wire(wire@ast::Wire(target, _, _)) if target == &path => {
                 return Ok(Some(wire.clone()));
             },
             ast::Decl::Component(component) => {
                 // if we detect this is an `incoming` (which has no driver), return None.
-                if component.kind == ComponentKind::Incoming && component.name.as_path() == path_id.as_path() {
+                if component.kind == ComponentKind::Incoming && component.name.as_path() == path {
                     return Ok(None);
                 }
             },
             _ => (),
         }
     }
-    Err(virdant_error!("No such wire: {}", path_id))
+    Err(virdant_error!("No such wire: {}", path))
 }

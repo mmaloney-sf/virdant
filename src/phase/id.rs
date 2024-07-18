@@ -43,9 +43,6 @@ pub struct ElementId(ItemId, Ident);
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct ComponentId(ModDefId, Ident);
 
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct PathId(ModDefId, Path);
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Traits
@@ -145,13 +142,7 @@ impl std::fmt::Display for ItemId {
 
 impl std::fmt::Display for ComponentId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}::{}::{}", self.item().package(), self.item(), self.name())
-    }
-}
-
-impl std::fmt::Display for PathId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}::{}", self.0, self.1.parts().iter().map(|part| part.to_string()).collect::<Vec<_>>().join("."))
+        write!(f, "{}::{}::{}", self.item().package(), self.item().name(), self.name())
     }
 }
 
@@ -182,7 +173,6 @@ debug_impl!(PackageId);
 debug_impl!(ItemId);
 debug_impl!(ElementId);
 debug_impl!(ComponentId);
-debug_impl!(PathId);
 
 item_id!(ModDef, ModDefId);
 item_id!(UnionDef, UnionDefId);
@@ -263,19 +253,5 @@ impl ComponentId {
 impl Named for ComponentId {
     fn name(&self) -> Ident {
         self.1.clone()
-    }
-}
-
-impl PathId {
-    pub fn as_path(&self) -> Path {
-        self.1.clone()
-    }
-
-    pub(crate) fn from_path(moddef_id: ModDefId, path: Path) -> Self {
-        PathId(moddef_id, path)
-    }
-
-    pub fn moddef(&self) -> ModDefId {
-        self.0.clone()
     }
 }

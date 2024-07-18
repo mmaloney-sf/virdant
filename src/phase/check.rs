@@ -65,7 +65,7 @@ fn check_no_dup_imports(db: &dyn CheckQ, package_id: PackageId) -> VirdantResult
 
 fn check_item_no_dup_names(db: &dyn CheckQ, item_id: ItemId) -> VirdantResult<()> {
     db.item_elements(item_id)
-        .map_err(|err| VirdantError::Other("Failed Check: Item No Dup Names".into()).because(err))?;
+        .map_err(|err| virdant_error!("Failed Check: Item No Dup Names").because(err))?;
     Ok(())
 }
 
@@ -87,8 +87,7 @@ fn check_wires_typecheck(db: &dyn CheckQ, moddef_id: ModDefId) -> VirdantResult<
 
     for decl  in &moddef_ast.decls {
         if let ast::Decl::Wire(ast::Wire(target, _wire_type, expr)) = decl {
-            let target: PathId = db.resolve_path(moddef_id.clone(), target.clone())?;
-            let component_id = db.resolve_component(moddef_id.clone(), target)?;
+            let component_id = db.resolve_component(moddef_id.clone(), target.clone())?;
             let target_typ = db.component_typ(component_id)?;
             let typed_expr = db.typecheck_expr(moddef_id.clone(), expr.clone(), target_typ, Context::empty())?;
             eprintln!("{typed_expr:?}");
@@ -103,7 +102,8 @@ fn check_wires_correct_wiretype(_db: &dyn CheckQ, _moddef_id: ModDefId) -> Virda
     Ok(())
 }
 
-fn resolve_element(db: &dyn CheckQ, item_id: ItemId, name: Ident) -> VirdantResult<ComponentId> {
+/*
+fn resolve_element(db: &dyn CheckQ, item_id: ItemId, name: Ident) -> VirdantResult<ElementId> {
     for element_id in db.item_elements(item_id.clone())? {
         if element_id.name() == name {
             return Ok(element_id);
@@ -127,6 +127,7 @@ fn follow_path(db: &dyn CheckQ, target: PathId, item_id: ItemId) -> VirdantResul
     eprintln!("  result = {current_element}");
     Ok(current_element)
 }
+*/
 
 fn check_clocks_typecheck(_db: &dyn CheckQ, _moddef_id: ModDefId) -> VirdantResult<()> {
     eprintln!("SKIP check_clocks_typecheck");

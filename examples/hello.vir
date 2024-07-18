@@ -1,18 +1,9 @@
+import edge;
+
 union type State {
     Idle(Word[4], Word[1]);
     SpinCW(Word[5], Word[4]);
     SpinCCW(Word[5], Word[4]);
-}
-
-mod Edge {
-    incoming clock : Clock;
-    incoming inp   : Word[1];
-    outgoing out   : Word[1];
-
-    reg last : Word[1] on clock;
-    last <= inp;
-
-    out := last->not()->and(inp);
 }
 
 pub mod Top {
@@ -26,9 +17,9 @@ pub mod Top {
     reg counter : Word[32] on clock;
     counter <= counter->inc();
 
-    mod edge_detector of Edge;
+    mod edge_detector of edge::Edge;
     edge_detector.clock := clock;
-    edge_detector.inp   := counter[17];
+    edge_detector.inp   := counter[20];
 
     reg state : State on clock;
     state <= if edge_detector.out {
@@ -79,55 +70,3 @@ pub mod Top {
     led_3 := led[3];
     led_4 := led[4];
 }
-
-
-/*
-mod Resetter {
-    incoming clock   : Clock;
-    outgoing reset : Word[1];
-
-    reg counter : Word[8] on clock;
-    counter <= if counter->gt(0) {
-        counter->sub(1)
-    } else {
-        0
-    };
-
-    reset := counter->eq(1);
-}
-*/
-
-/*
-    node foo : State;
-    foo := @Running(0w2, 15);
-
-    reg counter : Word[32] on clock;
-    counter <= counter->inc();
-
-    node led : Word[5];
-    led :=
-        let is_fpga : Word[1] = 1 in
-        if is_fpga {
-            counter[25..20]
-        } else {
-            counter[29..24]
-        };
-
-    led_0 := led[0];
-    led_1 := led[1];
-    led_4 := led[2];
-    led_2 := led[3];
-    led_3 := led[4];
-}
-
-
-mod Buffer {
-    incoming clock : Clock;
-    incoming inp : Word[3];
-    outgoing out : Word[3];
-
-    reg buffer : Word[3] on clock;
-    buffer <= inp;
-    out := buffer;
-}
-*/

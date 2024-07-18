@@ -26,7 +26,7 @@ fn resolve_package(db: &dyn ItemResolutionQ, package_name: Ident) -> VirdantResu
             return Ok(package);
         }
     }
-    Err(VirdantError::Unknown)
+    Err(virdant_error!("Unknown package: {package_name}"))
 }
 
 fn items(db: &dyn ItemResolutionQ) -> VirdantResult<Vec<ItemId>> {

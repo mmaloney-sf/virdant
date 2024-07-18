@@ -1,6 +1,7 @@
 use crate::common::*;
 use crate::context::*;
 use crate::ast;
+use crate::virdant_error;
 use super::*;
 
 #[salsa::query_group(TypecheckQStorage)]
@@ -8,7 +9,7 @@ pub trait TypecheckQ: type_resolution::TypeResolutionQ {
     fn typecheck_expr(&self, moddef: ModDefId, expr: Arc<ast::Expr>, typ: Type, ctx: Context<Ident, Type>) -> VirdantResult<Arc<TypedExpr>>;
     fn typeinfer_expr(&self, moddef: ModDefId, expr: Arc<ast::Expr>, ctx: Context<Ident, Type>) -> VirdantResult<Arc<TypedExpr>>;
 
-    fn moddef_reference_type(&self, moddef: ModDefId, target: PathId) -> VirdantResult<Type>;
+    fn moddef_reference_type(&self, moddef: ModDefId, target: Path) -> VirdantResult<Type>;
 
     fn typecheck_moddef(&self, moddef: ModDefId) -> VirdantResult<()>;
     fn typecheck(&self, moddef: ModDefId) -> VirdantResult<()>;
@@ -33,8 +34,9 @@ pub enum TypedExpr {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Referent {
-    Component(ComponentId),
     Local(Ident),
+    LocalComponent(ComponentId),
+    NonLocalComponent(ElementId, ComponentId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -44,7 +46,6 @@ pub enum TypedPat {
     Otherwise(Type),
 }
 
-/*
 impl TypedPat {
     fn from(pat: &ast::Pat, typ: Type, db: &dyn TypecheckQ) -> VirdantResult<TypedPat> {
         match pat {
@@ -52,7 +53,7 @@ impl TypedPat {
                 let CtorSig(arg_typs, _typ) = db.ctor_sig(typ.clone(), ctor.clone())?;
 
                 if arg_typs.len() != subpats.len() {
-                    return Err(VirdantError::Unknown);
+                    return Err(virdant_error!("Number of arguments wrong in pattern: {arg_typs:?}"));
                 }
 
                 let mut typed_args: Vec<TypedPat> = vec![];
@@ -76,7 +77,6 @@ impl TypedPat {
         }
     }
 }
-*/
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TypedMatchArm(pub TypedPat, pub Arc<TypedExpr>);
@@ -163,24 +163,17 @@ fn typecheck_expr(
 
             Ok(TypedExpr::MethodCall(typ, typed_subject, method.clone(), typed_args).into())
         },
-        ast::Expr::Ctor(_ctor, _args) => {
-            //todo!();
-            // Is the ctor valid?
-            // What is the signature of the ctor?
-            // asdf
-            todo!();
-            /*
-            let arg_types: Vec<Type> = todo!(); // db.alttypedef_ctor_argtypes(typ.name(), ctor.clone())?;
+        ast::Expr::Ctor(ctor, args) => {
+            let CtorSig(arg_types, _ctor_typ) = db.ctor_sig(typ.clone(), ctor.clone())?;
             if args.len() != arg_types.len() {
                 return Err(VirdantError::Other("Wrong number of args".into()));
             }
             let mut typed_args = vec![];
             for (arg, arg_typ) in args.iter().zip(arg_types) {
-                let typed_arg = db.typecheck_expr(moddef.clone(), arg.clone(), arg_typ.clone(), ctx.clone())?;
+                let typed_arg = db.typecheck_expr(moddef_id.clone(), arg.clone(), arg_typ.clone(), ctx.clone())?;
                 typed_args.push(typed_arg);
             }
             Ok(TypedExpr::Ctor(typ, ctor.clone(), typed_args).into())
-*/
         },
         ast::Expr::As(subject, expected_typ) => {
             let expected_type_resolved = db.resolve_typ(expected_typ.clone(), moddef_id.package())?;
@@ -227,15 +220,17 @@ fn typecheck_expr(
             let typed_b = db.typecheck_expr(moddef_id, b.clone(), typ.clone(), new_ctx)?;
             Ok(TypedExpr::Let(typed_b.typ(), x.clone(), ascription.clone(), typed_e, typed_b).into())
         },
-        ast::Expr::Match(_subject, _ascription, _arms) => {
-            todo!()
-            /*
-            let typed_subject = db.typeinfer_expr(moddef.clone(), subject.clone(), ctx.clone())?;
-            let ctors: VirdantResult<Vec<Ident>> = todo!(); // db.alttypedef_ctors(typed_subject.typ().name())
-            ctors
-                .map_err(|_err| {
-                    VirdantError::Other(format!("match subject must be an alt type"))
-                })?;
+        ast::Expr::Match(subject, ascription, arms) => {
+            let typed_subject = db.typeinfer_expr(moddef_id.clone(), subject.clone(), ctx.clone())?;
+
+            let uniondef_id = match typed_subject.typ() {
+                Type::Union(uniondef_id, _typeargs) => uniondef_id,
+                _ => return Err(virdant_error!("Can only match against a union type")),
+            };
+
+
+            let ctor_element_ids  = db.item_elements(uniondef_id.as_item())?;
+            let ctors: Vec<Ident> = ctor_element_ids.iter().map(|element| element.clone().name()).collect();
 
             let mut typed_arms: Vec<TypedMatchArm> = vec![];
             for ast::MatchArm(pat, e) in arms {
@@ -260,14 +255,13 @@ fn typecheck_expr(
                     ast::Pat::Bind(x) => todo!(),
                     ast::Pat::Otherwise => todo!(),
                 }
-                let typed_e = db.typecheck_expr(moddef.clone(), e.clone(), typ.clone(), new_ctx)?;
+                let typed_e = db.typecheck_expr(moddef_id.clone(), e.clone(), typ.clone(), new_ctx)?;
                 let typed_pat = TypedPat::from(pat, typed_subject.typ(), db)?;
                 let typed_arm = TypedMatchArm(typed_pat, typed_e);
                 typed_arms.push(typed_arm);
             }
             // TODO type ascription
             Ok(TypedExpr::Match(typ.clone(), typed_subject, None, typed_arms).into())
-*/
         },
     }
 }
@@ -286,10 +280,15 @@ fn typeinfer_expr(
                     return Ok(TypedExpr::Reference(actual_typ, Referent::Local(ident)).into());
                 } 
             }
-            let actual_typ = db.moddef_reference_type(moddef_id.clone(), PathId::from_path(moddef_id.clone(), path.clone()))?;
-            let path_id: PathId = db.resolve_path(moddef_id.clone(), path.clone())?;
-            let component_id: ComponentId = db.resolve_component(moddef_id.clone(), path_id)?;
-            Ok(TypedExpr::Reference(actual_typ, Referent::Component(component_id)).into())
+            let actual_typ = db.moddef_reference_type(moddef_id.clone(), path.clone())?;
+            let component_id: ComponentId = db.resolve_component(moddef_id.clone(), path.clone())?;
+
+            if path.is_local() {
+                Ok(TypedExpr::Reference(actual_typ, Referent::LocalComponent(component_id)).into())
+            } else {
+                let submodule_element_id = db.resolve_element(moddef_id.clone(), path.head())?;
+                Ok(TypedExpr::Reference(actual_typ, Referent::NonLocalComponent(submodule_element_id, component_id)).into())
+            }
         },
         ast::Expr::Word(lit) => {
             if let Some(n) = lit.width {
@@ -349,10 +348,9 @@ fn typeinfer_expr(
     }
 }
 
-fn moddef_reference_type(db: &dyn TypecheckQ, moddef_id: ModDefId, path_id: PathId) -> VirdantResult<Type> {
-    eprintln!("moddef_reference_type({moddef_id}, {path_id})");
+fn moddef_reference_type(db: &dyn TypecheckQ, moddef_id: ModDefId, path: Path) -> VirdantResult<Type> {
+    eprintln!("moddef_reference_type({moddef_id}, {path})");
     // moddef_reference_type(top::Top, top::Top::edge_detector.out)
-    let path = path_id.as_path();
     let moddef_ast = db.moddef_ast(moddef_id.clone())?;
     for decl in &moddef_ast.decls {
         match decl {
@@ -362,8 +360,7 @@ fn moddef_reference_type(db: &dyn TypecheckQ, moddef_id: ModDefId, path_id: Path
             },
             ast::Decl::Submodule(submodule) if submodule.name.as_path() == path.parent() => {
                 let submodule_moddef_id = db.moddef(submodule.moddef.clone().into(), moddef_id.package())?;
-                let port_path_id = db.resolve_path(submodule_moddef_id.clone(), path.name().as_path())?;
-                return db.moddef_reference_type(submodule_moddef_id, port_path_id);
+                return db.moddef_reference_type(submodule_moddef_id, path.name().as_path());
             },
             _ => (),
         }

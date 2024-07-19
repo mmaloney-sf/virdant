@@ -1,0 +1,27 @@
+mod Lfsr {
+    incoming clock : Clock;
+    incoming reset : Word[1];
+    outgoing out : Word[8];
+
+    node taps : Word[8];
+    taps := 29w8;
+
+    reg r : Word[8] on clock;
+    r <= if reset {
+        255w8
+    } else {
+        cat(r[7..0], 0w1)->xor(if feedback { taps }  else { 0w8 })
+    };
+
+    out := r;
+
+    node feedback : Word[1];
+    feedback := r[7];
+
+    reg s : Word[4] on clock;
+    s <= if reset {
+        1
+    } else {
+        cat(s[3..0], s[3])
+    };
+}

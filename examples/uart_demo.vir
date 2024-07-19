@@ -1,0 +1,119 @@
+import uart;
+import resetter;
+import edge;
+
+mod Top {
+    incoming clock      : Clock; // 12MHz
+    outgoing uart_tx    : Word[1];
+    outgoing led_0      : Word[1];
+    outgoing led_1      : Word[1];
+    outgoing led_2      : Word[1];
+    outgoing led_3      : Word[1];
+    outgoing led_4      : Word[1];
+
+    node reset : Word[1];
+
+    mod resetter of resetter::Resetter;
+    resetter.clock := clock;
+    reset := resetter.out;
+
+    led_0 := 1;
+    led_1 := 1;
+    led_2 := 0;
+    led_3 := 0;
+    led_4 := uart_sender.ready;
+
+    node data : Word[8];
+    data := if counter->eq(0) {
+        73
+    } else if counter->eq(1) {
+        32
+    } else if counter->eq(2) {
+        108
+    } else if counter->eq(3) {
+        111
+    } else if counter->eq(4) {
+        118
+    } else if counter->eq(5) {
+        101
+    } else if counter->eq(6) {
+        32
+    } else if counter->eq(7) {
+        121
+    } else if counter->eq(8) {
+        111
+    } else if counter->eq(9) {
+        117
+    } else if counter->eq(10) {
+        32
+    } else if counter->eq(11) {
+        83
+    } else if counter->eq(12) {
+        116
+    } else if counter->eq(13) {
+        101
+    } else if counter->eq(14) {
+        112
+    } else if counter->eq(15) {
+        104
+    } else if counter->eq(16) {
+        97
+    } else if counter->eq(17) {
+        110
+    } else if counter->eq(18) {
+        105
+    } else if counter->eq(19) {
+        101
+    } else if counter->eq(20) {
+        33
+    } else if counter->eq(21) {
+        33
+    } else if counter->eq(22) {
+        33
+    } else if counter->eq(23) {
+        33
+    } else if counter->eq(24) {
+        10
+    } else {
+        0
+    };
+
+/*
+    data := if counter->eq(0) {
+        72w8
+    } else if counter->eq(1) {
+        101w8
+    } else if counter->eq(2) {
+        108w8
+    } else if counter->eq(3) {
+        108w8
+    } else if counter->eq(4) {
+        111w8
+    } else if counter->eq(5) {
+        10w8
+    } else {
+        0w8
+    };
+    */
+
+    mod edge_detector of edge::Edge;
+    edge_detector.clock := clock;
+    edge_detector.inp   := uart_sender.ready;
+
+    reg counter : Word[8] on clock;
+    counter <= if reset {
+        0
+    } else if uart_sender.ready {
+        counter->inc()
+    } else {
+        counter
+    };
+
+    mod uart_sender of uart::UartSender;
+    uart_sender.clock := clock;
+    uart_sender.reset := reset;
+    uart_sender.data  := data;
+    uart_sender.data_valid := data->gt(0);
+
+    uart_tx := uart_sender.uart_tx;
+}

@@ -1,0 +1,182 @@
+mod UartSender {
+    incoming clock      : Clock; // 12MHz
+    incoming reset      : Word[1];
+    incoming data       : Word[8];
+    incoming data_valid : Word[1];
+    outgoing ready      : Word[1];
+    outgoing uart_tx    : Word[1];
+
+    reg uart_tx_reg : Word[1] on clock;
+    uart_tx <= uart_tx_reg;
+
+    reg latched_data : Word[8] on clock;
+    reg state : Word[4] on clock;
+    reg pulse : Word[11] on clock;
+
+    ready := state->eq(0);
+
+    state <= if reset {
+        0w4
+    } else if state->eq(0) {
+        if data_valid {
+            1w4
+        } else {
+            state
+        }
+    } else if state->eq(1) {
+        if pulse->eq(0) {
+            2w4
+        } else {
+            state
+        }
+    } else if state->eq(2) {
+        if pulse->eq(0) {
+            3w4
+        } else {
+            state
+        }
+    } else if state->eq(3) {
+        if pulse->eq(0) {
+            4w4
+        } else {
+            state
+        }
+    } else if state->eq(4) {
+        if pulse->eq(0) {
+            5w4
+        } else {
+            state
+        }
+    } else if state->eq(5) {
+        if pulse->eq(0) {
+            6w4
+        } else {
+            state
+        }
+    } else if state->eq(6) {
+        if pulse->eq(0) {
+            7w4
+        } else {
+            state
+        }
+    } else if state->eq(7) {
+        if pulse->eq(0) {
+            8w4
+        } else {
+            state
+        }
+    } else if state->eq(8) {
+        if pulse->eq(0) {
+            9w4
+        } else {
+            state
+        }
+    } else if state->eq(9) {
+        if pulse->eq(0) {
+            10w4
+        } else {
+            state
+        }
+    } else if state->eq(10) {
+        if pulse->eq(0) {
+            0w4
+        } else {
+            state
+        }
+    } else {
+        state
+    };
+
+
+    pulse <= if reset {
+        0w11
+    } else {
+        if state->eq(0)->and(data_valid) {
+            1250w11
+        } else {
+            if pulse->eq(0) {
+                1250w11
+            } else {
+                pulse->sub(1)
+            }
+        }
+    };
+
+    latched_data := if state->eq(0)->and(data_valid) {
+        data
+    } else {
+        latched_data
+    };
+
+    uart_tx_reg <= if reset {
+        1w1
+    } else if state->eq(0) {
+        if data_valid {
+            0w1
+        } else {
+            uart_tx_reg
+        }
+    } else if state->eq(1) {
+        if pulse->eq(0) {
+            latched_data[0]
+        } else {
+            uart_tx_reg
+        }
+    } else if state->eq(2) {
+        if pulse->eq(0) {
+            latched_data[1]
+        } else {
+            uart_tx_reg
+        }
+    } else if state->eq(3) {
+        if pulse->eq(0) {
+            latched_data[2]
+        } else {
+            uart_tx_reg
+        }
+    } else if state->eq(4) {
+        if pulse->eq(0) {
+            latched_data[3]
+        } else {
+            uart_tx_reg
+        }
+    } else if state->eq(5) {
+        if pulse->eq(0) {
+            latched_data[4]
+        } else {
+            uart_tx_reg
+        }
+    } else if state->eq(5) {
+        if pulse->eq(0) {
+            latched_data[5]
+        } else {
+            uart_tx_reg
+        }
+    } else if state->eq(6) {
+        if pulse->eq(0) {
+            latched_data[5]
+        } else {
+            uart_tx_reg
+        }
+    } else if state->eq(7) {
+        if pulse->eq(0) {
+            latched_data[6]
+        } else {
+            uart_tx_reg
+        }
+    } else if state->eq(8) {
+        if pulse->eq(0) {
+            latched_data[7]
+        } else {
+            uart_tx_reg
+        }
+    } else if state->eq(9) {
+        if pulse->eq(0) {
+            1w1
+        } else {
+            uart_tx_reg
+        }
+    } else {
+        uart_tx_reg
+    };
+}

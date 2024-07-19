@@ -191,18 +191,18 @@ fn typecheck_expr(
                 Ok(TypedExpr::As(expected_type_resolved, typed_subject.clone(), expected_typ.clone()).into())
             }
         },
-        ast::Expr::Idx(_subject, _i) => {
-            let typed_expr = db.typeinfer_expr(moddef_id, expr, ctx)?;
+        ast::Expr::Idx(subject, i) => {
+            let typed_expr = db.typeinfer_expr(moddef_id, expr.clone(), ctx)?;
             if typed_expr.typ() != typ {
-                Err(VirdantError::Unknown)
+                Err(virdant_error!("UH OH: Idx: {subject:?}[{i}]"))
             } else {
                 Ok(typed_expr)
             }
         },
-        ast::Expr::IdxRange(_subject, _j, _i) => {
-            let typed_expr = db.typeinfer_expr(moddef_id, expr, ctx)?;
+        ast::Expr::IdxRange(subject, j, i) => {
+            let typed_expr = db.typeinfer_expr(moddef_id, expr.clone(), ctx)?;
             if typed_expr.typ() != typ {
-                Err(VirdantError::Unknown)
+                Err(virdant_error!("UH OH: IdxRange: {subject:?}[{j}..{i}]"))
             } else {
                 Ok(typed_expr)
             }
@@ -260,7 +260,7 @@ fn typecheck_expr(
                         let CtorSig(arg_typs, _typ) = db.ctor_sig(typed_subject.typ(), ctor.clone())?;
 
                         if subpats.len() != arg_typs.len() {
-                            return Err(VirdantError::Unknown);
+                            return Err(virdant_error!("Pattern for {ctor} has the wrong number of arguments"));
                         }
 
                         for (subpat, arg_typ) in subpats.iter().zip(arg_typs) {
@@ -268,7 +268,7 @@ fn typecheck_expr(
                                 eprintln!("Extending ctx with {x} : {arg_typ}");
                                 new_ctx = new_ctx.extend(x.clone(), arg_typ);
                             } else {
-                                return Err(VirdantError::Unknown);
+                                return Err(virdant_error!("TODO subpats"));
                             }
                         }
                     },

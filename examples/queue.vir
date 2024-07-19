@@ -1,0 +1,44 @@
+import resetter;
+import lfsr;
+
+union type ValidData {
+    Invalid();
+    Valid(Word[8]);
+}
+
+mod Queue {
+    incoming clock : Clock;
+    incoming reset : Word[1];
+
+    incoming data_in   : ValidData;
+    outgoing ready_in  : Word[1];
+
+    outgoing data_out  : ValidData;
+    incoming ready_out : Word[1];
+
+    reg queue : ValidData on clock;
+
+    queue <= if reset {
+        @Invalid()
+    } else {
+        match queue {
+            @Invalid() => data_in;
+            @Valid(data) => if ready_out {
+                data_in
+            } else {
+                queue
+            };
+        }
+    };
+
+    ready_in := if reset {
+        0
+    } else {
+        match queue {
+            @Invalid() => 1;
+            @Valid(data) => 0;
+        }
+    };
+
+    data_out := queue;
+}

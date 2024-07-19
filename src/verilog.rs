@@ -89,7 +89,8 @@ impl<'a> Verilog<'a> {
         } else if let Type::Clock = typ {
             write!(self.writer, "    {direction} wire            {port_name}")?;
         } else {
-            todo!()
+            let width_str = make_width_str(self.db, typ.clone());
+            write!(self.writer, "    {direction} wire  {width_str}     {port_name}")?;
         }
 
         if is_last_port {

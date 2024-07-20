@@ -109,23 +109,6 @@ mod UartReceiver {
     outgoing data       : Word[8];
     outgoing data_valid : Word[1];
 
-    outgoing state_num : Word[4];
-    state_num := match state {
-        @Idle() => 0;
-        @Start(pulse) => 1;
-        @Bit(bit, pulse) => 2;
-        @Stop(pulse) => 3;
-    };
-
-    outgoing bit_num : Word[4];
-    bit_num := match state {
-        @Idle() => 15;
-        @Start(pulse) => 15;
-        @Bit(bit, pulse) => cat(0w1, bit);
-        @Stop(pulse) => 15;
-    };
-
-
     reg state : UartState on clock;
     reg data_reg : Word[8] on clock;
 

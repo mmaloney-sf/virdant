@@ -15,6 +15,7 @@ pub struct ModDef {
     id: ModDefId,
     components: Vec<Component>,
     submodules: Vec<Submodule>,
+    ext: bool,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -49,6 +50,10 @@ impl ModDef {
 
     pub fn submodules(&self) -> Vec<Submodule> {
         self.submodules.clone()
+    }
+
+    pub fn is_ext(&self) -> bool {
+        self.ext
     }
 }
 
@@ -116,11 +121,16 @@ fn structure_moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<M
         match decl {
             ast::Decl::Component(component) => {
                 let typ = db.resolve_typ(component.typ.clone(), moddef_id.package())?;
-                let wire = db.wire_ast(moddef_id.clone(), component.name.as_path())?;
 
-                let driver = match wire {
-                    Some(ast::Wire(_target, _wire_type, expr)) => Some(db.typecheck_expr(moddef_id.clone(), expr, typ.clone(), Context::empty())?),
-                    None => None,
+                let driver = if !moddef_ast.ext {
+                    let wire = db.wire_ast(moddef_id.clone(), component.name.as_path())?;
+
+                    match wire {
+                        Some(ast::Wire(_target, _wire_type, expr)) => Some(db.typecheck_expr(moddef_id.clone(), expr, typ.clone(), Context::empty())?),
+                        None => None,
+                    }
+                } else {
+                    None
                 };
 
                 let clock = if component.kind == ComponentKind::Reg {
@@ -196,6 +206,7 @@ fn structure_moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<M
         id: moddef_id,
         components,
         submodules,
+        ext: moddef_ast.ext,
     };
     Ok(moddef)
 }

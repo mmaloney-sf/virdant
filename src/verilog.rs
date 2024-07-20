@@ -46,6 +46,13 @@ impl<'a> Verilog<'a> {
     fn verilog_moddef(&mut self, moddef_id: ModDefId) -> VirdantResult<()> {
         let moddef_name: Ident = moddef_id.name();
         let moddef = self.db.structure_moddef(moddef_id)?;
+
+        if moddef.is_ext() {
+            writeln!(self.writer, "`include \"ext/{moddef_name}.v\"")?;
+            writeln!(self.writer)?;
+            return Ok(());
+        }
+
         writeln!(self.writer, "module {}(", moddef_name.clone())?;
         let ports = moddef.ports();
         for (i, port) in ports.iter().enumerate() {

@@ -35,7 +35,7 @@ mod Top {
     mod uart_sender of uart::UartSender;
     uart_sender.clock := clock;
     uart_sender.reset := reset;
-    uart_sender.data  := uart_receiver.data;
+    uart_sender.data  := uart_receiver.data->sub(32);
     uart_sender.data_valid := edge_detector.out;
 
     mod edge_detector of edge::Edge;

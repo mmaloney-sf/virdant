@@ -1,0 +1,216 @@
+import uart;
+import edge;
+import resetter;
+import lfsr;
+
+mod Top {
+    incoming clock      : Clock; // 12MHz
+
+    outgoing uart_tx    : Word[1];
+    incoming uart_rx    : Word[1];
+
+    outgoing led_0      : Word[1];
+    outgoing led_1      : Word[1];
+    outgoing led_2      : Word[1];
+    outgoing led_3      : Word[1];
+    outgoing led_4      : Word[1];
+
+    node reset : Word[1];
+
+    mod resetter of resetter::Resetter;
+    resetter.clock := clock;
+    reset := resetter.out;
+
+    mod uart_receiver of uart::UartReceiver;
+    uart_receiver.clock := clock;
+    uart_receiver.reset := reset;
+    uart_receiver.uart_rx := uart_rx;
+
+    mod uart_sender of uart::UartSender;
+    uart_sender.clock := clock;
+    uart_sender.reset := reset;
+    uart_sender.data  := uart_receiver.data->sub(32);
+    uart_sender.data_valid := edge_detector.out;
+
+    mod edge_detector of edge::Edge;
+    edge_detector.clock := clock;
+    edge_detector.inp := uart_receiver.data_valid;
+
+    uart_tx := uart_sender.uart_tx;
+
+    reg counter : Word[32] on clock;
+    counter <= counter->inc();
+
+    mod led_controller of LedController;
+    led_controller.clock := clock;
+    led_controller.reset := reset;
+    led_controller.set_random := uart_receiver.data_valid->and(uart_receiver.data->eq(114));
+    led_controller.set_idle := uart_receiver.data_valid->and(uart_receiver.data->eq(105));
+    led_controller.set_cw := uart_receiver.data_valid->and(uart_receiver.data->eq(99));
+    led_controller.set_ccw := uart_receiver.data_valid->and(uart_receiver.data->eq(119));
+    led_controller.set_rate := rate->eq(0)->not();
+
+    node rate : Word[3];
+    rate := 
+        if uart_receiver.data->eq(49) {
+            1
+        } else if uart_receiver.data->eq(50) {
+            2
+        } else if uart_receiver.data->eq(51) {
+            3
+        } else if uart_receiver.data->eq(52) {
+            4
+        } else if uart_receiver.data->eq(53) {
+            5
+        } else if uart_receiver.data->eq(54) {
+            6
+        } else if uart_receiver.data->eq(55) {
+            7
+        } else {
+            0
+        };
+    led_controller.rate := rate;
+
+    led_0 := led_controller.leds[0];
+    led_1 := led_controller.leds[1];
+    led_2 := led_controller.leds[2];
+    led_3 := led_controller.leds[3];
+    led_4 := led_controller.leds[4];
+}
+
+union type LedControllerState {
+    Idle(Word[4], Word[1]);
+    SpinCW(Word[5], Word[4]);
+    SpinCCW(Word[5], Word[4]);
+    Memory(Word[16]);
+    Random(Word[5]);
+}
+
+mod LedController {
+    incoming clock      : Clock; // 12MHz
+    incoming reset      : Word[1];
+    outgoing leds       : Word[5];
+
+    incoming set_random : Word[1];
+    incoming set_cw     : Word[1];
+    incoming set_ccw    : Word[1];
+    incoming set_idle   : Word[1];
+    incoming set_rate   : Word[1];
+    incoming rate       : Word[3];
+
+    reg counter : Word[32] on clock;
+    counter <= counter->inc();
+
+
+    reg rate_reg : Word[3] on clock;
+    rate_reg <= if set_rate {
+        rate
+    } else {
+        rate_reg
+    };
+
+    mod edge_detector of edge::Edge;
+    edge_detector.clock := clock;
+    edge_detector.inp   :=
+        if rate_reg->eq(0) {
+            counter[25]
+        } else if rate_reg->eq(1) {
+            counter[24]
+        } else if rate_reg->eq(2) {
+            counter[23]
+        } else if rate_reg->eq(3) {
+            counter[22]
+        } else if rate_reg->eq(4) {
+            counter[21]
+        } else if rate_reg->eq(5) {
+            counter[20]
+        } else if rate_reg->eq(6) {
+            counter[19]
+        } else if rate_reg->eq(7) {
+            counter[18]
+        } else {
+            counter[17]
+        };
+
+    node change : Word[1];
+    change := edge_detector.out;
+
+    reg state : LedControllerState on clock;
+    state <= if reset {
+        //@Idle(0, 0)
+        @Memory(0)
+    } else if set_random {
+        //@Random(lfsr.out[5..0])
+        @Memory(0)
+    } else if set_idle {
+        @Idle(0, 0)
+    } else if set_cw {
+        @SpinCW(0b00001, 0)
+    } else if set_ccw {
+        @SpinCCW(0b01000, 0)
+    } else if change {
+        match state {
+            @Idle(round, next) => if round->lt(3) {
+                @Idle(round->inc(), next)
+            } else if next {
+                @SpinCCW(0b01000, 0)
+            } else {
+                @SpinCW(0b00001, 0)
+            };
+            @SpinCW(x, round) => if x->eq(0b01000) {
+                if round->lt(3) {
+                    @SpinCW(0b00001, round->inc())
+                } else {
+                    @Idle(0, 1)
+                }
+            } else {
+                @SpinCW(x->sll(1), round)
+            };
+            @SpinCCW(x, round) => if x->eq(0b00001) {
+                if round->lt(3) {
+                    @SpinCCW(0b01000, round->inc())
+                } else {
+                    @Idle(0, 0)
+                }
+            } else {
+                @SpinCCW(x->srl(1), round)
+            };
+            @Random(leds) => @Random(lfsr.out[5..0]);
+            @Memory(addr) => if addr->lt(16) {
+                @Memory(addr->inc())
+            } else {
+                @Memory(0)
+            };
+        }
+    } else {
+        state
+    };
+
+    mod lfsr of lfsr::Lfsr;
+    lfsr.clock := clock;
+    lfsr.reset := reset;
+
+    leds := match state {
+        @Idle(round, next) => 0;
+        @SpinCW(leds, round) => leds;
+        @SpinCCW(leds, round) => leds;
+        @Random(leds) => leds;
+        @Memory(addr) => mem.read_data[5..0];
+    };
+
+    mod mem of Memory;
+    mem.clock := clock;
+    mem.read_addr := match state {
+        @Idle(x, y) => 0;
+        @SpinCW(x, y) => 0;
+        @SpinCCW(x, y) => 0;
+        @Random(leds) => 0;
+        @Memory(addr) => addr;
+    };
+}
+
+ext mod Memory {
+    incoming clock : Clock;
+    incoming read_addr : Word[16];
+    outgoing read_data : Word[8];
+}

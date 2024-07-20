@@ -27,6 +27,7 @@ pub enum Visibility {
 pub struct ModDef {
     pub name: Ident,
     pub decls: Vec<Decl>,
+    pub ext: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

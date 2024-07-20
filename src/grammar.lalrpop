@@ -32,13 +32,14 @@ Visibility: Visibility = {
 }
 
 ModDef: ModDef = {
-    <v:Visibility> "mod" <name:Ident> "{"
+    <v:Visibility> <ext:"ext"?> "mod" <name:Ident> "{"
         <decls:(Decl ";")*>
     "}" => {
       let decls = decls.into_iter().map(|(decl, _semi)| decl).collect();
       ModDef {
         name,
         decls,
+        ext: ext.is_some(),
       }
     },
 }

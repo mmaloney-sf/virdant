@@ -100,14 +100,6 @@ fn union_ctor_tag(db: &dyn LayoutQ, typ: Type, ctor: Ident) -> VirdantResult<u64
     Err(virdant_error!("Unknown ctor: {ctor}"))
 }
 
-fn clog2(n: u64) -> u64 {
-    let mut result = 0;
-    while n > (1 << result) {
-        result += 1;
-    }
-    result
-}
-
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct UnionLayout {
     tag_width: Width,

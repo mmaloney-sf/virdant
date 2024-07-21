@@ -276,6 +276,7 @@ impl<'a> Verilog<'a> {
                     "lte" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} <= {};", args_ssa.join(" : "))?,
                     "gt"  => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} > {};", args_ssa.join(" : "))?,
                     "gte" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa} >= {};", args_ssa.join(" : "))?,
+                    "get" => writeln!(self.writer, "    wire {width_str} {gs} = {subject_ssa}[{}];", args_ssa[0])?,
                     _ => panic!("Unknown method: {}", method),
                 }
                 Ok(gs)

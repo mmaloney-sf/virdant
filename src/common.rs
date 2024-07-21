@@ -282,3 +282,15 @@ impl Default for ExprPath {
         ExprPath(vec![])
     }
 }
+
+pub fn clog2(n: u64) -> u64 {
+    let mut result = 0;
+    while n > (1 << result) {
+        result += 1;
+    }
+    result
+}
+
+pub fn is_pow2(n: u64) -> bool {
+    n != 0 && (n & (n - 1)) == 0
+}

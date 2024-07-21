@@ -209,7 +209,7 @@ Pat: Pat = {
         Pat::At(id.as_str().into(), subpats)
     },
     <id:Ident> => Pat::Bind(id.into()),
-    "otherwise" => Pat::Otherwise,
+    "else" => Pat::Otherwise,
 }
 
 PatList: Vec<Pat> = {
@@ -260,21 +260,15 @@ ExprCall: Arc<Expr> = {
     <ll:@L> <s:ExprCall> "->" "as" "(" <typ:Type> ")" <rr:@R> => {
         Arc::new(Expr::As(s, typ))
     },
-    <e:ExprIdx> => e,
-}
-
-ExprIdx: Arc<Expr> = {
-//    <ll:@L> <e:ExprIdx> "->" <field:Ident> <rr:@R> => Arc::new(Expr::IdxField(e, field.clone())),
-    <e:ExprIdx> "[" <i:Nat> "]" => Arc::new(Expr::Idx(e, i)),
-    <ll:@L> <e:ExprIdx> "[" <j:Nat> ".." <i:Nat> "]" <rr:@R> => Arc::new(Expr::IdxRange(e, j, i)),
+//    <ll:@L> <e:ExprBase> "->" <field:Ident> <rr:@R> => Arc::new(Expr::IdxField(e, field.clone())),
+    <e:ExprBase> "[" <i:Nat> "]" => Arc::new(Expr::Idx(e, i)),
+    <ll:@L> <e:ExprBase> "[" <j:Nat> ".." <i:Nat> "]" <rr:@R> => Arc::new(Expr::IdxRange(e, j, i)),
     <e:ExprBase> => e,
 }
 
 ExprBase: Arc<Expr> = {
     <e:ExprVec> => e,
     <e:ExprStruct> => e,
-//    <e:ExprWith> => e,
-//    <e:ExprAs> => e,
     <e:ExprLit> => e,
     <e:ExprReference> => e,
     "(" <e:Expr> ")" => e,
@@ -299,21 +293,6 @@ ExprStruct: Arc<Expr> = {
         Arc::new(Expr::Struct(Some(id), fields))
     },
 }
-
-/*
-ExprWith: Arc<Expr> = {
-  "with" <e:Expr> "{"
-    <edits:ExprWidthEdit*>
-  "}" => {
-    Arc::new(Expr::With(e, edits))
-  }
-}
-
-ExprWidthEdit: WithEdit = {
-  "this" "[" <n:Nat> "]" "=" <e:Expr> ";" => WithEdit::Idx(n, e),
-  "this" "->" <id:Ident> "]" "=" <e:Expr> ";" => WithEdit::Field(id, e),
-}
-*/
 
 ExprVec: Arc<Expr> = {
     <ll:@L> "[" <es:ExprList> "]" <rr:@R> => Arc::new(Expr::Vec(es)),
@@ -403,11 +382,11 @@ Nat: u64 = {
         let lit_nounders: String = lit.chars().filter(|&c| c != '_').collect();
         lit_nounders.parse().unwrap()
     },
-    <lit:r"0b[0-9][_0-9]*"> => {
+    <lit:r"0b[0-1][_0-1]*"> => {
         let lit_nounders: String = lit.chars().filter(|&c| c != '_').collect();
         u64::from_str_radix(&lit_nounders[2..], 2).unwrap()
     },
-    <lit:r"0x[0-9][_0-9]*"> => {
+    <lit:r"0x[0-9A-Za-z][_0-9A-Za-z]*"> => {
         let lit_nounders: String = lit.chars().filter(|&c| c != '_').collect();
         u64::from_str_radix(&lit_nounders[2..], 16).unwrap()
     },
@@ -427,7 +406,7 @@ QualIdent: QualIdent = {
         let name: Ident = parts[1].into();
         QualIdent::new(namespace, name)
     },
-        <id:Ident> => QualIdent::new(None, id)
+    <id:Ident> => QualIdent::new(None, id)
 }
 
 Ident: Ident = {
@@ -441,5 +420,8 @@ match {
     r"[\r\n]*" => {},
     r"/\*[^*]*\*/" => {},
     r" " => {},
+} else {
+    r"0x[0-9A-Za-z][_0-9A-Za-z]*"
+} else {
     _,
 }

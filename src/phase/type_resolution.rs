@@ -33,7 +33,7 @@ fn resolve_typ(db: &dyn TypeResolutionQ, typ: Arc<ast::Type>, from: PackageId) -
 
 fn method_sig(_db: &dyn TypeResolutionQ, typ: Type, method: Ident) -> VirdantResult<MethodSig> {
     match typ {
-        Type::Word(_n) => {
+        Type::Word(n) => {
             if method == "add".into() {
                 Ok(MethodSig(vec![typ.clone()], typ.clone()))
             } else if method == "inc".into() {
@@ -66,6 +66,9 @@ fn method_sig(_db: &dyn TypeResolutionQ, typ: Type, method: Ident) -> VirdantRes
                 Ok(MethodSig(vec![typ.clone()], Type::Word(1)))
             } else if method == "not".into() {
                 Ok(MethodSig(vec![], typ.clone()))
+            } else if is_pow2(n) && method == "get".into() {
+                let argtyp = Type::Word(clog2(n));
+                Ok(MethodSig(vec![argtyp.clone()], Type::Word(1)))
             } else {
                 Err(VirdantError::Other(format!("No such method {method} for type {typ}")))
             }
@@ -78,7 +81,7 @@ fn ctor_sig(db: &dyn TypeResolutionQ, typ: Type, ctor: Ident) -> VirdantResult<C
     let uniondef = if let Type::Union(uniondef, _args) = &typ {
         uniondef
     } else {
-        return Err(virdant_error!("Type is not a union {typ}"));
+        return Err(virdant_error!("Type is not a union: {typ}"));
     };
 
     let uniondef_ast = db.uniondef_ast(uniondef.clone())?;

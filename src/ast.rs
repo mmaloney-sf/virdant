@@ -1,7 +1,5 @@
 use crate::common::*;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct AstId(pub usize);
+use crate::parse::{HasId, Id};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Package {
@@ -10,7 +8,7 @@ pub struct Package {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PackageImport(pub AstId, pub Ident);
+pub struct PackageImport(pub Id<PackageImport>, pub Ident);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Item {
@@ -28,7 +26,7 @@ pub enum Visibility {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModDef {
-    pub ast_id: AstId,
+    pub id: Id<ModDef>,
     pub name: Ident,
     pub decls: Vec<Decl>,
     pub ext: bool,
@@ -36,7 +34,7 @@ pub struct ModDef {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructDef {
-    pub ast_id: AstId,
+    pub id: Id<StructDef>,
     pub name: Ident,
     pub fields: Vec<Field>,
 }
@@ -46,7 +44,7 @@ pub struct Field(pub Ident, pub Arc<Type>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UnionDef {
-    pub ast_id: AstId,
+    pub id: Id<UnionDef>,
     pub name: Ident,
     pub alts: Vec<Alt>,
 }
@@ -56,12 +54,12 @@ pub struct Alt(pub Ident, pub Vec<Arc<Type>>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PortDef {
-    pub ast_id: AstId,
+    pub id: Id<PortDef>,
     pub name: Ident,
     pub channels: Vec<Channel>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum ChannelDir {
     Mosi,
     Miso,
@@ -95,7 +93,7 @@ pub enum Type {
     TypeRef(QualIdent),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum ComponentKind {
     Incoming,
     Outgoing,
@@ -145,7 +143,7 @@ pub struct Submodule {
     pub moddef: QualIdent,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum PortRole {
     Master,
     Slave,
@@ -163,10 +161,35 @@ pub struct Port {
 pub struct WordLit {
     pub value: u64,
     pub width: Option<Width>,
+    pub spelling: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum WithEdit {
-    Idx(u64, Arc<Expr>),
-    Field(Field, Arc<Expr>),
+impl HasId for PackageImport {
+    fn id(&self) -> Id<PackageImport> {
+        self.0.clone()
+    }
+}
+
+impl HasId for ModDef {
+    fn id(&self) -> Id<Self> {
+        self.id
+    }
+}
+
+impl HasId for StructDef {
+    fn id(&self) -> Id<Self> {
+        self.id
+    }
+}
+
+impl HasId for UnionDef {
+    fn id(&self) -> Id<Self> {
+        self.id
+    }
+}
+
+impl HasId for PortDef {
+    fn id(&self) -> Id<Self> {
+        self.id
+    }
 }

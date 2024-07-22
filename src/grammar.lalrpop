@@ -1,8 +1,8 @@
 use crate::common::*;
 use crate::ast::*;
-use super::AstGen;
+use super::IdGen;
 
-grammar<'a>(gen: &'a mut AstGen);
+grammar<'a>(gen: &'a mut IdGen);
 
 pub Package: Package = {
     <imports:PackageImport*> <items:Item*> => Package {
@@ -38,7 +38,7 @@ ModDef: ModDef = {
     "}" => {
         let decls = decls.into_iter().map(|(decl, _semi)| decl).collect();
         ModDef {
-            ast_id: gen.id(),
+            id: gen.id(),
             name,
             decls,
             ext: ext.is_some(),
@@ -51,7 +51,7 @@ StructDef: StructDef = {
         <fields:Field*>
     "}" => {
         StructDef {
-            ast_id: gen.id(),
+            id: gen.id(),
             name,
             fields,
         }
@@ -68,7 +68,7 @@ UnionDef: UnionDef = {
         <alts:Alt*>
     "}" <rr:@R> => {
         UnionDef {
-            ast_id: gen.id(),
+            id: gen.id(),
             name,
             alts,
         }
@@ -84,7 +84,7 @@ PortDef: PortDef = {
         <channels:Channel*>
     "}" <rr:@R> => {
         PortDef {
-            ast_id: gen.id(),
+            id: gen.id(),
             name,
             channels,
         }
@@ -348,6 +348,7 @@ WordLit: WordLit = {
         WordLit {
             value: n,
             width: None,
+            spelling: n.to_string(), // TODO lies!
         }
     },
     <lit:r"[0-9][_0-9]*w[0-9]+"> => {
@@ -358,6 +359,7 @@ WordLit: WordLit = {
         WordLit {
             value: v,
             width: Some(width),
+            spelling: lit.to_string(),
         }
     },
     <lit:r"0b[0-1][_0-1]*w[0-9]+"> => {
@@ -368,6 +370,7 @@ WordLit: WordLit = {
         WordLit {
             value: v,
             width: Some(width),
+            spelling: lit.to_string(),
         }
     },
     <lit:r"0x[0-9a-fA-F][_0-9a-fA-F]*w[0-9]+"> => {
@@ -378,6 +381,7 @@ WordLit: WordLit = {
         WordLit {
             value: v,
             width: Some(width),
+            spelling: lit.to_string(),
         }
     },
 }

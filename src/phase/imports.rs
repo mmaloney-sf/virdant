@@ -16,7 +16,7 @@ fn package_imports(db: &dyn ImportsQ, package_id: PackageId) -> VirdantResult<Ve
     let mut errors = ErrorReport::new();
     let mut packages = HashSet::new();
 
-    for ast::PackageImport(package_name) in &package_ast.imports {
+    for ast::PackageImport(_import_id, package_name) in &package_ast.imports {
         let imported_package_id = PackageId::from_ident(package_name.clone());
         if !packages.insert(imported_package_id) {
             errors.add(VirdantError::Other(format!("Duplicate import: {package_name}")));

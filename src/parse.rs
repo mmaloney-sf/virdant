@@ -3,23 +3,30 @@ lalrpop_mod!(grammar);
 use lalrpop_util::ParseError;
 use lalrpop_util::lexer::Token;
 
-use crate::ast::{Expr, Package};
+use crate::ast::AstId;
+use crate::ast::Package;
 use crate::common::*;
 
+struct AstGen(Ident, AstId);
 
+impl AstGen {
+    fn new(package: &str) -> Self {
+        AstGen(package.into(), AstId(0))
+    }
 
-pub fn parse_expr(expr_text: &str) -> Result<Arc<Expr>, VirdantError> {
-    let result: Result<Arc<Expr>, ParseError<usize, Token<'_>, &'static str>> =
-        grammar::ExprParser::new().parse(expr_text).map(|expr| expr);
-
-    match result {
-        Ok(expr) => Ok(expr),
-        Err(err) => Err(VirdantError::ParseError(format!("{err:?}"))),
+    pub(crate) fn id(&mut self) -> AstId {
+        let ast_id = self.1.clone();
+        self.1.0 += 1;
+        ast_id
     }
 }
 
+
 pub fn parse_package(package_text: &str) -> Result<Package, VirdantError> {
-    let result: Result<Package, ParseError<usize, Token<'_>, &'static str>> = grammar::PackageParser::new().parse(package_text);
+    let package_name = "top"; // TODO
+    let mut gen = AstGen::new(package_name);
+    let result: Result<Package, ParseError<usize, Token<'_>, &'static str>>
+        = grammar::PackageParser::new().parse(&mut gen, package_text);
     match result {
         Ok(package) => Ok(package),
         Err(err) => Err(VirdantError::ParseError(format!("{err:?}"))),

@@ -1,13 +1,16 @@
 use crate::common::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AstId(pub usize);
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Package {
     pub imports: Vec<PackageImport>,
     pub items: Vec<Item>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PackageImport(pub Ident);
+pub struct PackageImport(pub AstId, pub Ident);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Item {
@@ -25,6 +28,7 @@ pub enum Visibility {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModDef {
+    pub ast_id: AstId,
     pub name: Ident,
     pub decls: Vec<Decl>,
     pub ext: bool,
@@ -32,6 +36,7 @@ pub struct ModDef {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructDef {
+    pub ast_id: AstId,
     pub name: Ident,
     pub fields: Vec<Field>,
 }
@@ -41,6 +46,7 @@ pub struct Field(pub Ident, pub Arc<Type>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UnionDef {
+    pub ast_id: AstId,
     pub name: Ident,
     pub alts: Vec<Alt>,
 }
@@ -50,6 +56,7 @@ pub struct Alt(pub Ident, pub Vec<Arc<Type>>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PortDef {
+    pub ast_id: AstId,
     pub name: Ident,
     pub channels: Vec<Channel>,
 }

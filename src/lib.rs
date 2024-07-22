@@ -2,7 +2,6 @@
 mod tests;
 
 pub mod common;
-pub mod loc;
 pub mod ast;
 pub mod parse;
 pub mod context;

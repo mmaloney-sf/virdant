@@ -1,5 +1,6 @@
 pub use internment::Intern;
 pub use std::sync::Arc;
+use crate::phase::sourceq::Span;
 
 pub type Val = u64;
 pub type Width = u64;
@@ -72,7 +73,8 @@ pub enum VirdantError {
     TypeError(TypeError),
     ParseError(String),
     Io(String),
-    Other(String),
+    Other(Option<Span>, String),
+    At(Box<VirdantError>, Span),
     Because(Box<VirdantError>, Box<VirdantError>),
     Unknown,
 }
@@ -80,14 +82,14 @@ pub enum VirdantError {
 #[macro_export]
 macro_rules! virdant_error {
     () => {
-        VirdantError::Other(format!("Unknown Error: in file {} on line {}", file!().to_string(), line!().to_string()))
+        VirdantError::Other(None, format!("Unknown Error: in file {} on line {}", file!().to_string(), line!().to_string()))
     };
 
     ($fmt:literal) => {
         {
             let prelude = format!("Unknown Error: in file {} on line {}: ", file!().to_string(), line!().to_string());
             let msg = format!($fmt);
-            VirdantError::Other(format!("{prelude}: {msg}"))
+            VirdantError::Other(None, format!("{prelude}: {msg}"))
         }
     };
 
@@ -95,7 +97,30 @@ macro_rules! virdant_error {
         {
             let prelude = format!("Unknown Error: in file {} on line {}: ", file!().to_string(), line!().to_string());
             let msg = format!($fmt, $($arg)*); 
-            VirdantError::Other(format!("{prelude}: {msg}"))
+            VirdantError::Other(None, format!("{prelude}: {msg}"))
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! virdant_error_at {
+    ($span:expr) => {
+        VirdantError::Other(Some($span), format!("Unknown Error: in file {} on line {}", file!().to_string(), line!().to_string()))
+    };
+
+    ($fmt:literal, $span:expr) => {
+        {
+            let prelude = format!("Unknown Error: in file {} on line {}: ", file!().to_string(), line!().to_string());
+            let msg = format!($fmt);
+            VirdantError::Other(Some($span), format!("{prelude}: {msg}"))
+        }
+    };
+
+    ($fmt:literal, $($arg:expr),*, $span:expr) => {
+        {
+            let prelude = format!("Unknown Error: in file {} on line {}: ", file!().to_string(), line!().to_string());
+            let msg = format!($fmt, $($arg)*); 
+            VirdantError::Other(Some($span), format!("{prelude}: {msg}"))
         }
     };
 }

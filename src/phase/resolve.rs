@@ -37,17 +37,14 @@ fn resolve_element(db: &dyn ResolveQ, moddef_id: ModDefId, name: Ident) -> Virda
 }
 
 fn resolve_component(db: &dyn ResolveQ, moddef_id: ModDefId, path: Path) -> VirdantResult<ComponentId> {
-    eprintln!("resolve_component({moddef_id}, {path})");
     let parts = path.parts();
     if parts.len() == 1 {
         Ok(ComponentId::from_ident(moddef_id, parts[0].clone()))
     } else {
         let moddef_ast = db.moddef_ast(moddef_id.clone())?;
         for decl in &moddef_ast.decls {
-            eprintln!("Trying to match {} and {:?}", parts[0], &decl);
             match decl {
                 ast::Decl::Submodule(submodule) if submodule.name == parts[0] => {
-                    eprintln!("Matched submodule name: {}", parts[0]);
                     let submodule_moddef_id: ModDefId = db.moddef(submodule.moddef.clone(), moddef_id.package())?;
 
                     return db.resolve_component(submodule_moddef_id.clone(), parts[1].clone().as_path());

@@ -70,10 +70,10 @@ fn method_sig(_db: &dyn TypeResolutionQ, typ: Type, method: Ident) -> VirdantRes
                 let argtyp = Type::Word(clog2(n));
                 Ok(MethodSig(vec![argtyp.clone()], Type::Word(1)))
             } else {
-                Err(VirdantError::Other(format!("No such method {method} for type {typ}")))
+                Err(virdant_error!("No such method {method} for type {typ}"))
             }
         },
-        _ => Err(VirdantError::Other(format!("No such method {method} for type {typ}"))),
+        _ => Err(virdant_error!("No such method {method} for type {typ}")),
     }
 }
 

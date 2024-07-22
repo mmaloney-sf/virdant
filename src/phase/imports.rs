@@ -1,5 +1,6 @@
 use crate::ast;
 use crate::common::*;
+use crate::virdant_error_at;
 use super::*;
 
 use std::collections::HashSet;
@@ -20,7 +21,8 @@ fn package_imports(db: &dyn ImportsQ, package_id: PackageId) -> VirdantResult<Ve
         let ast::PackageImport(package_name) = package_import.as_ref();
         let imported_package_id = PackageId::from_ident(package_name.clone());
         if !packages.insert(imported_package_id) {
-            errors.add(VirdantError::Other(format!("Duplicate import: {package_name}")));
+            let span = db.span(package_import.span());
+            errors.add(virdant_error_at!("Duplicate import: {package_name}", span));
         }
     }
     errors.check()?;

@@ -121,7 +121,7 @@ fn typecheck_expr(
             let expr = db.typeinfer_expr(moddef_id, expr.clone(), ctx)?;
             let actual_typ = expr.typ();
             if typ != actual_typ {
-                Err(VirdantError::Other(format!("Wrong types: {path} is {typ} vs {actual_typ}")))
+                Err(virdant_error!("Wrong types: {path} is {typ} vs {actual_typ}"))
             } else {
                 Ok(expr)
             }
@@ -130,15 +130,15 @@ fn typecheck_expr(
         ast::Expr::Word(lit) => {
             match (typ.clone(), lit.width) {
                 (Type::Word(n), Some(m)) if n == m => Ok(TypedExpr::Word(typ, lit.clone()).into()),
-                (Type::Word(n), Some(m)) => Err(VirdantError::Other(format!("Does not match: {n} and {m}"))),
+                (Type::Word(n), Some(m)) => Err(virdant_error!("Does not match: {n} and {m}")),
                 (Type::Word(n), None) => {
                     if lit.value < pow(2, n) {
                         Ok(TypedExpr::Word(typ, lit.clone()).into())
                     } else {
-                        Err(VirdantError::Other("Doesn't fit".to_string()))
+                        Err(virdant_error!("Doesn't fit"))
                     }
                 },
-                (typ, _width) => Err(VirdantError::Other(format!("Could not typecheck {lit:?} as {typ}"))),
+                (typ, _width) => Err(virdant_error!("Could not typecheck {lit:?} as {typ}")),
             }
         },
         ast::Expr::Vec(_) => todo!(),
@@ -155,11 +155,11 @@ fn typecheck_expr(
             let MethodSig(arg_types, ret_type) = db.method_sig(typed_subject.typ(), method.clone())?;
 
             if ret_type != typ {
-                return Err(VirdantError::Other(format!("Wrong return type")));
+                return Err(virdant_error!("Wrong return type"));
             }
 
             if args.len() != arg_types.len() {
-                return Err(VirdantError::Other(format!("Wrong argument list length")));
+                return Err(virdant_error!("Wrong argument list length"));
             }
 
             let mut typed_args = vec![];
@@ -173,7 +173,7 @@ fn typecheck_expr(
         ast::Expr::Ctor(ctor, args) => {
             let CtorSig(arg_types, _ctor_typ) = db.ctor_sig(typ.clone(), ctor.clone())?;
             if args.len() != arg_types.len() {
-                return Err(VirdantError::Other("Wrong number of args".into()));
+                return Err(virdant_error!("Wrong number of args"));
             }
             let mut typed_args = vec![];
             for (arg, arg_typ) in args.iter().zip(arg_types) {
@@ -211,7 +211,7 @@ fn typecheck_expr(
             let typed_expr = db.typeinfer_expr(moddef_id, expr.clone(), ctx)?;
             let actual_typ = typed_expr.typ();
             if typ != actual_typ {
-                Err(VirdantError::Other(format!("Wrong types: {typ} vs {actual_typ}")))
+                Err(virdant_error!("Wrong types: {typ} vs {actual_typ}"))
             } else {
                 Ok(typed_expr)
             }
@@ -367,7 +367,7 @@ fn typeinfer_expr(
 
             Ok(TypedExpr::Cat(typ, typed_es).into())
         },
-        ast::Expr::If(_, _, _) => Err(VirdantError::Other("Can't infer".to_string())),
+        ast::Expr::If(_, _, _) => Err(virdant_error!("Can't infer")),
         ast::Expr::Let(x, ascription, e, b) => {
             let typed_e = match ascription {
                 Some(ascribed_typ) => {
@@ -403,7 +403,7 @@ fn moddef_reference_type(db: &dyn TypecheckQ, moddef_id: ModDefId, path: Path) -
         }
     }
 
-    Err(VirdantError::Other(format!("Component not found: `{path}` in `{moddef_id}`")))
+    Err(virdant_error!("Component not found: `{path}` in `{moddef_id}`"))
 }
 
 fn typecheck_moddef(_db: &dyn TypecheckQ, _moddef: ModDefId) -> VirdantResult<()> {

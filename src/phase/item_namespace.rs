@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use crate::ast;
 use crate::common::*;
+use crate::virdant_error;
 use super::*;
 
 #[salsa::query_group(ItemNamespaceQStorage)]
@@ -38,7 +39,7 @@ fn moddef_components(db: &dyn ItemNamespaceQ, moddef_id: ModDefId) -> VirdantRes
         if let Some(component_name) = name {
             let component_id = ComponentId::from_ident(moddef_id.clone(), component_name.clone());
             if !component_ids.insert(component_id) {
-                errors.add(VirdantError::Other(format!("Duplicate component in {moddef_id}: {component_name}")));
+                errors.add(virdant_error!("Duplicate component in {moddef_id}: {component_name}"));
             }
         }
     }

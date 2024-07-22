@@ -55,7 +55,7 @@ fn package_items(db: &dyn ItemResolutionQ, package_id: PackageId) -> VirdantResu
                 let moddef = ModDefId::from_ident(package_id.clone(), name.clone());
                 items.push(ItemId::ModDef(moddef));
                 if !item_names.insert(name.clone()) {
-                    errors.add(VirdantError::Other(format!("Duplicate item name in package {name}.")))
+                    errors.add(virdant_error!("Duplicate item name in package {name}."))
                 }
             },
             ast::Item::StructDef(structdef_ast) => {
@@ -63,7 +63,7 @@ fn package_items(db: &dyn ItemResolutionQ, package_id: PackageId) -> VirdantResu
                 let structdef = StructDefId::from_ident(package_id.clone(), name.clone());
                 items.push(ItemId::StructDef(structdef));
                 if !item_names.insert(name.clone()) {
-                    errors.add(VirdantError::Other(format!("Duplicate item name in package {name}")))
+                    errors.add(virdant_error!("Duplicate item name in package {name}"))
                 }
             },
             ast::Item::UnionDef(uniondef_ast) => {
@@ -71,7 +71,7 @@ fn package_items(db: &dyn ItemResolutionQ, package_id: PackageId) -> VirdantResu
                 let uniondef = UnionDefId::from_ident(package_id.clone(), name.clone());
                 items.push(ItemId::UnionDef(uniondef));
                 if !item_names.insert(name.clone()) {
-                    errors.add(VirdantError::Other(format!("Duplicate item name in package {name}")))
+                    errors.add(virdant_error!("Duplicate item name in package {name}"))
                 }
             },
             ast::Item::PortDef(_) => todo!(),
@@ -112,7 +112,7 @@ fn item(db: &dyn ItemResolutionQ, item: QualIdent, package_id: PackageId) -> Vir
         }
     }
 
-    Err(VirdantError::Other(format!("Could not resolve item: {item}")))
+    Err(virdant_error!("Could not resolve item: {item}"))
 }
 
 fn moddef(db: &dyn ItemResolutionQ, moddef: QualIdent, package_id: PackageId) -> VirdantResult<ModDefId> {

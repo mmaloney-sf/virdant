@@ -1,4 +1,4 @@
-use crate::common::*;
+use crate::{common::*, virdant_error};
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
@@ -18,7 +18,7 @@ pub fn topological_sort<T: Eq + Hash + Clone + std::fmt::Debug>(graph: &HashMap<
     }
 
     if visited.len() < graph.len() {
-        Err(VirdantError::Other("Cycle detected".to_owned()))
+        Err(virdant_error!("Cycle detected"))
     } else {
         Ok(result)
     }

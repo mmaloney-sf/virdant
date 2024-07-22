@@ -56,7 +56,7 @@ fn moddef_ast(db: &dyn AstQ, moddef_id: ModDefId) -> VirdantResult<Ast<ast::ModD
                     if result.is_none() {
                         result = Some(moddef_ast.clone());
                     } else {
-                        return Err(VirdantError::Other("Uh oh".into()));
+                        return Err(virdant_error!("Uh oh"));
                     }
                 }
             },
@@ -78,7 +78,7 @@ fn uniondef_ast(db: &dyn AstQ, uniontype_id: UnionDefId) -> VirdantResult<Ast<as
                     if result.is_none() {
                         result = Some(uniondef_ast.clone());
                     } else {
-                        return Err(VirdantError::Other("Uh oh".into()));
+                        return Err(virdant_error!("Uh oh"));
                     }
                 }
             },
@@ -100,7 +100,7 @@ fn structdef_ast(db: &dyn AstQ, structdef_id: StructDefId) -> VirdantResult<Ast<
                     if result.is_none() {
                         result = Some(structdef_ast.clone());
                     } else {
-                        return Err(VirdantError::Other("Uh oh".into()));
+                        return Err(virdant_error!("Uh oh"));
                     }
                 }
             },

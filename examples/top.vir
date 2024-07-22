@@ -14,7 +14,7 @@ pub mod Top {
     reg i : Word[2] on clock;
     i <= i->inc();
 
-    led_0 := counter[22..18]->get(i);
+    led_0 := counter[23..18]->get(i);
     led_1 := counter[22..18]->get(i->inc());
     led_2 := counter[22..18]->get(i->add(2));
     led_3 := counter[22..18]->get(i->add(3));

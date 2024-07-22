@@ -1,10 +1,10 @@
 use std::marker::PhantomData;
 use crate::common::*;
-use crate::loc::{Span, SourceInfo};
+use crate::phase::sourceq::SpanIdx;
 use crate::phase::id::PackageId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Ast<T>(Arc<T>, Span, Id<T>);
+pub struct Ast<T>(Arc<T>, SpanIdx, Id<T>);
 
 impl<T> std::ops::Deref for Ast<T> {
     type Target = T;
@@ -20,20 +20,23 @@ impl<T> AsRef<T> for Ast<T> {
     }
 }
 
+impl<T> Ast<T> {
+    pub fn span(&self) -> SpanIdx {
+        self.1.clone()
+    }
+}
+
 pub struct AstGen {
     package_id: PackageId, 
-    source_info: SourceInfo, 
     next_id: usize,
 }
 
 impl AstGen {
     pub fn new(package: &str) -> Self {
         let package_id = PackageId::from_ident(package.into()); 
-        let source_info: SourceInfo = SourceInfo::unknown();
         let next_id = 0;
         AstGen {
             package_id,
-            source_info,
             next_id,
         }
     }
@@ -46,7 +49,7 @@ impl AstGen {
 
     pub fn ast<T>(&mut self, t: T, span_start_idx: usize, span_end_idx: usize) -> Ast<T> {
         let id = self.id();
-        let span: Span = Span::from(&self.source_info, span_start_idx, span_end_idx);
+        let span: SpanIdx = SpanIdx::new(self.package_id.clone(), span_start_idx, span_end_idx);
         Ast(Arc::new(t), span, id)
     }
 }

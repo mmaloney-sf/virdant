@@ -1,5 +1,5 @@
 //use crate::topological_sort::topological_sort;
-use crate::{ast, common::*, context::Context, virdant_error};
+use crate::{ast, common::*, context::Context, virdant_error, virdant_error_at};
 use super::*;
 
 #[salsa::query_group(CheckQStorage)]
@@ -50,7 +50,7 @@ fn check_all_imported_packages_exist(db: &dyn CheckQ, package_id: PackageId) -> 
     let all_packages = db.packages();
     for import_package_id in db.package_imports(package_id)? {
         if !all_packages.contains(&import_package_id) {
-            errors.add(VirdantError::Other("Package doesn't exist".to_owned()));
+            errors.add(virdant_error!("Package doesn't exist"));
         }
     }
 
@@ -71,7 +71,7 @@ fn check_item_no_dup_names(db: &dyn CheckQ, item_id: ItemId) -> VirdantResult<()
 
 fn check_all_dep_items_exist(db: &dyn CheckQ, item_id: ItemId) -> VirdantResult<()> {
     db.item_dependencies(item_id)
-        .map_err(|err| VirdantError::Other("Failed Check: All Dep Items Exist".into()).because(err))?;
+        .map_err(|err| virdant_error!("Failed Check: All Dep Items Exist").because(err))?;
     Ok(())
 }
 
@@ -81,19 +81,21 @@ fn check_all_targets_uniquely_driven(_db: &dyn CheckQ, _moddef_id: ModDefId) -> 
 }
 
 fn check_wires_typecheck(db: &dyn CheckQ, moddef_id: ModDefId) -> VirdantResult<()> {
-    eprintln!("SKIP check_wires_typecheck");
+    let mut errors = ErrorReport::new();
     let moddef_ast = db.moddef_ast(moddef_id.clone())?;
 
-
-    for decl  in &moddef_ast.decls {
+    for decl in &moddef_ast.decls {
         if let ast::Decl::Wire(ast::Wire(target, _wire_type, expr)) = decl {
             let component_id = db.resolve_component(moddef_id.clone(), target.clone())?;
             let target_typ = db.component_typ(component_id)?;
-            let typed_expr = db.typecheck_expr(moddef_id.clone(), expr.clone(), target_typ, Context::empty())?;
-            eprintln!("{typed_expr:?}");
+            let typed_expr = db.typecheck_expr(moddef_id.clone(), expr.clone(), target_typ, Context::empty());
+            if let Err(e) = typed_expr {
+                errors.add(e);
+            }
         }
     }
 
+    errors.check()?;
     Ok(())
 }
 

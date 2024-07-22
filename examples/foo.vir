@@ -1,6 +1,6 @@
 pub mod Top {
-    incoming inp : Word[3];
+    incoming inp : Word[2];
     outgoing out : Word[1];
 
-    out := inp->get(0);
+    out := 0w2->eq(inp->get(0));
 }

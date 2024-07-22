@@ -1,11 +1,12 @@
 use crate::common::*;
+use crate::ast::Ast;
 use crate::ast;
 use crate::virdant_error;
 use super::*;
 
 #[salsa::query_group(TypeResolutionQStorage)]
 pub trait TypeResolutionQ: item_dependency::ItemDependencyQ {
-    fn resolve_typ(&self, typ: Arc<ast::Type>, from: PackageId) -> VirdantResult<Type>;
+    fn resolve_typ(&self, typ: Ast<ast::Type>, from: PackageId) -> VirdantResult<Type>;
 
     fn method_sig(&self, typ: Type, method: Ident) -> VirdantResult<MethodSig>;
     fn ctor_sig(&self, typ: Type, ctor: Ident) -> VirdantResult<CtorSig>;
@@ -13,7 +14,7 @@ pub trait TypeResolutionQ: item_dependency::ItemDependencyQ {
     fn component_typ(&self, component_id: ComponentId) -> VirdantResult<Type>;
 }
 
-fn resolve_typ(db: &dyn TypeResolutionQ, typ: Arc<ast::Type>, from: PackageId) -> VirdantResult<Type> {
+fn resolve_typ(db: &dyn TypeResolutionQ, typ: Ast<ast::Type>, from: PackageId) -> VirdantResult<Type> {
     Ok(match typ.as_ref() {
         ast::Type::Clock => Type::Clock,
         ast::Type::Word(w) => Type::Word(*w),

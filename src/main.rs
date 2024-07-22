@@ -40,7 +40,10 @@ fn main() {
         let path = std::path::PathBuf::from(args.filename.clone());
         let db = load_from_top_source(&path).unwrap();
 
-        db.check().unwrap();
+        if let Err(e) = db.check() {
+            print_errors(&e);
+            std::process::exit(-1);
+        }
 
         let mut stdout = std::io::stdout();
         if let Err(e) = db.verilog(&mut stdout) {
@@ -90,4 +93,29 @@ fn import_from_fillepath(db: &mut Db, path: &std::path::Path) -> PackageId {
     eprintln!("LOADING PACKAGE: {package_name} ({})", path.to_string_lossy());
     let package_text = std::fs::read_to_string(&path).unwrap();
     db.set_source(&package_name, &package_text)
+}
+
+fn print_errors(e: &VirdantError) {
+    match e {
+        VirdantError::Multiple(es) => {
+            for e in es {
+                print_errors(e);
+            }
+        },
+        VirdantError::Other(span, msg) => {
+            if let Some(span) = span {
+                eprintln!("{span} {msg}");
+            } else {
+                eprintln!("{msg}");
+            }
+        },
+        VirdantError::Because(e1, e2) => {
+            print_errors(e1);
+            println!("because...");
+            print_errors(e2);
+        },
+        _ => {
+            eprintln!("{e:?}");
+        },
+    }
 }

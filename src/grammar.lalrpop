@@ -95,7 +95,7 @@ ChannelDir: ChannelDir = {
     "miso" => ChannelDir::Miso,
 }
 
-TypeList: Vec<Arc<Type>> = {
+TypeList: Vec<Ast<Type>> = {
     <args:((Type ("," Type)* ","?)?)> => {
         if let Some((typ, args, _comma)) = args {
             let mut results = vec![typ];
@@ -169,33 +169,33 @@ Wire: Ast<Wire> = {
     <ll:@L> <target:Path> "<=" <e:Expr> <rr:@R> => gen.ast(Wire(target, WireType::Latched, e), ll, rr),
 }
 
-Type: Arc<Type> = {
-    "Clock" => Arc::new(Type::Clock),
-    "Word" "[" <w:Nat> "]" => Arc::new(Type::Word(w)),
-    <path:QualIdent> => Arc::new(Type::TypeRef(path)),
+Type: Ast<Type> = {
+    <ll:@L> "Clock" <rr:@R> => gen.ast(Type::Clock, ll, rr),
+    <ll:@L> "Word" "[" <w:Nat> "]" <rr:@R> => gen.ast(Type::Word(w), ll, rr),
+    <ll:@L> <path:QualIdent> <rr:@R> => gen.ast(Type::TypeRef(path), ll, rr),
 }
 
-pub Expr: Arc<Expr> = {
+pub Expr: Ast<Expr> = {
     <e:ExprLet> => e,
     <e:ExprMatch> => e,
     <e:ExprIf> => e,
     <e:ExprCall> => e,
 }
 
-ExprLet: Arc<Expr> = {
+ExprLet: Ast<Expr> = {
     <ll:@L> "let" <x:Ident> <ascription:(":" Type)?> "=" <e:Expr> "in"
     <b:Expr> <rr:@R> => {
         let type_ascription = ascription.map(|(_of, typ)| typ);
-        Arc::new(Expr::Let(x, type_ascription, e, b))
+        gen.ast(Expr::Let(x, type_ascription, e, b), ll, rr)
     },
 }
 
-ExprMatch: Arc<Expr> = {
+ExprMatch: Ast<Expr> = {
     <ll:@L> "match" <ascription:(":" Type)?> <e:Expr> "{"
         <arms:MatchArm*>
     "}" <rr:@R> => {
         let type_ascription = ascription.map(|(_of, typ)| typ);
-        Arc::new(Expr::Match(e, type_ascription, arms))
+        gen.ast(Expr::Match(e, type_ascription, arms), ll, rr)
     },
 }
 
@@ -226,7 +226,7 @@ PatList: Vec<Pat> = {
     },
 }
 
-ExprIf: Arc<Expr> = {
+ExprIf: Ast<Expr> = {
     <ll:@L> "if" <cond:Expr> "{"
         <e1:Expr>
     <elseifs:("}" "else" "if" Expr "{" Expr)*>
@@ -235,38 +235,39 @@ ExprIf: Arc<Expr> = {
     "}" <rr:@R> => {
         let mut result = elseexpr;
 
+        // TODO spans are incorrect here!
         for (_, _, _, elseif_cond, _, elseif_body) in elseifs.into_iter().rev() {
-            result = Arc::new(Expr::If(elseif_cond, elseif_body, result));
+            result = gen.ast(Expr::If(elseif_cond, elseif_body, result), ll, rr);
         }
 
-        Arc::new(Expr::If(cond, e1, result))
+        gen.ast(Expr::If(cond, e1, result), ll, rr)
     },
 }
 
-ExprCall: Arc<Expr> = {
-//    <ll:@L> <name:Ctor> <rr:@R> =>  Arc::new(Expr::Call(name, vec![], vec![])),
-    <ll:@L> <name:Ctor> "(" <es:ExprList> ")" <rr:@R> =>  Arc::new(Expr::Ctor(name, es)),
+ExprCall: Ast<Expr> = {
+//    <ll:@L> <name:Ctor> <rr:@R> =>  gen.ast(Expr::Call(name, vec![], vec![]), ll, rr),
+    <ll:@L> <name:Ctor> "(" <es:ExprList> ")" <rr:@R> =>  gen.ast(Expr::Ctor(name, es), ll, rr),
 
-    "cat" "(" <es:ExprList> ")" => {
-        Arc::new(Expr::Cat(es))
+    <ll:@L> "cat" "(" <es:ExprList> ")" <rr:@R> => {
+        gen.ast(Expr::Cat(es), ll, rr)
     },
 
 //    <ll:@L> <name:Ident> "(" <es:ExprList> ")" <rr:@R> => {
-//        Arc::new(Expr::FnCall(name, es))
+//        gen.ast(Expr::FnCall(name, es), ll, rr)
 //    },
     <ll:@L> <s:ExprCall> "->" <name:Ident> "(" <es:ExprList> ")" <rr:@R> => {
-        Arc::new(Expr::MethodCall(s, name, es))
+        gen.ast(Expr::MethodCall(s, name, es), ll, rr)
     },
     <ll:@L> <s:ExprCall> "->" "as" "(" <typ:Type> ")" <rr:@R> => {
-        Arc::new(Expr::As(s, typ))
+        gen.ast(Expr::As(s, typ), ll, rr)
     },
 //    <ll:@L> <e:ExprBase> "->" <field:Ident> <rr:@R> => Arc::new(Expr::IdxField(e, field.clone())),
-    <e:ExprBase> "[" <i:Nat> "]" => Arc::new(Expr::Idx(e, i)),
-    <ll:@L> <e:ExprBase> "[" <j:Nat> ".." <i:Nat> "]" <rr:@R> => Arc::new(Expr::IdxRange(e, j, i)),
+    <ll:@L> <e:ExprBase> "[" <i:Nat> "]" <rr:@R> => gen.ast(Expr::Idx(e, i), ll, rr),
+    <ll:@L> <e:ExprBase> "[" <j:Nat> ".." <i:Nat> "]" <rr:@R> => gen.ast(Expr::IdxRange(e, j, i), ll, rr),
     <e:ExprBase> => e,
 }
 
-ExprBase: Arc<Expr> = {
+ExprBase: Ast<Expr> = {
     <e:ExprVec> => e,
     <e:ExprStruct> => e,
     <e:ExprLit> => e,
@@ -274,7 +275,7 @@ ExprBase: Arc<Expr> = {
     "(" <e:Expr> ")" => e,
 }
 
-FieldExprList: Vec<(Ident, Arc<Expr>)> = {
+FieldExprList: Vec<(Ident, Ast<Expr>)> = {
     <fields:((Ident "=" Expr ("," Ident "=" Expr)* ","?)?)> => {
         if let Some((name, _eqsign, expr, fields, _comma)) = fields {
             let mut results = vec![(name, expr)];
@@ -288,18 +289,18 @@ FieldExprList: Vec<(Ident, Arc<Expr>)> = {
     },
 }
 
-ExprStruct: Arc<Expr> = {
+ExprStruct: Ast<Expr> = {
     <ll:@L> "$" <id:QualIdent> "{" <fields:FieldExprList> "}" <rr:@R> => {
-        Arc::new(Expr::Struct(Some(id), fields))
+        gen.ast(Expr::Struct(Some(id), fields), ll, rr)
     },
 }
 
-ExprVec: Arc<Expr> = {
-    <ll:@L> "[" <es:ExprList> "]" <rr:@R> => Arc::new(Expr::Vec(es)),
-    <ll:@L> "[" <e:Expr> ";" <n:Nat> "]" <rr:@R> => Arc::new(Expr::Vec(vec![e; n as usize])),
+ExprVec: Ast<Expr> = {
+    <ll:@L> "[" <es:ExprList> "]" <rr:@R> => gen.ast(Expr::Vec(es), ll, rr),
+    <ll:@L> "[" <e:Expr> ";" <n:Nat> "]" <rr:@R> => gen.ast(Expr::Vec(vec![e; n as usize]), ll, rr),
 }
 
-ExprList: Vec<Arc<Expr>> = {
+ExprList: Vec<Ast<Expr>> = {
     <exprs:((Expr ("," Expr)* ","?)?)> => {
         if let Some((expr, exprs, _comma)) = exprs {
             let mut results = vec![expr];
@@ -313,17 +314,14 @@ ExprList: Vec<Arc<Expr>> = {
     },
 }
 
-ExprLit: Arc<Expr> = {
+ExprLit: Ast<Expr> = {
     <ll:@L> <lit:WordLit> <rr:@R> => {
-        Arc::new(Expr::Word(lit))
+        gen.ast(Expr::Word(lit), ll, rr)
     },
-
-//    "true" => Arc::new(Expr::Bool(true)),
-//    "false" => Arc::new(Expr::Bool(false)),
 }
 
-ExprReference: Arc<Expr> = {
-  <path:Path> => Arc::new(Expr::Reference(path))
+ExprReference: Ast<Expr> = {
+  <ll:@L> <path:Path> <rr:@R> => gen.ast(Expr::Reference(path), ll, rr),
 }
 
 

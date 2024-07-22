@@ -96,7 +96,7 @@ pub struct StructDef {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Field(pub Ident, pub Arc<Type>);
+pub struct Field(pub Ident, pub Ast<Type>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UnionDef {
@@ -105,7 +105,7 @@ pub struct UnionDef {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Alt(pub Ident, pub Vec<Arc<Type>>);
+pub struct Alt(pub Ident, pub Vec<Ast<Type>>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PortDef {
@@ -120,7 +120,7 @@ pub enum ChannelDir {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Channel(pub ChannelDir, pub Ident, pub Arc<Type>);
+pub struct Channel(pub ChannelDir, pub Ident, pub Ast<Type>);
 
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -135,15 +135,15 @@ pub enum Decl {
 pub struct Component {
     pub name: Ident,
     pub kind: ComponentKind,
-    pub typ: Arc<Type>,
-    pub clock: Option<Arc<Expr>>,
+    pub typ: Ast<Type>,
+    pub clock: Option<Ast<Expr>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Type {
     Clock,
     Word(Width),
-    Vec(Arc<Type>, usize),
+    Vec(Ast<Type>, usize),
     TypeRef(QualIdent),
 }
 
@@ -159,21 +159,21 @@ pub enum ComponentKind {
 pub enum Expr {
     Reference(Path),
     Word(WordLit),
-    Vec(Vec<Arc<Expr>>),
-    Struct(Option<QualIdent>, Vec<(Ident, Arc<Expr>)>),
-    MethodCall(Arc<Expr>, Ident, Vec<Arc<Expr>>),
-    Ctor(Ident, Vec<Arc<Expr>>),
-    As(Arc<Expr>, Arc<Type>),
-    Idx(Arc<Expr>, StaticIndex),
-    IdxRange(Arc<Expr>, StaticIndex, StaticIndex),
-    Cat(Vec<Arc<Expr>>),
-    If(Arc<Expr>, Arc<Expr>, Arc<Expr>),
-    Let(Ident, Option<Arc<Type>>, Arc<Expr>, Arc<Expr>),
-    Match(Arc<Expr>, Option<Arc<Type>>, Vec<MatchArm>),
+    Vec(Vec<Ast<Expr>>),
+    Struct(Option<QualIdent>, Vec<(Ident, Ast<Expr>)>),
+    MethodCall(Ast<Expr>, Ident, Vec<Ast<Expr>>),
+    Ctor(Ident, Vec<Ast<Expr>>),
+    As(Ast<Expr>, Ast<Type>),
+    Idx(Ast<Expr>, StaticIndex),
+    IdxRange(Ast<Expr>, StaticIndex, StaticIndex),
+    Cat(Vec<Ast<Expr>>),
+    If(Ast<Expr>, Ast<Expr>, Ast<Expr>),
+    Let(Ident, Option<Ast<Type>>, Ast<Expr>, Ast<Expr>),
+    Match(Ast<Expr>, Option<Ast<Type>>, Vec<MatchArm>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct MatchArm(pub Pat, pub Arc<Expr>);
+pub struct MatchArm(pub Pat, pub Ast<Expr>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Pat {
@@ -183,7 +183,7 @@ pub enum Pat {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Wire(pub Path, pub WireType, pub Arc<Expr>);
+pub struct Wire(pub Path, pub WireType, pub Ast<Expr>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 pub enum WireType {

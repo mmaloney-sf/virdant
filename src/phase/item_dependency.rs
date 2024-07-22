@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 use crate::common::*;
+use crate::ast::Ast;
 use crate::ast;
 use crate::virdant_error;
 use super::*;
-use std::sync::Arc;
 
 #[salsa::query_group(ItemDependencyQStorage)]
 pub trait ItemDependencyQ: resolve::ResolveQ {
@@ -70,7 +70,7 @@ fn moddef_item_dependencies_component(
     Ok(items)
 }
 
-fn expr_item_dependencies(_db: &dyn ItemDependencyQ, _expr: Arc<ast::Expr>) -> VirdantResult<Vec<ItemId>> {
+fn expr_item_dependencies(_db: &dyn ItemDependencyQ, _expr: Ast<ast::Expr>) -> VirdantResult<Vec<ItemId>> {
     Ok(vec![])
 }
 

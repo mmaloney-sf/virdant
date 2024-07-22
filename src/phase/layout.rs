@@ -20,7 +20,7 @@ fn bitwidth(db: &dyn LayoutQ, typ: Type) -> VirdantResult<Width> {
             let structdef_ast = db.structdef_ast(structdef_id.clone())?;
             let mut width = 0;
 
-            for ast::Field(_fieldname, field_typ) in structdef_ast.fields {
+            for ast::Field(_fieldname, field_typ) in &structdef_ast.fields {
                 let resolved_field_typ = db.resolve_typ(field_typ.clone(), structdef_id.package())?;
                 width += bitwidth(db, resolved_field_typ)?;
             }

@@ -1,3 +1,4 @@
+pub mod sourceq;
 pub mod astq;
 pub mod resolve;
 pub mod imports;
@@ -19,6 +20,7 @@ use crate::common::*;
 use std::collections::HashMap;
 
 #[salsa::database(
+    sourceq::SourceQStorage,
     astq::AstQStorage,
     resolve::ResolveQStorage,
     imports::ImportsQStorage,
@@ -39,7 +41,7 @@ impl salsa::Database for Db {}
 
 impl Db {
     pub fn new() -> Db {
-        use self::astq::*;
+        use self::sourceq::*;
         let mut db = Db {
             storage: salsa::Storage::default(),
         };
@@ -49,7 +51,7 @@ impl Db {
     }
 
     pub fn set_source(&mut self, package: &str, text: &str) -> PackageId {
-        use self::astq::*;
+        use self::sourceq::*;
         let mut sources = self.sources();
         sources.insert(package.into(), Arc::new(text.to_string()));
         self.set_sources(sources);
@@ -136,6 +138,7 @@ impl std::fmt::Debug for Type {
 fn phase() {
     #![allow(unused)]
     use crate::ast;
+    use self::sourceq::*;
     use self::astq::*;
     use self::item_resolution::*;
     use self::item_dependency::*;

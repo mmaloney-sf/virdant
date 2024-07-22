@@ -1,18 +1,17 @@
 use crate::common::*;
 use crate::ast::*;
-use super::IdGen;
 
-grammar<'a>(gen: &'a mut IdGen);
+grammar<'a>(gen: &'a mut AstGen);
 
-pub Package: Package = {
-    <imports:PackageImport*> <items:Item*> => Package {
+pub Package: Ast<Package> = {
+    <ll:@L> <imports:PackageImport*> <items:Item*> <rr:@R> => gen.ast(Package {
         imports,
         items,
-    },
+    }, ll, rr),
 }
 
-PackageImport: PackageImport = {
-    "import" <ident:Ident> ";" => PackageImport(gen.id(), ident),
+PackageImport: Ast<PackageImport> = {
+    <ll:@L> "import" <ident:Ident> ";" <rr:@R> => gen.ast(PackageImport(ident), ll, rr),
 }
 
 Item: Item = {
@@ -32,29 +31,27 @@ Visibility: Visibility = {
   }
 }
 
-ModDef: ModDef = {
-    <v:Visibility> <ext:"ext"?> "mod" <name:Ident> "{"
+ModDef: Ast<ModDef> = {
+    <ll:@L> <v:Visibility> <ext:"ext"?> "mod" <name:Ident> "{"
         <decls:(Decl ";")*>
-    "}" => {
+    "}" <rr:@R> => {
         let decls = decls.into_iter().map(|(decl, _semi)| decl).collect();
-        ModDef {
-            id: gen.id(),
+        gen.ast(ModDef {
             name,
             decls,
             ext: ext.is_some(),
-        }
+        }, ll, rr)
     },
 }
 
-StructDef: StructDef = {
-    "struct" "type" <name:Ident> "{"
+StructDef: Ast<StructDef> = {
+    <ll:@L> "struct" "type" <name:Ident> "{"
         <fields:Field*>
-    "}" => {
-        StructDef {
-            id: gen.id(),
+    "}" <rr:@R> => {
+        gen.ast(StructDef {
             name,
             fields,
-        }
+        }, ll, rr)
     },
 }
 
@@ -63,15 +60,14 @@ Field: Field = {
 }
 
 
-UnionDef: UnionDef = {
+UnionDef: Ast<UnionDef> = {
     <ll:@L> <vis:Visibility> "union" "type" <name:Ident> "{"
         <alts:Alt*>
     "}" <rr:@R> => {
-        UnionDef {
-            id: gen.id(),
+        gen.ast(UnionDef {
             name,
             alts,
-        }
+        }, ll, rr)
     },
 }
 
@@ -79,15 +75,14 @@ Alt: Alt = {
     <ident:Ident> "(" <typs:TypeList> ")" ";" => Alt(ident, typs),
 }
 
-PortDef: PortDef = {
+PortDef: Ast<PortDef> = {
     <ll:@L> <vis:Visibility> "port" <name:Ident> "{"
         <channels:Channel*>
     "}" <rr:@R> => {
-        PortDef {
-            id: gen.id(),
+        gen.ast(PortDef {
             name,
             channels,
-        }
+        }, ll, rr)
     },
 }
 

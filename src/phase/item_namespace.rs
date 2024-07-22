@@ -51,8 +51,8 @@ fn moddef_components(db: &dyn ItemNamespaceQ, moddef_id: ModDefId) -> VirdantRes
 fn uniondef_elements(db: &dyn ItemNamespaceQ, uniondef_id: UnionDefId) -> VirdantResult<Vec<ElementId>> {
     let mut elements = vec![];
     let uniondef_ast = db.uniondef_ast(uniondef_id.clone())?;
-    for ast::Alt(name, _sig) in uniondef_ast.alts {
-        elements.push(ElementId::from_ident(uniondef_id.clone().as_item(), name));
+    for ast::Alt(name, _sig) in &uniondef_ast.alts {
+        elements.push(ElementId::from_ident(uniondef_id.clone().as_item(), name.clone()));
     }
     Ok(elements)
 }
@@ -60,8 +60,8 @@ fn uniondef_elements(db: &dyn ItemNamespaceQ, uniondef_id: UnionDefId) -> Virdan
 fn structdef_elements(db: &dyn ItemNamespaceQ, structdef_id: StructDefId) -> VirdantResult<Vec<ElementId>> {
     let mut elements = vec![];
     let structdef_ast = db.structdef_ast(structdef_id.clone())?;
-    for ast::Field(name, _typ) in structdef_ast.fields {
-        elements.push(ElementId::from_ident(structdef_id.clone().as_item(), name));
+    for ast::Field(name, _typ) in &structdef_ast.fields {
+        elements.push(ElementId::from_ident(structdef_id.clone().as_item(), name.clone()));
     }
     Ok(elements)
 }

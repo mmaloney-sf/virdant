@@ -1,21 +1,76 @@
+use std::marker::PhantomData;
 use crate::common::*;
-use crate::parse::{HasId, Id};
+use crate::loc::{Span, SourceInfo};
+use crate::phase::id::PackageId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Package {
-    pub imports: Vec<PackageImport>,
-    pub items: Vec<Item>,
+pub struct Ast<T>(Arc<T>, Span, Id<T>);
+
+impl<T> std::ops::Deref for Ast<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref()
+    }
+}
+
+impl<T> AsRef<T> for Ast<T> {
+    fn as_ref(&self) -> &T {
+        &**self
+    }
+}
+
+pub struct AstGen {
+    package_id: PackageId, 
+    source_info: SourceInfo, 
+    next_id: usize,
+}
+
+impl AstGen {
+    pub fn new(package: &str) -> Self {
+        let package_id = PackageId::from_ident(package.into()); 
+        let source_info: SourceInfo = SourceInfo::unknown();
+        let next_id = 0;
+        AstGen {
+            package_id,
+            source_info,
+            next_id,
+        }
+    }
+
+    fn id<T>(&mut self) -> Id<T> {
+        let ast_id = Id(self.next_id, PhantomData::default());
+        self.next_id += 1;
+        ast_id
+    }
+
+    pub fn ast<T>(&mut self, t: T, span_start_idx: usize, span_end_idx: usize) -> Ast<T> {
+        let id = self.id();
+        let span: Span = Span::from(&self.source_info, span_start_idx, span_end_idx);
+        Ast(Arc::new(t), span, id)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PackageImport(pub Id<PackageImport>, pub Ident);
+pub struct Id<T>(usize, PhantomData<T>);
+
+impl<T: Clone> Copy for Id<T> {}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Package {
+    pub imports: Vec<Ast<PackageImport>>,
+    pub items: Vec<Item>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PackageImport(pub Ident);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Item {
-    ModDef(ModDef),
-    StructDef(StructDef),
-    UnionDef(UnionDef),
-    PortDef(PortDef),
+    ModDef(Ast<ModDef>),
+    StructDef(Ast<StructDef>),
+    UnionDef(Ast<UnionDef>),
+    PortDef(Ast<PortDef>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
@@ -26,7 +81,6 @@ pub enum Visibility {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModDef {
-    pub id: Id<ModDef>,
     pub name: Ident,
     pub decls: Vec<Decl>,
     pub ext: bool,
@@ -34,7 +88,6 @@ pub struct ModDef {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StructDef {
-    pub id: Id<StructDef>,
     pub name: Ident,
     pub fields: Vec<Field>,
 }
@@ -44,7 +97,6 @@ pub struct Field(pub Ident, pub Arc<Type>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UnionDef {
-    pub id: Id<UnionDef>,
     pub name: Ident,
     pub alts: Vec<Alt>,
 }
@@ -54,7 +106,6 @@ pub struct Alt(pub Ident, pub Vec<Arc<Type>>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PortDef {
-    pub id: Id<PortDef>,
     pub name: Ident,
     pub channels: Vec<Channel>,
 }
@@ -164,32 +215,8 @@ pub struct WordLit {
     pub spelling: String,
 }
 
-impl HasId for PackageImport {
-    fn id(&self) -> Id<PackageImport> {
-        self.0.clone()
-    }
-}
-
-impl HasId for ModDef {
-    fn id(&self) -> Id<Self> {
-        self.id
-    }
-}
-
-impl HasId for StructDef {
-    fn id(&self) -> Id<Self> {
-        self.id
-    }
-}
-
-impl HasId for UnionDef {
-    fn id(&self) -> Id<Self> {
-        self.id
-    }
-}
-
-impl HasId for PortDef {
-    fn id(&self) -> Id<Self> {
-        self.id
+impl<T: Clone> Ast<T> {
+    pub fn id(&self) -> Id<T> {
+        self.2.clone()
     }
 }

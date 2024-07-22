@@ -6,9 +6,6 @@ use crate::common::*;
 use crate::virdant_error;
 use super::*;
 
-use std::collections::HashMap;
-use std::sync::Arc;
-
 #[salsa::query_group(AstQStorage)]
 pub trait AstQ: sourceq::SourceQ {
     fn packages(&self) -> Vec<PackageId>;
@@ -18,9 +15,9 @@ pub trait AstQ: sourceq::SourceQ {
     fn uniondef_ast(&self, uniondef_id: UnionDefId) -> VirdantResult<Ast<ast::UnionDef>>;
     fn structdef_ast(&self, structdef_id: StructDefId) -> VirdantResult<Ast<ast::StructDef>>;
 
-    fn component_ast(&self, component_id: ComponentId) -> VirdantResult<ast::Component>;
+    fn component_ast(&self, component_id: ComponentId) -> VirdantResult<Ast<ast::Component>>;
 
-    fn wire_ast(&self, moddef_id: ModDefId, path_id: Path) -> VirdantResult<Option<ast::Wire>>;
+    fn wire_ast(&self, moddef_id: ModDefId, path_id: Path) -> VirdantResult<Option<Ast<ast::Wire>>>;
 }
 
 fn packages(db: &dyn AstQ) -> Vec<PackageId> {
@@ -39,7 +36,7 @@ fn package_ast(db: &dyn AstQ, package_id: PackageId) -> VirdantResult<Ast<ast::P
     let sources = db.sources();
     let package_name = package_id.name().to_string();
     if let Some(input) = sources.get(&package_name) {
-        parse::parse_package(&input)
+        parse::parse_package(&package_name, &input)
     } else {
         Err(virdant_error!("TODO package_ast"))
     }
@@ -111,7 +108,7 @@ fn structdef_ast(db: &dyn AstQ, structdef_id: StructDefId) -> VirdantResult<Ast<
     result.ok_or_else(|| virdant_error!("Unknown structdef {structdef_id}"))
 }
 
-fn component_ast(db: &dyn AstQ, component_id: ComponentId) -> VirdantResult<ast::Component> {
+fn component_ast(db: &dyn AstQ, component_id: ComponentId) -> VirdantResult<Ast<ast::Component>> {
     let moddef_ast = db.moddef_ast(component_id.moddef())?;
     for decl in &moddef_ast.decls {
         match decl {
@@ -124,15 +121,17 @@ fn component_ast(db: &dyn AstQ, component_id: ComponentId) -> VirdantResult<ast:
     Err(virdant_error!("No component: {component_id}"))
 }
 
-fn wire_ast(db: &dyn AstQ, moddef_id: ModDefId, path: Path) -> VirdantResult<Option<ast::Wire>> {
+fn wire_ast(db: &dyn AstQ, moddef_id: ModDefId, path: Path) -> VirdantResult<Option<Ast<ast::Wire>>> {
     let moddef_ast = db.moddef_ast(moddef_id)?;
     for decl in &moddef_ast.decls {
         match decl {
-            ast::Decl::Wire(wire@ast::Wire(target, _, _)) if target == &path => {
-                return Ok(Some(wire.clone()));
+            ast::Decl::Wire(wire) => {
+                let ast::Wire(target, _, _) = wire.as_ref();
+                if target == &path {
+                    return Ok(Some(wire.clone()));
+                }
             },
             ast::Decl::Component(component) => {
-                // if we detect this is an `incoming` (which has no driver), return None.
                 if component.kind == ComponentKind::Incoming && component.name.as_path() == path {
                     return Ok(None);
                 }

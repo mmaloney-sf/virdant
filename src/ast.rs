@@ -125,10 +125,10 @@ pub struct Channel(pub ChannelDir, pub Ident, pub Arc<Type>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Decl {
-    Component(Component),
-    Submodule(Submodule),
-    Port(Port),
-    Wire(Wire),
+    Component(Ast<Component>),
+    Submodule(Ast<Submodule>),
+    Port(Ast<Port>),
+    Wire(Ast<Wire>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

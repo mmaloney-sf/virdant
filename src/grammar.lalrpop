@@ -116,47 +116,47 @@ Decl: Decl = {
     <c:Wire> => Decl::Wire(c),
 }
 
-Component: Component = {
-    "incoming" <name:Ident> ":" <typ:Type> => {
-        Component {
+Component: Ast<Component> = {
+    <ll:@L> "incoming" <name:Ident> ":" <typ:Type> <rr:@R> => {
+        gen.ast(Component {
             kind: ComponentKind::Incoming,
             name,
             typ: typ,
             clock: None,
-        }
+        }, ll, rr)
     },
-    "outgoing" <name:Ident> ":" <typ:Type> => {
-        Component {
+    <ll:@L> "outgoing" <name:Ident> ":" <typ:Type> <rr:@R> => {
+        gen.ast(Component {
             kind: ComponentKind::Outgoing,
             name,
             typ: typ,
             clock: None,
-        }
+        }, ll, rr)
     },
-    "node" <name:Ident> ":" <typ:Type> => {
-        Component {
+    <ll:@L> "node" <name:Ident> ":" <typ:Type> <rr:@R> => {
+        gen.ast(Component {
             kind: ComponentKind::Node,
             name,
             typ: typ,
             clock: None,
-        }
+        }, ll, rr)
     },
-    "reg" <name:Ident> ":" <typ:Type> "on" <clock:Expr> => {
-        Component {
+    <ll:@L> "reg" <name:Ident> ":" <typ:Type> "on" <clock:Expr> <rr:@R> => {
+        gen.ast(Component {
             kind: ComponentKind::Reg,
             name,
             typ,
             clock: Some(clock),
-        }
+        }, ll, rr)
     },
 }
 
-Submodule: Submodule = {
-    "mod" <name:Ident> "of" <moddef:QualIdent> => Submodule { name, moddef },
+Submodule: Ast<Submodule> = {
+    <ll:@L> "mod" <name:Ident> "of" <moddef:QualIdent> <rr:@R> => gen.ast(Submodule { name, moddef }, ll, rr),
 }
 
-Port: Port = {
-    <role:PortRole> "port" <name:Ident> "of" <portdef:QualIdent> => Port { role, name, portdef },
+Port: Ast<Port> = {
+    <ll:@L> <role:PortRole> "port" <name:Ident> "of" <portdef:QualIdent> <rr:@R> => gen.ast(Port { role, name, portdef }, ll, rr),
 }
 
 PortRole: PortRole = {
@@ -164,9 +164,9 @@ PortRole: PortRole = {
     "slave" => PortRole::Slave,
 }
 
-Wire: Wire = {
-    <target:Path> ":=" <e:Expr> => Wire(target, WireType::Continuous, e),
-    <target:Path> "<=" <e:Expr> => Wire(target, WireType::Latched, e),
+Wire: Ast<Wire> = {
+    <ll:@L> <target:Path> ":=" <e:Expr> <rr:@R> => gen.ast(Wire(target, WireType::Continuous, e), ll, rr),
+    <ll:@L> <target:Path> "<=" <e:Expr> <rr:@R> => gen.ast(Wire(target, WireType::Latched, e), ll, rr),
 }
 
 Type: Arc<Type> = {

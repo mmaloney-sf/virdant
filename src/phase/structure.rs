@@ -126,7 +126,10 @@ fn structure_moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<M
                     let wire = db.wire_ast(moddef_id.clone(), component.name.as_path())?;
 
                     match wire {
-                        Some(ast::Wire(_target, _wire_type, expr)) => Some(db.typecheck_expr(moddef_id.clone(), expr, typ.clone(), Context::empty())?),
+                        Some(w) => {
+                            let ast::Wire(_target, _wire_type, expr) = w.as_ref();
+                            Some(db.typecheck_expr(moddef_id.clone(), expr.clone(), typ.clone(), Context::empty())?)
+                        },
                         None => None,
                     }
                 } else {
@@ -174,7 +177,8 @@ fn structure_moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<M
                 }
 
                 for decl in &moddef_ast.decls {
-                    if let ast::Decl::Wire(ast::Wire(target, _wire_type, expr)) = decl {
+                    if let ast::Decl::Wire(wire) = decl {
+                        let ast::Wire(target, _wire_type, expr) = wire.as_ref();
                         eprintln!("looking at wire targeting: {target}");
                         if incomings.contains_key(target) {
                             eprintln!("target = {target}");

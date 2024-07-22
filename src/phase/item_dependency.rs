@@ -36,7 +36,8 @@ fn moddef_item_dependencies(db: &dyn ItemDependencyQ, moddef: ModDefId) -> Virda
                 let item = db.item(submodule.moddef.clone(), moddef.package())?;
                 dependencies.insert(item);
             },
-            ast::Decl::Wire(ast::Wire(_target, _wire_type, expr)) => {
+            ast::Decl::Wire(wire) => {
+                let ast::Wire(_target, _wire_type, expr) = wire.as_ref();
                 match expr_item_dependencies(db, expr.clone()) {
                     Ok(deps) => dependencies.extend(deps),
                     Err(e) => errors.add(e),

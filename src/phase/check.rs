@@ -85,12 +85,15 @@ fn check_wires_typecheck(db: &dyn CheckQ, moddef_id: ModDefId) -> VirdantResult<
     let moddef_ast = db.moddef_ast(moddef_id.clone())?;
 
     for decl in &moddef_ast.decls {
-        if let ast::Decl::Wire(ast::Wire(target, _wire_type, expr)) = decl {
+        if let ast::Decl::Wire(wire) = decl {
+            let ast::Wire(target, _wire_type, expr) = wire.as_ref();
             let component_id = db.resolve_component(moddef_id.clone(), target.clone())?;
             let target_typ = db.component_typ(component_id)?;
             let typed_expr = db.typecheck_expr(moddef_id.clone(), expr.clone(), target_typ, Context::empty());
             if let Err(e) = typed_expr {
-                errors.add(e);
+                // errors.add(e);
+                let span = db.span(wire.span());
+                errors.add(virdant_error_at!("Typecheck failed", span).because(e));
             }
         }
     }

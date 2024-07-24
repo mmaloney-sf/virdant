@@ -152,7 +152,7 @@ impl<'a> Verilog<'a> {
 
     fn verilog_submodule(&mut self, submodule: Submodule) -> VirdantResult<()> {
         writeln!(self.writer, "    // Submodule {} of {}", submodule.id(), submodule.moddef())?;
-        let moddef_id = submodule.id().moddef();
+        let moddef_id = submodule.moddef();
         let submodule_moddef = self.db.structure_moddef(submodule.moddef())?;
         let ports = submodule_moddef.ports();
 

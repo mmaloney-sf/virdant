@@ -16,6 +16,7 @@ pub trait ItemResolutionQ: imports::ImportsQ + item_namespace::ItemNamespaceQ {
     fn item(&self, item: QualIdent, package: PackageId) -> VirdantResult<ItemId>;
 
     fn moddef(&self, moddef: QualIdent, package: PackageId) -> VirdantResult<ModDefId>;
+    fn portdef(&self, portdef: QualIdent, package: PackageId) -> VirdantResult<PortDefId>;
 
     fn resolve_package(&self, package: Ident) -> VirdantResult<PackageId>;
 }
@@ -74,7 +75,14 @@ fn package_items(db: &dyn ItemResolutionQ, package_id: PackageId) -> VirdantResu
                     errors.add(virdant_error!("Duplicate item name in package {name}"))
                 }
             },
-            ast::Item::PortDef(_) => todo!(),
+            ast::Item::PortDef(portdef_ast) => {
+                let name = portdef_ast.name.clone();
+                let portdef = PortDefId::from_ident(package_id.clone(), name.clone());
+                items.push(ItemId::PortDef(portdef));
+                if !item_names.insert(name.clone()) {
+                    errors.add(virdant_error!("Duplicate item name in package {name}"))
+                }
+            },
 
         }
     }
@@ -120,5 +128,13 @@ fn moddef(db: &dyn ItemResolutionQ, moddef: QualIdent, package_id: PackageId) ->
         Ok(moddef_id)
     } else {
         Err(virdant_error!("Item {moddef} is not a mod def"))
+    }
+}
+
+fn portdef(db: &dyn ItemResolutionQ, portdef: QualIdent, package_id: PackageId) -> VirdantResult<PortDefId> {
+    if let ItemId::PortDef(portdef_id) = db.item(portdef.clone(), package_id)? {
+        Ok(portdef_id)
+    } else {
+        Err(virdant_error!("Item {portdef} is not a mod def"))
     }
 }

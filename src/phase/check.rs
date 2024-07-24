@@ -87,8 +87,8 @@ fn check_wires_typecheck(db: &dyn CheckQ, moddef_id: ModDefId) -> VirdantResult<
     for decl in &moddef_ast.decls {
         if let ast::Decl::Wire(wire) = decl {
             let ast::Wire(target, _wire_type, expr) = wire.as_ref();
-            let component_id = db.resolve_component(moddef_id.clone(), target.clone())?;
-            let target_typ = db.component_typ(component_id)?;
+            let element_id = db.resolve_component_by_path(moddef_id.clone(), target.clone())?;
+            let target_typ = db.component_typ(element_id)?;
             let typed_expr = db.typecheck_expr(moddef_id.clone(), expr.clone(), target_typ, Context::empty());
             if let Err(e) = typed_expr {
                 // errors.add(e);
@@ -106,33 +106,6 @@ fn check_wires_correct_wiretype(_db: &dyn CheckQ, _moddef_id: ModDefId) -> Virda
     eprintln!("SKIP check_wires_correct_wiretype");
     Ok(())
 }
-
-/*
-fn resolve_element(db: &dyn CheckQ, item_id: ItemId, name: Ident) -> VirdantResult<ElementId> {
-    for element_id in db.item_elements(item_id.clone())? {
-        if element_id.name() == name {
-            return Ok(element_id);
-        }
-    }
-    Err(virdant_error!("Unable to resolve element {name} in item {item_id}"))
-}
-
-fn follow_path(db: &dyn CheckQ, target: PathId, item_id: ItemId) -> VirdantResult<ComponentId> {
-    eprintln!("follow_path({target}, {item_id})");
-    let mut current_item_id = item_id;
-    let mut remaining_path: Option<Path> = Some(target.as_path());
-    let mut current_element: ComponentId = resolve_element(db, current_item_id.clone(), target.as_path().head())?;
-
-    while let Some(path) = remaining_path {
-        current_element = resolve_element(db, current_item_id.clone(), path.head())?;
-        remaining_path = path.tail();
-        eprintln!("  remaining path is {remaining_path:?} and current_element = {current_element}");
-    }
-
-    eprintln!("  result = {current_element}");
-    Ok(current_element)
-}
-*/
 
 fn check_clocks_typecheck(_db: &dyn CheckQ, _moddef_id: ModDefId) -> VirdantResult<()> {
     eprintln!("SKIP check_clocks_typecheck");

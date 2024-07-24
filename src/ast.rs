@@ -1,4 +1,3 @@
-use std::marker::PhantomData;
 use crate::common::*;
 use crate::phase::sourceq::SpanIdx;
 use crate::phase::id::PackageId;

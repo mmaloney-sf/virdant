@@ -67,6 +67,11 @@ fn structdef_elements(db: &dyn ItemNamespaceQ, structdef_id: StructDefId) -> Vir
     Ok(elements)
 }
 
-fn portdef_elements(_db: &dyn ItemNamespaceQ, _portdef_id: PortDefId) -> VirdantResult<Vec<ElementId>> {
-    todo!()
+fn portdef_elements(db: &dyn ItemNamespaceQ, portdef_id: PortDefId) -> VirdantResult<Vec<ElementId>> {
+    let mut elements = vec![];
+    let portdef_ast = db.portdef_ast(portdef_id.clone())?;
+    for ast::Channel(_dir, name, _typ) in &portdef_ast.channels {
+        elements.push(ElementId::from_ident(portdef_id.clone().as_item(), name.clone()));
+    }
+    Ok(elements)
 }

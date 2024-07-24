@@ -32,6 +32,7 @@ Visibility: Visibility = {
 }
 
 ModDef: Ast<ModDef> = {
+    <doc:DocComment?>
     <ll:@L> <v:Visibility> <ext:"ext"?> "mod" <name:Ident> "{"
         <decls:(Decl ";")*>
     "}" <rr:@R> => {
@@ -40,6 +41,7 @@ ModDef: Ast<ModDef> = {
             name,
             decls,
             ext: ext.is_some(),
+            doc,
         }, ll, rr)
     },
 }
@@ -415,6 +417,10 @@ Ident: Ident = {
     <ll:@L> <id:r"[_A-Za-z][_A-Za-z0-9]*"> <rr:@R> => {
         id.into()
     },
+}
+
+DocComment: DocComment = {
+    <doc:r"(///[^\n\r]*[\r\n])+"> => DocComment(doc.to_string()),
 }
 
 match {

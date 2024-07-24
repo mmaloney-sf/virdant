@@ -27,13 +27,13 @@ impl<T> Ast<T> {
 }
 
 pub struct AstGen {
-    package_id: PackageId, 
+    package_id: PackageId,
     next_id: usize,
 }
 
 impl AstGen {
     pub fn new(package: &str) -> Self {
-        let package_id = PackageId::from_ident(package.into()); 
+        let package_id = PackageId::from_ident(package.into());
         let next_id = 0;
         AstGen {
             package_id,
@@ -87,6 +87,7 @@ pub struct ModDef {
     pub name: Ident,
     pub decls: Vec<Decl>,
     pub ext: bool,
+    pub doc: Option<DocComment>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -217,6 +218,9 @@ pub struct WordLit {
     pub width: Option<Width>,
     pub spelling: String,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DocComment(pub String);
 
 impl<T: Clone> Ast<T> {
     pub fn id(&self) -> Id<T> {

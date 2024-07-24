@@ -4,7 +4,7 @@ use crate::phase::sourceq::SpanIdx;
 use crate::phase::id::PackageId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Ast<T>(Arc<T>, SpanIdx, Id<T>);
+pub struct Ast<T>(Arc<T>, SpanIdx, AstId);
 
 impl<T> std::ops::Deref for Ast<T> {
     type Target = T;
@@ -41,8 +41,8 @@ impl AstGen {
         }
     }
 
-    fn id<T>(&mut self) -> Id<T> {
-        let ast_id = Id(self.next_id, PhantomData::default());
+    fn id(&mut self) -> AstId {
+        let ast_id = AstId(self.next_id);
         self.next_id += 1;
         ast_id
     }
@@ -54,10 +54,8 @@ impl AstGen {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id<T>(usize, PhantomData<T>);
-
-impl<T: Clone> Copy for Id<T> {}
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+pub struct AstId(usize);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Package {
@@ -223,7 +221,7 @@ pub struct WordLit {
 pub struct DocComment(pub String);
 
 impl<T: Clone> Ast<T> {
-    pub fn id(&self) -> Id<T> {
+    pub fn id(&self) -> AstId {
         self.2.clone()
     }
 }

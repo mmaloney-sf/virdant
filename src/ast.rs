@@ -1,10 +1,9 @@
-use std::marker::PhantomData;
 use crate::common::*;
 use crate::phase::sourceq::SpanIdx;
 use crate::phase::id::PackageId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Ast<T>(Arc<T>, SpanIdx, Id<T>);
+pub struct Ast<T>(Arc<T>, SpanIdx, AstId);
 
 impl<T> std::ops::Deref for Ast<T> {
     type Target = T;
@@ -27,13 +26,13 @@ impl<T> Ast<T> {
 }
 
 pub struct AstGen {
-    package_id: PackageId, 
+    package_id: PackageId,
     next_id: usize,
 }
 
 impl AstGen {
     pub fn new(package: &str) -> Self {
-        let package_id = PackageId::from_ident(package.into()); 
+        let package_id = PackageId::from_ident(package.into());
         let next_id = 0;
         AstGen {
             package_id,
@@ -41,8 +40,8 @@ impl AstGen {
         }
     }
 
-    fn id<T>(&mut self) -> Id<T> {
-        let ast_id = Id(self.next_id, PhantomData::default());
+    fn id(&mut self) -> AstId {
+        let ast_id = AstId(self.next_id);
         self.next_id += 1;
         ast_id
     }
@@ -54,10 +53,8 @@ impl AstGen {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id<T>(usize, PhantomData<T>);
-
-impl<T: Clone> Copy for Id<T> {}
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+pub struct AstId(usize);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Package {
@@ -87,6 +84,7 @@ pub struct ModDef {
     pub name: Ident,
     pub decls: Vec<Decl>,
     pub ext: bool,
+    pub doc: Option<DocComment>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -218,8 +216,11 @@ pub struct WordLit {
     pub spelling: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DocComment(pub String);
+
 impl<T: Clone> Ast<T> {
-    pub fn id(&self) -> Id<T> {
+    pub fn id(&self) -> AstId {
         self.2.clone()
     }
 }

@@ -2,7 +2,6 @@ use std::collections::HashSet;
 use crate::common::*;
 use crate::ast::Ast;
 use crate::ast;
-use crate::virdant_error;
 use super::*;
 
 #[salsa::query_group(ItemDependencyQStorage)]
@@ -15,7 +14,7 @@ fn item_dependencies(db: &dyn ItemDependencyQ, item: ItemId) -> VirdantResult<Ve
         ItemId::ModDef(moddef_id) => moddef_item_dependencies(db, moddef_id),
         ItemId::UnionDef(uniondef_id) => uniondef_item_dependencies(db, uniondef_id),
         ItemId::StructDef(structdef_id) => structdef_item_dependencies(db, structdef_id),
-        ItemId::PortDef(_) => Err(virdant_error!("TODO item_dependencies for portdef")),
+        ItemId::PortDef(portdef_id) => portdef_item_dependencies(db, portdef_id),
     }
 }
 
@@ -43,7 +42,10 @@ fn moddef_item_dependencies(db: &dyn ItemDependencyQ, moddef: ModDefId) -> Virda
                     Err(e) => errors.add(e),
                 }
             },
-            ast::Decl::Port(_) => todo!(),
+            ast::Decl::Port(port) => {
+                let item = db.item(port.portdef.clone(), moddef.package())?;
+                dependencies.insert(item);
+            },
         }
     }
 
@@ -81,5 +83,10 @@ fn uniondef_item_dependencies(_db: &dyn ItemDependencyQ, _uniondef_id: UnionDefI
 
 fn structdef_item_dependencies(_db: &dyn ItemDependencyQ, _structdef_id: StructDefId) -> VirdantResult<Vec<ItemId>> {
     eprintln!("TODO structdef_item_dependencies not implemented");
+    Ok(vec![])
+}
+
+fn portdef_item_dependencies(_db: &dyn ItemDependencyQ, _portdef_id: PortDefId) -> VirdantResult<Vec<ItemId>> {
+    eprintln!("TODO portdef_item_dependencies not implemented");
     Ok(vec![])
 }

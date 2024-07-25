@@ -1,26 +1,20 @@
 import edge;
 
+port Inc {
+    mosi inp : Word[8];
+    miso out : Word[8];
+}
+
 pub mod Top {
-    incoming clock : Clock;
-    outgoing led_0 : Word[1];
-    outgoing led_1 : Word[1];
-    outgoing led_2 : Word[1];
-    outgoing led_3 : Word[1];
-    outgoing led_4 : Word[1];
+    mod incrementer of Incrementer;
+    incrementer.inc.inp := 42;
 
-    reg counter : Word[32] on clock;
-    counter <= counter->inc();
+    node n : Word[8];
+    n := incrementer.inc.out;
 
-    reg i : Word[2] on clock;
-    i <= i->inc();
+}
 
-    led_0 := counter[23..18]->get(i);
-    led_1 := counter[22..18]->get(i->inc());
-    led_2 := counter[22..18]->get(i->add(2));
-    led_3 := counter[22..18]->get(i->add(3));
-    led_4 := edge_detector.out;
-
-    mod edge_detector of edge::Edge;
-    edge_detector.clock := clock;
-    edge_detector.inp := counter[1];
+mod Incrementer {
+    slave port inc of Inc;
+    inc.out := inc.inp->inc();
 }

@@ -11,7 +11,7 @@ pub trait TypeResolutionQ: item_dependency::ItemDependencyQ {
     fn method_sig(&self, typ: Type, method: Ident) -> VirdantResult<MethodSig>;
     fn ctor_sig(&self, typ: Type, ctor: Ident) -> VirdantResult<CtorSig>;
 
-    fn component_typ(&self, component_id: ComponentId) -> VirdantResult<Type>;
+    fn component_typ(&self, element_id: ElementId) -> VirdantResult<Type>;
 }
 
 fn resolve_typ(db: &dyn TypeResolutionQ, typ: Ast<ast::Type>, from: PackageId) -> VirdantResult<Type> {
@@ -101,17 +101,27 @@ fn ctor_sig(db: &dyn TypeResolutionQ, typ: Type, ctor: Ident) -> VirdantResult<C
     Err(virdant_error!("Unknown ctor: {ctor} on type {typ}"))
 }
 
-fn component_typ(db: &dyn TypeResolutionQ, component_id: ComponentId) -> VirdantResult<Type> {
-    let moddef_ast = db.moddef_ast(component_id.moddef()).unwrap();
+fn component_typ(db: &dyn TypeResolutionQ, element_id: ElementId) -> VirdantResult<Type> {
+    let item_ast = db.item_ast(element_id.item()).unwrap();
 
-    for decl in &moddef_ast.decls {
-        if let ast::Decl::Component(simplecomponent) = decl {
-            if simplecomponent.name == component_id.name() {
-                let typ = db.resolve_typ(simplecomponent.typ.clone(), component_id.moddef().package())?;
+    if let ast::Item::ModDef(moddef_ast) = item_ast {
+        for decl in &moddef_ast.decls {
+            if let ast::Decl::Component(simplecomponent) = decl {
+                if simplecomponent.name == element_id.name() {
+                    let typ = db.resolve_typ(simplecomponent.typ.clone(), element_id.item().package())?;
+                    return Ok(typ);
+                }
+            }
+        }
+    } else if let ast::Item::PortDef(portdef_ast) = item_ast {
+        for channel in &portdef_ast.channels {
+            let ast::Channel(dir, channel_name, typ) = channel;
+            if channel_name == &element_id.name() {
+                let typ = db.resolve_typ(typ.clone(), element_id.item().package())?;
                 return Ok(typ);
             }
         }
     }
 
-    Err(virdant_error!("Unknown component: {component_id} could not resolve type"))
+    Err(virdant_error!("Unknown component: {element_id} could not resolve type"))
 }

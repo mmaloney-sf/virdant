@@ -41,6 +41,7 @@ ModDef: Ast<ModDef> = {
             name,
             decls,
             ext: ext.is_some(),
+            doc,
         }, ll, rr)
     },
 }
@@ -53,6 +54,7 @@ StructDef: Ast<StructDef> = {
         gen.ast(StructDef {
             name,
             fields,
+            doc,
         }, ll, rr)
     },
 }
@@ -70,6 +72,7 @@ UnionDef: Ast<UnionDef> = {
         gen.ast(UnionDef {
             name,
             alts,
+            doc,
         }, ll, rr)
     },
 }
@@ -86,6 +89,7 @@ PortDef: Ast<PortDef> = {
         gen.ast(PortDef {
             name,
             channels,
+            doc,
         }, ll, rr)
     },
 }

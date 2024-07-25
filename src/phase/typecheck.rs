@@ -37,8 +37,8 @@ pub enum TypedExpr {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Referent {
     Local(Ident),
-    LocalComponent(ComponentId),
-    NonLocalComponent(ElementId, ComponentId),
+    LocalComponent(ElementId),
+    NonLocalComponent(ElementId, ElementId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -309,16 +309,16 @@ fn typeinfer_expr(
             if let Some(ident) = path.as_ident() {
                 if let Some(actual_typ) = ctx.lookup(&ident) {
                     return Ok(TypedExpr::Reference(actual_typ, Referent::Local(ident)).into());
-                } 
+                }
             }
             let actual_typ = db.moddef_reference_type(moddef_id.clone(), path.clone())?;
-            let component_id: ComponentId = db.resolve_component(moddef_id.clone(), path.clone())?;
+            let element_id: ElementId = db.resolve_component_by_path(moddef_id.clone(), path.clone())?;
 
             if path.is_local() {
-                Ok(TypedExpr::Reference(actual_typ, Referent::LocalComponent(component_id)).into())
+                Ok(TypedExpr::Reference(actual_typ, Referent::LocalComponent(element_id)).into())
             } else {
-                let submodule_element_id = db.resolve_element(moddef_id.clone(), path.head())?;
-                Ok(TypedExpr::Reference(actual_typ, Referent::NonLocalComponent(submodule_element_id, component_id)).into())
+                let submodule_element_id = db.resolve_component_by_path(moddef_id.clone(), path.head().as_path())?;
+                Ok(TypedExpr::Reference(actual_typ, Referent::NonLocalComponent(submodule_element_id, element_id)).into())
             }
         },
         ast::Expr::Word(lit) => {
@@ -398,23 +398,9 @@ fn typeinfer_expr(
 
 fn moddef_reference_type(db: &dyn TypecheckQ, moddef_id: ModDefId, path: Path) -> VirdantResult<Type> {
     eprintln!("moddef_reference_type({moddef_id}, {path})");
-    // moddef_reference_type(top::Top, top::Top::edge_detector.out)
-    let moddef_ast = db.moddef_ast(moddef_id.clone())?;
-    for decl in &moddef_ast.decls {
-        match decl {
-            ast::Decl::Component(c) if c.name.as_path() == path => {
-                let typ = db.resolve_typ(c.typ.clone(), moddef_id.package())?;
-                return Ok(typ);
-            },
-            ast::Decl::Submodule(submodule) if submodule.name.as_path() == path.parent() => {
-                let submodule_moddef_id = db.moddef(submodule.moddef.clone().into(), moddef_id.package())?;
-                return db.moddef_reference_type(submodule_moddef_id, path.name().as_path());
-            },
-            _ => (),
-        }
-    }
 
-    Err(virdant_error!("Component not found: `{path}` in `{moddef_id}`"))
+    let element_id = db.resolve_component_by_path(moddef_id.clone(), path.clone())?;
+    db.component_typ(element_id)
 }
 
 fn typecheck_moddef(_db: &dyn TypecheckQ, _moddef: ModDefId) -> VirdantResult<()> {

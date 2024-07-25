@@ -91,6 +91,7 @@ pub struct ModDef {
 pub struct StructDef {
     pub name: Ident,
     pub fields: Vec<Field>,
+    pub doc: Option<DocComment>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -100,6 +101,7 @@ pub struct Field(pub Ident, pub Ast<Type>);
 pub struct UnionDef {
     pub name: Ident,
     pub alts: Vec<Alt>,
+    pub doc: Option<DocComment>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -109,6 +111,7 @@ pub struct Alt(pub Ident, pub Vec<Ast<Type>>);
 pub struct PortDef {
     pub name: Ident,
     pub channels: Vec<Channel>,
+    pub doc: Option<DocComment>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]

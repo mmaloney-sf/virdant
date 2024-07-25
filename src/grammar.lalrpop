@@ -32,6 +32,7 @@ Visibility: Visibility = {
 }
 
 ModDef: Ast<ModDef> = {
+    <doc:DocComment?>
     <ll:@L> <v:Visibility> <ext:"ext"?> "mod" <name:Ident> "{"
         <decls:(Decl ";")*>
     "}" <rr:@R> => {
@@ -45,6 +46,7 @@ ModDef: Ast<ModDef> = {
 }
 
 StructDef: Ast<StructDef> = {
+    <doc:DocComment?>
     <ll:@L> "struct" "type" <name:Ident> "{"
         <fields:Field*>
     "}" <rr:@R> => {
@@ -61,6 +63,7 @@ Field: Field = {
 
 
 UnionDef: Ast<UnionDef> = {
+    <doc:DocComment?>
     <ll:@L> <vis:Visibility> "union" "type" <name:Ident> "{"
         <alts:Alt*>
     "}" <rr:@R> => {
@@ -76,6 +79,7 @@ Alt: Alt = {
 }
 
 PortDef: Ast<PortDef> = {
+    <doc:DocComment?>
     <ll:@L> <vis:Visibility> "port" <name:Ident> "{"
         <channels:Channel*>
     "}" <rr:@R> => {
@@ -415,6 +419,10 @@ Ident: Ident = {
     <ll:@L> <id:r"[_A-Za-z][_A-Za-z0-9]*"> <rr:@R> => {
         id.into()
     },
+}
+
+DocComment: DocComment = {
+    <doc:r"(///[^\n\r]*[\r\n])+"> => DocComment(doc.to_string()),
 }
 
 match {

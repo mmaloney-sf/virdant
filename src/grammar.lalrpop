@@ -41,6 +41,7 @@ ModDef: Ast<ModDef> = {
             name,
             decls,
             ext: ext.is_some(),
+            doc,
         }, ll, rr)
     },
 }

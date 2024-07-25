@@ -15,6 +15,7 @@ pub struct ModDef {
     id: ModDefId,
     components: Vec<Component>,
     submodules: Vec<Submodule>,
+    ports: Vec<Port>,
     ext: bool,
 }
 
@@ -29,11 +30,17 @@ pub struct Component {
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Submodule {
-    id: ComponentId,
+    id: ElementId,
     moddef_id: ModDefId,
     drivers: HashMap<Path, Arc<TypedExpr>>,
 }
 
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Port {
+    id: ElementId,
+    portdef_id: PortDefId,
+    drivers: HashMap<Path, Arc<TypedExpr>>,
+}
 
 impl ModDef {
     pub fn id(&self) -> ModDefId {
@@ -96,7 +103,7 @@ impl Component {
 }
 
 impl Submodule {
-    pub fn id(&self) -> ComponentId {
+    pub fn id(&self) -> ElementId {
         self.id.clone()
     }
 
@@ -114,6 +121,7 @@ fn structure_moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<M
 
     let mut components = vec![];
     let mut submodules = vec![];
+    let mut ports = vec![];
 
     let moddef_ast = db.moddef_ast(moddef_id.clone())?;
 
@@ -168,7 +176,7 @@ fn structure_moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<M
                     match decl {
                         ast::Decl::Component(component) if component.kind == ComponentKind::Incoming => {
                             let target_path = submodule.name.as_path().join(&component.name.as_path());
-                            let component_id = db.resolve_component(moddef_id.clone(), target_path.clone())?;
+                            let component_id = db.resolve_component_by_path(moddef_id.clone(), target_path.clone())?;
                             eprintln!("component_id = {component_id}");
                             incomings.insert(target_path, component_id);
                         },
@@ -182,7 +190,7 @@ fn structure_moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<M
                         eprintln!("looking at wire targeting: {target}");
                         if incomings.contains_key(target) {
                             eprintln!("target = {target}");
-                            let component_id = db.resolve_component(moddef_id.clone(), target.clone())?;
+                            let component_id = db.resolve_component_by_path(moddef_id.clone(), target.clone())?;
                             eprintln!("component_id = {component_id}");
                             let typ = db.component_typ(component_id)?;
                             let typed_expr = db.typecheck_expr(moddef_id.clone(), expr.clone(), typ.clone(), Context::empty())?;
@@ -193,7 +201,7 @@ fn structure_moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<M
                 dbg!(&drivers);
                 submodules.push(
                     Submodule {
-                        id: ComponentId::from_ident(moddef_id.clone(), submodule.name.clone()),
+                        id: ElementId::from_ident(moddef_id.as_item(), submodule.name.clone()),
                         moddef_id: submodule_moddef_id,
                         drivers,
                     }
@@ -201,7 +209,35 @@ fn structure_moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<M
                 eprintln!("DONE");
                 eprintln!("--------------------------------------------------------------------------------");
             },
-            ast::Decl::Port(_port) => todo!(),
+            ast::Decl::Port(port) => {
+                let portdef_id = db.portdef(port.portdef.clone(), moddef_id.package())?;
+                let drivers: HashMap<Path, Arc<TypedExpr>> = HashMap::new();
+
+                /*
+                for decl in &moddef_ast.decls {
+                    if let ast::Decl::Wire(wire) = decl {
+                        let ast::Wire(target, _wire_type, expr) = wire.as_ref();
+                        eprintln!("looking at wire targeting: {target}");
+                        if incomings.contains_key(target) {
+                            eprintln!("target = {target}");
+                            let component_id = db.resolve_component_by_path(moddef_id.clone(), target.clone())?;
+                            eprintln!("component_id = {component_id}");
+                            let typ = db.component_typ(component_id)?;
+                            let typed_expr = db.typecheck_expr(moddef_id.clone(), expr.clone(), typ.clone(), Context::empty())?;
+                            drivers.insert(target.clone(), typed_expr);
+                        }
+                    }
+                }
+*/
+
+                ports.push(
+                    Port {
+                        id: ElementId::from_ident(moddef_id.as_item(), port.name.clone()),
+                        portdef_id,
+                        drivers,
+                    }
+                );
+            },
             ast::Decl::Wire(_wire) => (),
         }
     }
@@ -210,57 +246,8 @@ fn structure_moddef(db: &dyn StructureQ, moddef_id: ModDefId) -> VirdantResult<M
         id: moddef_id,
         components,
         submodules,
+        ports,
         ext: moddef_ast.ext,
     };
     Ok(moddef)
 }
-
-    /*
-fn moddef_components(db: &dyn ItemStructureQ, moddef: ModDefId) -> VirdantResult<Vec<ComponentId>> {
-    let mut components: Vec<ComponentId> = vec![];
-    let mut errors = ErrorReport::new();
-    let moddef_ast = db.moddef_ast(moddef.clone())?;
-    for decl in &moddef_ast.decls {
-        match decl {
-            ast::Decl::SimpleComponent(simplecomponent) => {
-                let component = ComponentId::from(Path::from(moddef.clone()).join(&simplecomponent.name.as_path()));
-
-                if components.contains(&component) {
-                    errors.add(VirdantError::Other(format!("Moddef contains a duplicate component: {moddef} {}", simplecomponent.name)));
-                } else {
-                    components.push(component);
-                }
-            },
-            ast::Decl::Submodule(submodule) => {
-                let component = ComponentId::from(Path::from(moddef.clone()).join(&submodule.name.as_path()));
-
-                if components.contains(&component) {
-                    errors.add(VirdantError::Other(format!("Moddef contains a duplicate component: {moddef} {}", submodule.name)));
-                } else {
-                    components.push(component);
-                }
-            },
-            ast::Decl::Wire(_) => (),
-            ast::Decl::Port(_) => todo!(),
-        }
-    }
-    errors.check()?;
-    Ok(components)
-}
-
-fn uniondef_alts(db: &dyn ItemStructureQ, uniondef: UnionDefId) -> VirdantResult<Vec<AltId>> {
-    let mut alts: Vec<AltId> = vec![];
-    let mut errors = ErrorReport::new();
-    let uniondef_ast = db.uniondef_ast(uniondef.clone())?;
-    for ast::Alt(name, _typs) in &uniondef_ast.alts {
-        let alt = AltId::from(uniondef.fqname().join(&name.as_path()));
-        if alts.contains(&alt) {
-            errors.add(VirdantError::Other(format!("Uniondef contains a duplicate alt: {uniondef} {name}")));
-        } else {
-            alts.push(alt);
-        }
-    }
-    errors.check()?;
-    Ok(alts)
-}
-    */

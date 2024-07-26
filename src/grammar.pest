@@ -1,0 +1,67 @@
+package = _{ SOI ~ import* ~ item* ~ EOI }
+
+import = { "import" ~ ident ~ ";" }
+
+item = {
+    uniondef |
+    moddef
+}
+
+moddef = {
+    "mod" ~ ident ~ "{" ~
+        decl* ~
+    "}"
+}
+
+uniondef = {
+    kw_union_type ~ ident ~ "{" ~
+    "}"
+}
+
+kw_union_type = @{
+    "union" ~ (" " | NEWLINE)+ ~ "type" ~ (" " | NEWLINE)+
+}
+
+decl = {
+    "incoming" ~ ident ~ ":" ~ type ~ ";" |
+    "outgoing" ~ ident ~ ":" ~ type ~ ";" |
+    "reg" ~ ident ~ ":" ~ type ~ "on" ~ expr ~ ";" |
+    "node" ~ ident ~ ":" ~ type ~ ";" |
+    "mod" ~ ident ~ "of" ~ qualident ~ ";" |
+    "port" ~ ident ~ "of" ~ qualident ~ ";" |
+    path ~ wiretype ~ expr ~ ";"
+}
+
+wiretype = {
+    ":=" |
+    "<="
+}
+
+type = @{
+    "Word" ~ "[" ~ nat ~ "]" |
+    "Clock"
+}
+
+expr = {
+    path |
+    nat
+}
+
+path = @{ ident ~ ("." ~ ident)* }
+nat = @{ 
+    "0x" ~ ("_" | ASCII_HEX_DIGIT)+ |
+    "0b" ~ ("_" | ASCII_BIN_DIGIT)+ |
+    ASCII_DIGIT+ 
+}
+qualident = @{ (ident ~ "::")? ~ ident }
+ident = @{ ("_" | ASCII_ALPHA) ~ ASCII_ALPHANUMERIC* }
+
+WHITESPACE = _{
+    " " |
+    NEWLINE
+}
+
+COMMENT = _{
+    "//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE |
+    "/*" ~ (!"*/" ~ ANY)* ~ "*/"
+}

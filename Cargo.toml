@@ -18,6 +18,8 @@ clap = { version = "4.5.4", features = ["derive"] }
 internment = "0.8.4"
 lalrpop = "0.20.2"
 lalrpop-util = "0.20.2"
+pest = "2.7.11"
+pest_derive = "2.7.11"
 salsa = "0.16.1"
 
 [features]

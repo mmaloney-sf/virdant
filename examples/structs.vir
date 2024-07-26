@@ -1,0 +1,15 @@
+struct type Foo {
+    bar : Word[1];
+    baz : Word[1];
+}
+
+mod Top {
+    incoming clk : Clock;
+
+    node foo : Foo;
+    foo :=
+        $Foo {
+            bar = 0w1,
+            baz = 1w1,
+        };
+}

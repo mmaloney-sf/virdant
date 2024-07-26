@@ -1,0 +1,255 @@
+////////////////////////////////////////////////////////////////////////////////
+// Package
+////////////////////////////////////////////////////////////////////////////////
+
+package = _{ SOI ~ import* ~ item* ~ EOI }
+
+import = { kw_import ~ ident ~ ";" }
+
+item = {
+    moddef |
+    uniondef |
+    structdef |
+    portdef
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Item Definitions
+////////////////////////////////////////////////////////////////////////////////
+
+moddef = {
+    kw_ext? ~ kw_mod ~ ident ~ "{" ~
+        (moddef_statement ~ ";")* ~
+    "}"
+}
+
+uniondef = {
+    kw_union ~ kw_type ~ ident ~ "{" ~
+        (uniondef_statement ~ ";")* ~
+    "}"
+}
+
+structdef = {
+    kw_struct ~ kw_type ~ ident ~ "{" ~
+        (structdef_statement ~ ";")* ~
+    "}"
+}
+
+portdef = {
+    kw_port ~ ident ~ "{" ~
+        (portdef_statement ~ ";")* ~
+    "}"
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Statements
+////////////////////////////////////////////////////////////////////////////////
+
+moddef_statement = {
+    kw_incoming ~ ident ~ ":" ~ type |
+    kw_outgoing ~ ident ~ ":" ~ type |
+    kw_reg ~ ident ~ ":" ~ type ~ "on" ~ expr |
+    kw_node ~ ident ~ ":" ~ type |
+    kw_mod ~ ident ~ kw_of ~ qualident |
+    kw_port ~ ident ~ kw_of ~ qualident |
+    path ~ drivertype ~ expr
+}
+
+
+uniondef_statement = {
+    ident ~ "(" ~ type_list ~ ")"
+}
+
+structdef_statement = {
+    ident ~ ":" ~ type
+}
+
+portdef_statement = {
+    (kw_mosi | kw_miso) ~ ident ~ ":" ~ type ~ ";"
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Types
+////////////////////////////////////////////////////////////////////////////////
+
+type = @{
+    qualident ~ ("[" ~ nat ~ "]")?
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Module Elements
+////////////////////////////////////////////////////////////////////////////////
+
+drivertype = {
+    ":=" |
+    "<="
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Lists
+////////////////////////////////////////////////////////////////////////////////
+
+type_list = {
+    (type ~ ("," ~ type)* ~ ","?)?
+}
+
+expr_list = {
+    (expr ~ ("," ~ expr)* ~ ","?)?
+}
+
+pat_list = {
+    (pat ~ ("," ~ pat)* ~ ","?)?
+}
+
+assign_list = {
+    (assign ~ ("," ~ assign)* ~ ","?)?
+}
+
+assign = {
+    ident ~ "=" ~ expr
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Expressions
+////////////////////////////////////////////////////////////////////////////////
+
+expr = {
+    expr_if |
+    expr_match |
+    expr_call
+}
+
+expr_if = {
+    kw_if ~ expr ~ "{" ~
+        expr ~
+    (
+        "}" ~ kw_else ~ kw_if ~ expr ~ "{" ~
+            expr
+    )* ~
+    "}" ~ kw_else ~ "{" ~
+        expr ~
+    "}"
+}
+
+expr_match = {
+    kw_match ~ expr ~ "{" ~
+        expr_match_arm* ~
+    "}"
+}
+
+expr_match_arm = {
+    pat ~ "=>" ~ expr ~ ";"
+}
+
+expr_call = {
+    expr_base ~ expr_call_suffix*
+}
+
+expr_call_suffix = {
+    "->" ~ ident ~ "(" ~ expr_list ~ ")" |
+    "[" ~ nat ~ "]" |
+    "[" ~ nat ~ ".." ~ nat ~ "]"
+}
+
+expr_base = {
+    kw_cat ~ "(" ~ expr_list ~ ")" |
+    ctor ~ "(" ~ expr_list ~ ")" |
+    struct ~ "{" ~ assign_list ~ "}" |
+    path |
+    wordlit |
+    "(" ~ expr ~ ")"
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Basics
+////////////////////////////////////////////////////////////////////////////////
+
+pat = {
+    ctor ~ "(" ~ pat_list ~ ")" |
+    ident |
+    kw_else
+}
+
+path = @{ ident ~ ("." ~ ident)* }
+
+wordlit = @{
+    nat ~ ("w" ~ ASCII_DIGIT+)?
+}
+
+qualident = @{ (ident ~ "::")? ~ ident }
+ident = @{ !keyword ~ ("_" | ASCII_ALPHA) ~ ("_" | ASCII_ALPHANUMERIC)* }
+ctor = @{ "@" ~ qualident }
+struct = @{ "$" ~ qualident }
+
+nat = @{
+    "0x" ~ ("_" | ASCII_HEX_DIGIT)+ |
+    "0b" ~ ("_" | ASCII_BIN_DIGIT)+ |
+    ASCII_DIGIT+
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Keywords
+////////////////////////////////////////////////////////////////////////////////
+
+kw_ext          = @{ "ext"        ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_import       = @{ "import"     ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_mod          = @{ "mod"        ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_struct       = @{ "struct"     ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_union        = @{ "union"      ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_type         = @{ "type"       ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_incoming     = @{ "incoming"   ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_outgoing     = @{ "outgoing"   ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_reg          = @{ "reg"        ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_node         = @{ "node"       ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_port         = @{ "port"       ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_of           = @{ "of"         ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_if           = @{ "if"         ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_else         = @{ "else"       ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_match        = @{ "match"      ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_cat          = @{ "cat"        ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_mosi         = @{ "mosi"       ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_miso         = @{ "miso"       ~ !(ASCII_ALPHANUMERIC | "_") }
+
+keyword = {
+    kw_ext |
+    kw_import |
+    kw_mod |
+    kw_struct |
+    kw_union |
+    kw_type |
+    kw_incoming |
+    kw_outgoing |
+    kw_reg |
+    kw_node |
+    kw_port |
+    kw_of |
+    kw_if |
+    kw_else |
+    kw_match |
+    kw_cat |
+    kw_mosi |
+    kw_miso
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Extras
+////////////////////////////////////////////////////////////////////////////////
+
+COMMENT = _{
+    "//" ~ (!NEWLINE ~ ANY)* ~ NEWLINE |
+    "/*" ~ (!"*/" ~ ANY)* ~ "*/"
+}
+
+WHITESPACE = _{
+    " " |
+    NEWLINE
+}

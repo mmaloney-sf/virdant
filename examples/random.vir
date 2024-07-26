@@ -1,0 +1,39 @@
+import resetter;
+import edge;
+import lfsr;
+
+mod Top {
+    incoming clock : Clock;
+    outgoing led_0 : Word[1];
+    outgoing led_1 : Word[1];
+    outgoing led_2 : Word[1];
+    outgoing led_3 : Word[1];
+    outgoing led_4 : Word[1];
+
+    mod edge_detector of edge::Edge;
+    edge_detector.clock := clock;
+    edge_detector.inp := counter[21];
+
+    mod resetter of resetter::Resetter;
+    resetter.clock := clock;
+
+    mod lfsr of lfsr::Lfsr;
+    lfsr.clock := clock;
+    lfsr.reset := resetter.out;
+
+    reg counter : Word[32] on clock;
+    counter <= counter->inc();
+
+    reg leds : Word[5] on clock;
+    leds <= if edge_detector.out {
+        lfsr.out[5..0]
+    } else {
+        leds
+    };
+
+    led_0 := leds[0];
+    led_1 := leds[1];
+    led_2 := leds[2];
+    led_3 := leds[3];
+    led_4 := leds[4];
+}

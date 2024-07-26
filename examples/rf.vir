@@ -1,0 +1,145 @@
+mod Rf {
+    incoming clock : Clock;
+    incoming rs1 : Word[5];
+    incoming rs2 : Word[5];
+    incoming rd  : Word[5];
+
+    incoming write_enable : Word[1];
+    incoming write_data   : Word[32];
+
+    outgoing rs1_val : Word[32];
+    outgoing rs2_val : Word[32];
+
+    reg x1 : Word[32] on clock;
+    reg x2 : Word[32] on clock;
+    reg x3 : Word[32] on clock;
+    reg x4 : Word[32] on clock;
+    reg x5 : Word[32] on clock;
+    reg x6 : Word[32] on clock;
+    reg x7 : Word[32] on clock;
+    reg x8 : Word[32] on clock;
+    reg x9 : Word[32] on clock;
+    reg x10 : Word[32] on clock;
+    reg x11 : Word[32] on clock;
+    reg x12 : Word[32] on clock;
+    reg x13 : Word[32] on clock;
+    reg x14 : Word[32] on clock;
+    reg x15 : Word[32] on clock;
+    reg x16 : Word[32] on clock;
+    reg x17 : Word[32] on clock;
+    reg x18 : Word[32] on clock;
+    reg x19 : Word[32] on clock;
+    reg x20 : Word[32] on clock;
+    reg x21 : Word[32] on clock;
+    reg x22 : Word[32] on clock;
+    reg x23 : Word[32] on clock;
+    reg x24 : Word[32] on clock;
+    reg x25 : Word[32] on clock;
+    reg x26 : Word[32] on clock;
+    reg x27 : Word[32] on clock;
+    reg x28 : Word[32] on clock;
+    reg x29 : Word[32] on clock;
+    reg x30 : Word[32] on clock;
+    reg x31 : Word[32] on clock;
+
+    // skip x0
+    x1 <= if write_enable->and(rd->eq(1)) { write_data } else { x1 };
+    x2 <= if write_enable->and(rd->eq(2)) { write_data } else { x2 };
+    x3 <= if write_enable->and(rd->eq(3)) { write_data } else { x3 };
+    x4 <= if write_enable->and(rd->eq(4)) { write_data } else { x4 };
+    x5 <= if write_enable->and(rd->eq(5)) { write_data } else { x5 };
+    x6 <= if write_enable->and(rd->eq(6)) { write_data } else { x6 };
+    x7 <= if write_enable->and(rd->eq(7)) { write_data } else { x7 };
+    x8 <= if write_enable->and(rd->eq(8)) { write_data } else { x8 };
+    x9 <= if write_enable->and(rd->eq(9)) { write_data } else { x9 };
+    x10 <= if write_enable->and(rd->eq(10)) { write_data } else { x10 };
+    x11 <= if write_enable->and(rd->eq(11)) { write_data } else { x11 };
+    x12 <= if write_enable->and(rd->eq(12)) { write_data } else { x12 };
+    x13 <= if write_enable->and(rd->eq(13)) { write_data } else { x13 };
+    x14 <= if write_enable->and(rd->eq(14)) { write_data } else { x14 };
+    x15 <= if write_enable->and(rd->eq(15)) { write_data } else { x15 };
+    x16 <= if write_enable->and(rd->eq(16)) { write_data } else { x16 };
+    x17 <= if write_enable->and(rd->eq(17)) { write_data } else { x17 };
+    x18 <= if write_enable->and(rd->eq(18)) { write_data } else { x18 };
+    x19 <= if write_enable->and(rd->eq(19)) { write_data } else { x19 };
+    x20 <= if write_enable->and(rd->eq(20)) { write_data } else { x20 };
+    x21 <= if write_enable->and(rd->eq(21)) { write_data } else { x21 };
+    x22 <= if write_enable->and(rd->eq(22)) { write_data } else { x22 };
+    x23 <= if write_enable->and(rd->eq(23)) { write_data } else { x23 };
+    x24 <= if write_enable->and(rd->eq(24)) { write_data } else { x24 };
+    x25 <= if write_enable->and(rd->eq(25)) { write_data } else { x25 };
+    x26 <= if write_enable->and(rd->eq(26)) { write_data } else { x26 };
+    x27 <= if write_enable->and(rd->eq(27)) { write_data } else { x27 };
+    x28 <= if write_enable->and(rd->eq(28)) { write_data } else { x28 };
+    x29 <= if write_enable->and(rd->eq(29)) { write_data } else { x29 };
+    x30 <= if write_enable->and(rd->eq(30)) { write_data } else { x30 };
+    x31 <= if write_enable->and(rd->eq(31)) { write_data } else { x31 };
+
+    rs1_val :=
+             if rs1->eq(1) { x1 }
+        else if rs1->eq(2) { x2 }
+        else if rs1->eq(3) { x3 }
+        else if rs1->eq(4) { x4 }
+        else if rs1->eq(5) { x5 }
+        else if rs1->eq(6) { x6 }
+        else if rs1->eq(7) { x7 }
+        else if rs1->eq(8) { x8 }
+        else if rs1->eq(9) { x9 }
+        else if rs1->eq(10) { x10 }
+        else if rs1->eq(11) { x11 }
+        else if rs1->eq(12) { x12 }
+        else if rs1->eq(13) { x13 }
+        else if rs1->eq(14) { x14 }
+        else if rs1->eq(15) { x15 }
+        else if rs1->eq(16) { x16 }
+        else if rs1->eq(17) { x17 }
+        else if rs1->eq(18) { x18 }
+        else if rs1->eq(19) { x19 }
+        else if rs1->eq(20) { x20 }
+        else if rs1->eq(21) { x21 }
+        else if rs1->eq(22) { x22 }
+        else if rs1->eq(23) { x23 }
+        else if rs1->eq(24) { x24 }
+        else if rs1->eq(25) { x25 }
+        else if rs1->eq(26) { x26 }
+        else if rs1->eq(27) { x27 }
+        else if rs1->eq(28) { x28 }
+        else if rs1->eq(29) { x29 }
+        else if rs1->eq(30) { x30 }
+        else if rs1->eq(31) { x31 }
+        else { 0w32 };
+
+    rs2_val :=
+             if rs2->eq(1) { x1 }
+        else if rs2->eq(2) { x2 }
+        else if rs2->eq(3) { x3 }
+        else if rs2->eq(4) { x4 }
+        else if rs2->eq(5) { x5 }
+        else if rs2->eq(6) { x6 }
+        else if rs2->eq(7) { x7 }
+        else if rs2->eq(8) { x8 }
+        else if rs2->eq(9) { x9 }
+        else if rs2->eq(10) { x10 }
+        else if rs2->eq(11) { x11 }
+        else if rs2->eq(12) { x12 }
+        else if rs2->eq(13) { x13 }
+        else if rs2->eq(14) { x14 }
+        else if rs2->eq(15) { x15 }
+        else if rs2->eq(16) { x16 }
+        else if rs2->eq(17) { x17 }
+        else if rs2->eq(18) { x18 }
+        else if rs2->eq(19) { x19 }
+        else if rs2->eq(20) { x20 }
+        else if rs2->eq(21) { x21 }
+        else if rs2->eq(22) { x22 }
+        else if rs2->eq(23) { x23 }
+        else if rs2->eq(24) { x24 }
+        else if rs2->eq(25) { x25 }
+        else if rs2->eq(26) { x26 }
+        else if rs2->eq(27) { x27 }
+        else if rs2->eq(28) { x28 }
+        else if rs2->eq(29) { x29 }
+        else if rs2->eq(30) { x30 }
+        else if rs2->eq(31) { x31 }
+        else { 0w32 };
+}

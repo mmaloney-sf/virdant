@@ -13,3 +13,6 @@ name = "vir"
 path = "src/main.rs"
 
 [dependencies]
+pest = "2.7.11"
+pest_derive = { version = "2.7.11", features = ["grammar-extras"] }
+clap = { version = "4.5.4", features = ["derive"] }

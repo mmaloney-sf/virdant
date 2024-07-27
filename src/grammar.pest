@@ -4,7 +4,7 @@
 
 package = { SOI ~ import* ~ item* ~ EOI }
 
-import = { kw_import ~ ident ~ ";" }
+import = { kw_import ~ (#package=ident) ~ ";" }
 
 item = {
     moddef |
@@ -19,25 +19,25 @@ item = {
 ////////////////////////////////////////////////////////////////////////////////
 
 moddef = {
-    kw_ext? ~ kw_mod ~ ident ~ "{" ~
+    kw_ext? ~ kw_mod ~ (#name=ident) ~ "{" ~
         (moddef_statement ~ ";")* ~
     "}"
 }
 
 uniondef = {
-    kw_union ~ kw_type ~ ident ~ "{" ~
+    kw_union ~ kw_type ~ (#name=ident) ~ "{" ~
         (uniondef_statement ~ ";")* ~
     "}"
 }
 
 structdef = {
-    kw_struct ~ kw_type ~ ident ~ "{" ~
+    kw_struct ~ kw_type ~ (#name=ident) ~ "{" ~
         (structdef_statement ~ ";")* ~
     "}"
 }
 
 portdef = {
-    kw_port ~ ident ~ "{" ~
+    kw_port ~ (#name=ident) ~ "{" ~
         (portdef_statement ~ ";")* ~
     "}"
 }
@@ -48,26 +48,25 @@ portdef = {
 ////////////////////////////////////////////////////////////////////////////////
 
 moddef_statement = {
-    kw_incoming ~ ident ~ ":" ~ type |
-    kw_outgoing ~ ident ~ ":" ~ type |
-    kw_reg ~ ident ~ ":" ~ type ~ "on" ~ expr |
-    kw_node ~ ident ~ ":" ~ type |
-    kw_mod ~ ident ~ kw_of ~ qualident |
-    kw_port ~ ident ~ kw_of ~ qualident |
-    path ~ drivertype ~ expr
+    kw_incoming ~ (#name=ident) ~ ":" ~ (#type=type) |
+    kw_outgoing ~ (#name=ident) ~ ":" ~ (#type=type) |
+    kw_reg ~ (#name=ident) ~ ":" ~ (#type=type) ~ "on" ~ (#clock=expr) |
+    kw_node ~ (#name=ident) ~ ":" ~ (#type=type) |
+    kw_mod ~ (#name=ident) ~ kw_of ~ (#of=qualident) |
+    kw_port ~ (#name=ident) ~ kw_of ~ (#of=qualident) |
+    (#target=path) ~ (#drivertype=drivertype) ~ (#expr=expr)
 }
 
-
 uniondef_statement = {
-    ident ~ "(" ~ type_list ~ ")"
+    (#name=ident) ~ "(" ~ type_list ~ ")"
 }
 
 structdef_statement = {
-    ident ~ ":" ~ type
+    (#name=ident) ~ ":" ~ (#type=type)
 }
 
 portdef_statement = {
-    (kw_mosi | kw_miso) ~ ident ~ ":" ~ type ~ ";"
+    (#dir=channel_dir) ~ (#name=ident) ~ ":" ~ (#type=type) ~ ";"
 }
 
 
@@ -170,6 +169,11 @@ expr_base = {
 ////////////////////////////////////////////////////////////////////////////////
 // Basics
 ////////////////////////////////////////////////////////////////////////////////
+
+channel_dir = {
+    kw_mosi |
+    kw_miso
+}
 
 pat = {
     ctor ~ "(" ~ pat_list ~ ")" |

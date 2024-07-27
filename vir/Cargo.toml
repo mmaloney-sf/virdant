@@ -1,0 +1,17 @@
+[package]
+name = "vir"
+version = "0.1.0-rc0"
+edition = "2021"
+license = "MIT"
+description = "The Virdant CLI. Virdant is a modern hardware description language."
+readme = "../README.md"
+publish = true
+authors = ["Michael Maloney"]
+default-run = "vir"
+
+[[bin]]
+name = "vir"
+path = "src/main.rs"
+
+[dependencies]
+nix = { version = "0.29.0", features = ["process"] }

@@ -125,6 +125,10 @@ impl ParseError {
 
     }
 
+    pub fn message(&self) -> String {
+        "Syntax Error".to_owned()
+    }
+
     fn err(&self) -> &Error<Rule> {
         &self.0
     }

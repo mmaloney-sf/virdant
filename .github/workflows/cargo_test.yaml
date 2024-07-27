@@ -15,4 +15,5 @@ jobs:
 
     - name: Run cargo test
       run: |
+        cd virdant
         cargo test

@@ -33,7 +33,7 @@ fn parse_examples() {
 
 fn example_files() -> impl Iterator<Item = std::path::PathBuf> {
     let mut results = vec![];
-    let examples_dir = std::path::Path::new("examples");
+    let examples_dir = std::path::Path::new("..").join("examples");
     let entries = std::fs::read_dir(examples_dir).unwrap();
     for entry in entries {
         let entry = entry.unwrap();

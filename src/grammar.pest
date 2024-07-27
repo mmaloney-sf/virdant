@@ -2,7 +2,7 @@
 // Package
 ////////////////////////////////////////////////////////////////////////////////
 
-package = _{ SOI ~ import* ~ item* ~ EOI }
+package = { SOI ~ import* ~ item* ~ EOI }
 
 import = { kw_import ~ ident ~ ";" }
 

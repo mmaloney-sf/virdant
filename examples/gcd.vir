@@ -1,7 +1,7 @@
 union type State {
     Idle();
-    Running(Word[8], Word[8]);
-    Done(Word[8]);
+    Running(x : Word[8], y : Word[8]);
+    Done(result : Word[8]);
 }
 
 mod Top {

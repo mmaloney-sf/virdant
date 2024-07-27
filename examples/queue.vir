@@ -3,7 +3,7 @@ import lfsr;
 
 union type ValidData {
     Invalid();
-    Valid(Word[8]);
+    Valid(data : Word[8]);
 }
 
 mod Queue {

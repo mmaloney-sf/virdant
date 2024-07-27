@@ -58,7 +58,7 @@ moddef_statement = {
 }
 
 uniondef_statement = {
-    (#name=ident) ~ "(" ~ type_list ~ ")"
+    (#name=ident) ~ "(" ~ arg_list ~ ")"
 }
 
 structdef_statement = {
@@ -99,6 +99,10 @@ type_list = {
 
 expr_list = {
     (expr ~ ("," ~ expr)* ~ ","?)?
+}
+
+arg_list = {
+    (arg ~ ("," ~ arg)* ~ ","?)?
 }
 
 pat_list = {
@@ -179,6 +183,10 @@ pat = {
     ctor ~ "(" ~ pat_list ~ ")" |
     ident |
     kw_else
+}
+
+arg = {
+    ident ~ ":" ~ type
 }
 
 path = @{ ident ~ ("." ~ ident)* }

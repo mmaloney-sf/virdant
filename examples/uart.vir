@@ -1,8 +1,8 @@
 union type UartState {
     Idle();
-    Start(Word[11]);
-    Bit(Word[3], Word[11]);
-    Stop(Word[11]);
+    Start(pulse : Word[11]);
+    Bit(bit : Word[3], pulse : Word[11]);
+    Stop(pulse : Word[11]);
 }
 
 mod UartSender {

@@ -79,11 +79,11 @@ mod Top {
 }
 
 union type LedControllerState {
-    Idle(Word[4], Word[1]);
-    SpinCW(Word[5], Word[4]);
-    SpinCCW(Word[5], Word[4]);
-    Memory(Word[16]);
-    Random(Word[5]);
+    Idle(round : Word[4], next : Word[1]);
+    SpinCW(x : Word[5], round : Word[4]);
+    SpinCCW(x : Word[5], round : Word[4]);
+    Memory(addr : Word[16]);
+    Random(leds : Word[5]);
 }
 
 mod LedController {

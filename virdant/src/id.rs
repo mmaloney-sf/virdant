@@ -12,7 +12,11 @@ pub struct Id<T>(Intern<String>, PhantomData<T>);
 
 impl<T> Id<T> {
     pub fn new<S: Into<String>>(s: S) -> Id<T> {
-        Id(Intern::new(s.into()), PhantomData::default())
+        Id(Intern::new(s.into()), PhantomData)
+    }
+
+    pub fn cast<S>(&self) -> Id<S> {
+        Id(self.0, PhantomData)
     }
 }
 
@@ -47,11 +51,49 @@ impl<T> std::fmt::Debug for Id<T> {
 }
 
 pub mod types {
+    use super::*;
+
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
     pub struct Package;
 
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
     pub struct Item;
+
+    #[derive(Clone, Copy, Eq, PartialEq, Hash)]
+    pub struct ModDef;
+
+    #[derive(Clone, Copy, Eq, PartialEq, Hash)]
+    pub struct UnionDef;
+
+    #[derive(Clone, Copy, Eq, PartialEq, Hash)]
+    pub struct StructDef;
+
+    #[derive(Clone, Copy, Eq, PartialEq, Hash)]
+    pub struct PortDef;
 }
 
 pub use types::*;
+
+impl Id<ModDef> {
+    pub fn as_item(&self) -> Id<Item> {
+        self.cast()
+    }
+}
+
+impl Id<UnionDef> {
+    pub fn as_item(&self) -> Id<Item> {
+        self.cast()
+    }
+}
+
+impl Id<StructDef> {
+    pub fn as_item(&self) -> Id<Item> {
+        self.cast()
+    }
+}
+
+impl Id<PortDef> {
+    pub fn as_item(&self) -> Id<Item> {
+        self.cast()
+    }
+}

@@ -84,18 +84,22 @@ impl<'a> Ast<'a> {
         self.pair().as_str()
     }
 
-    pub fn as_summary_str(&self) -> String {
+    pub fn summary(&self) -> String {
         let text = self.pair().as_str();
         let lines: Vec<&str> = text.lines().collect();
-        let first_line = lines[0];
-        let rule = self.rule();
-        let truncated_line = if lines.len() == 1 {
-            first_line.to_string()
+        if lines.len() == 0 {
+            format!("[{:?}]", self.rule())
         } else {
-            format!("{first_line} ...")
-        };
+            let first_line = lines[0];
+            let rule = self.rule();
+            let truncated_line = if lines.len() == 1 {
+                first_line.to_string()
+            } else {
+                format!("{first_line} ...")
+            };
 
-        format!("[{rule:?}] {truncated_line:?}")
+            format!("[{rule:?}] {truncated_line:?}")
+        }
     }
 
     fn pair(&self) -> &Pair<'a, Rule> {
@@ -104,13 +108,28 @@ impl<'a> Ast<'a> {
 
     pub fn is_item(&self) -> bool { self.rule() == Rule::item }
     pub fn is_import(&self) -> bool { self.rule() == Rule::import }
-    pub fn is_moddef_statement(&self) -> bool { self.rule() == Rule::moddef_statement }
+
+    pub fn is_statement(&self) -> bool {
+        self.rule() == Rule::moddef_statement ||
+        self.rule() == Rule::uniondef_statement ||
+        self.rule() == Rule::structdef_statement ||
+        self.rule() == Rule::portdef_statement
+    }
+
+    pub fn is_list(&self) -> bool {
+        self.rule() == Rule::arg_list ||
+        self.rule() == Rule::type_list ||
+        self.rule() == Rule::expr_list ||
+        self.rule() == Rule::pat_list
+    }
 
     pub fn package(&self) -> Option<&str> { self.get_as_str("package") }
     pub fn name(&self) -> Option<&str> { self.get_as_str("name") }
-    pub fn typ(&self) -> Option<&str> { self.get_as_str("type") }
     pub fn of(&self) -> Option<&str> { self.get_as_str("of") }
-    pub fn expr(&self) -> Option<&str> { self.get_as_str("expr") }
+
+    pub fn typ(&self) -> Option<Ast> { self.get("type") }
+    pub fn expr(&self) -> Option<Ast> { self.get("expr") }
+    pub fn args(&self) -> Option<Ast> { self.get("args") }
 
     pub fn item_kind(&self) -> Option<ItemKind> {
         match self.child(0).rule() {

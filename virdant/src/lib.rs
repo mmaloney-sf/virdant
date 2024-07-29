@@ -1,7 +1,7 @@
 /// Utilities for parsing a Virdant source file.
 ///
 /// [`parse_package()`](parse::parse_package) is used to parse a package.
-/// This results in a [`ParseTree`](parse::ParseTree) object (or a [`ParseError`](parse::ParseError) on failure).
+/// This results in a [`Ast`](parse::Ast) object (or a [`ParseError`](parse::ParseError) on failure).
 pub mod parse;
 pub mod error;
 pub mod id;
@@ -16,11 +16,12 @@ use ready::Ready;
 use error::VirErr;
 use error::VirErrs;
 use id::*;
+use parse::Ast;
 
 
 pub struct Virdant<'a> {
     sources: HashMap<Id<Package>, std::path::PathBuf>,
-    parse_trees: Ready<HashMap<Id<Package>, parse::ParseTree<'a>>>,
+    asts: Ready<HashMap<Id<Package>, Ast<'a>>>,
     errors: VirErrs,
 }
 
@@ -28,7 +29,7 @@ impl<'a> Virdant<'a> {
     pub fn new() -> Virdant<'a> {
         Virdant {
             sources: HashMap::new(),
-            parse_trees: Ready::new(),
+            asts: Ready::new(),
             errors: VirErrs::new(),
         }
     }
@@ -56,13 +57,13 @@ impl<'a> Virdant<'a> {
 
     fn parse(&mut self) -> Result<(), VirErrs> {
         let mut errors = VirErrs::new();
-        self.parse_trees.set(HashMap::new());
+        self.asts.set(HashMap::new());
 
         for package in self.packages() {
             let text = self.package_text(package).leak();
             match parse::parse_package(text) {
-                Ok(parse_tree) => {
-                    self.parse_trees.insert(package.clone(), parse_tree);
+                Ok(ast) => {
+                    self.asts.insert(package.clone(), ast);
                 },
                 Err(err) => {
                     errors.add(VirErr::Parse(err));
@@ -80,8 +81,8 @@ impl<'a> Virdant<'a> {
     pub fn items(&self) -> Vec<Id<Item>> {
         let mut items = vec![];
 
-        for (package, parse_tree) in self.parse_trees.iter() {
-            for top_level_tree in parse_tree.children() {
+        for (package, ast) in self.asts.iter() {
+            for top_level_tree in ast.children() {
                 if top_level_tree.is_item() {
                     let name = top_level_tree.name().unwrap();
                     let item: Id<Item> = format!("{package}::{name}").into();

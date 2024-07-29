@@ -10,13 +10,13 @@ struct Parser;
 
 /// A node of the parse tree
 #[derive(Debug, Clone)]
-pub struct ParseTree<'a>(Pair<'a, Rule>);
+pub struct Ast<'a>(Pair<'a, Rule>);
 
 /// Parse a Virdant package
-pub fn parse_package(text: &str) -> Result<ParseTree, ParseError> {
+pub fn parse_package(text: &str) -> Result<Ast, ParseError> {
     use pest::Parser as PestParser;
     Parser::parse(Rule::package, text)
-        .map(|mut pairs| ParseTree(pairs.next().unwrap()))
+        .map(|mut pairs| Ast(pairs.next().unwrap()))
         .map_err(|err| ParseError(err))
 }
 
@@ -28,15 +28,15 @@ pub struct Pos(usize, usize);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Span(Pos, Pos);
 
-impl<'a> ParseTree<'a> {
+impl<'a> Ast<'a> {
     /// What rule produced this node in the parse tree?
     fn rule(&self) -> Rule {
         self.pair().as_rule()
     }
 
     /// Get a child node with a given tag.
-    pub fn get(&'a self, tag: &'a str) -> Option<ParseTree<'a>> {
-        self.pair().clone().into_inner().find_first_tagged(tag).map(|pair| ParseTree(pair))
+    pub fn get(&'a self, tag: &'a str) -> Option<Ast<'a>> {
+        self.pair().clone().into_inner().find_first_tagged(tag).map(|pair| Ast(pair))
     }
 
     /// Get the underlying string for a child node with a given tag.
@@ -53,18 +53,18 @@ impl<'a> ParseTree<'a> {
     }
 
     /// Get the child nodes of this node in the parse tree.
-    pub fn children(&self) -> impl Iterator<Item = ParseTree> {
+    pub fn children(&self) -> impl Iterator<Item = Ast> {
         let inner = self.pair().clone().into_inner();
         inner
             .filter(|pair| pair.as_rule() != Rule::EOI)
-            .map(|pair| ParseTree(pair))
+            .map(|pair| Ast(pair))
     }
 
-    pub fn child(&self, i: usize) -> ParseTree {
+    pub fn child(&self, i: usize) -> Ast {
         let inner = self.pair().clone().into_inner();
         inner
             .filter(|pair| pair.as_rule() != Rule::EOI)
-            .map(|pair| ParseTree(pair))
+            .map(|pair| Ast(pair))
             .nth(i)
             .unwrap()
     }

@@ -51,23 +51,24 @@ impl<T> std::fmt::Debug for Id<T> {
 }
 
 pub mod types {
-    #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-    pub struct Package(());
+    macro_rules! id_type {
+        ($name:ident) => {
+            #[derive(Clone, Copy, Eq, PartialEq, Hash)]
+            pub struct $name(());
+        };
+    }
 
-    #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-    pub struct Item(());
+    id_type!(Package);
 
-    #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-    pub struct ModDef(());
+    id_type!(Item);
 
-    #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-    pub struct UnionDef(());
+    id_type!(ModDef);
+    id_type!(UnionDef);
+    id_type!(StructDef);
+    id_type!(PortDef);
 
-    #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-    pub struct StructDef(());
-
-    #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-    pub struct PortDef(());
+    id_type!(Ctor);
+    id_type!(Field);
 }
 
 pub use types::*;

@@ -1,3 +1,8 @@
+//! Defines the [`Id<T>`](Id) type.
+//!
+//! The [`Id<T>`](Id) type is a wrapper around an [`Intern<String>`](internment::Intern)
+//! for use in [`HashMap`](std::collections::HashMap)'s in the [`Virdant`](crate::Virdant) struct.
+
 use internment::Intern;
 use std::marker::PhantomData;
 

@@ -1,7 +1,3 @@
-/// Utilities for parsing a Virdant source file.
-///
-/// [`parse_package()`](parse::parse_package) is used to parse a package.
-/// This results in a [`Ast`](parse::Ast) object (or a [`ParseError`](parse::ParseError) on failure).
 pub mod parse;
 pub mod error;
 pub mod id;
@@ -18,7 +14,8 @@ use error::VirErrs;
 use id::*;
 use parse::Ast;
 
-
+/// A [`Virdant`] is a context type for manipulating Virdant designs.
+/// Call [`check()`](Virdant::check) to get a list of errors in a design.
 pub struct Virdant<'a> {
     sources: HashMap<Id<Package>, std::path::PathBuf>,
     asts: Ready<HashMap<Id<Package>, Ast<'a>>>,

@@ -1,3 +1,8 @@
+//! Utilities for parsing a Virdant source file.
+//!
+//! [`parse_package()`](parse_package) is used to parse a package.
+//! This results in a [`Ast`] object (or a [`ParseError`] on failure).
+
 use pest::error::Error;
 use pest::error::LineColLocation;
 use pest::iterators::Pair;

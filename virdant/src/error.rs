@@ -1,3 +1,5 @@
+//! Defines the [`VirErr`] and [`VirErrs`] types.
+
 use crate::parse::Span;
 use crate::parse::ParseError;
 

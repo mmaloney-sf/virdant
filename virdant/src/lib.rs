@@ -7,7 +7,7 @@ mod ready;
 #[cfg(test)]
 mod tests;
 
-use std::collections::{HashMap, HashSet};
+use indexmap::{IndexMap, IndexSet};
 use ready::Ready;
 use error::VirErr;
 use error::VirErrs;
@@ -19,13 +19,13 @@ use parse::Ast;
 /// Call [`check()`](Virdant::check) to get a list of errors in a design.
 #[derive(Default)]
 pub struct Virdant<'a> {
-    sources: HashMap<Id<Package>, std::path::PathBuf>,
+    sources: IndexMap<Id<Package>, std::path::PathBuf>,
     errors: VirErrs,
 
-    package_asts: Ready<HashMap<Id<Package>, Ast<'a>>>,
+    package_asts: Ready<IndexMap<Id<Package>, Ast<'a>>>,
     items: Ready<Vec<Id<Item>>>,
-    item_asts: Ready<HashMap<Id<Item>, Result<Ast<'a>, VirErr>>>,
-    item_kinds: Ready<HashMap<Id<Item>, Result<ItemKind, VirErr>>>,
+    item_asts: Ready<IndexMap<Id<Item>, Result<Ast<'a>, VirErr>>>,
+    item_kinds: Ready<IndexMap<Id<Item>, Result<ItemKind, VirErr>>>,
 }
 
 
@@ -70,10 +70,10 @@ impl<'a> Virdant<'a> {
 
 impl<'a> Virdant<'a> {
     fn init_asts(&mut self) {
-        self.package_asts.set(HashMap::new());
+        self.package_asts.set(IndexMap::new());
         self.items.set(Vec::new());
-        self.item_asts.set(HashMap::new());
-        self.item_kinds.set(HashMap::new());
+        self.item_asts.set(IndexMap::new());
+        self.item_kinds.set(IndexMap::new());
 
         for package in self.packages() {
             let text: &'a str = self.package_text(package).leak();
@@ -122,7 +122,7 @@ impl<'a> Virdant<'a> {
     fn moddefs(&self) -> Vec<Id<ModDef>> {
         let mut results = vec![];
         for item in self.items.iter() {
-            let item_ast = &self.item_asts[&item];
+            let item_ast = &self.item_asts[item];
             if let Ok(Some(ItemKind::ModDef)) = item_ast.as_ref().map(|ast| ast.item_kind()) {
                 results.push(item.cast());
             }
@@ -150,7 +150,7 @@ impl<'a> Virdant<'a> {
 
     fn no_duplicate_imports(&mut self, package: Id<Package>) -> Result<(), VirErrs> {
         let mut errors = VirErrs::new();
-        let mut imports: HashSet<Id<Package>> = HashSet::new();
+        let mut imports: IndexSet<Id<Package>> = IndexSet::new();
 
         for import in self.package_imports(package) {
             if !imports.insert(import) {

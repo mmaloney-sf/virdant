@@ -9,6 +9,7 @@ publish = true
 authors = ["Michael Maloney"]
 
 [dependencies]
+indexmap = "2.2.6"
 internment = "0.8.4"
 pest = "2.7.11"
 pest_derive = { version = "2.7.11", features = ["grammar-extras"] }

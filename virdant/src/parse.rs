@@ -9,6 +9,8 @@ use pest::iterators::Pair;
 
 use pest_derive::Parser;
 
+use crate::ItemKind;
+
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 struct Parser;
@@ -18,7 +20,7 @@ struct Parser;
 pub struct Ast<'a>(Pair<'a, Rule>);
 
 /// Parse a Virdant package
-pub fn parse_package(text: &str) -> Result<Ast, ParseError> {
+pub fn parse_package<'a>(text: &'a str) -> Result<Ast<'a>, ParseError> {
     use pest::Parser as PestParser;
     Parser::parse(Rule::package, text)
         .map(|mut pairs| Ast(pairs.next().unwrap()))
@@ -34,7 +36,6 @@ pub struct Pos(usize, usize);
 pub struct Span(Pos, Pos);
 
 impl<'a> Ast<'a> {
-    /// What rule produced this node in the parse tree?
     fn rule(&self) -> Rule {
         self.pair().as_rule()
     }
@@ -42,6 +43,10 @@ impl<'a> Ast<'a> {
     /// Get a child node with a given tag.
     pub fn get(&'a self, tag: &'a str) -> Option<Ast<'a>> {
         self.pair().clone().into_inner().find_first_tagged(tag).map(|pair| Ast(pair))
+    }
+
+    pub fn has(&'a self, tag: &'a str) -> bool {
+        self.get(tag).is_some()
     }
 
     /// Get the underlying string for a child node with a given tag.
@@ -58,11 +63,11 @@ impl<'a> Ast<'a> {
     }
 
     /// Get the child nodes of this node in the parse tree.
-    pub fn children(&self) -> impl Iterator<Item = Ast> {
+    pub fn children<'b>(self: &'b Ast<'a>) -> impl Iterator<Item = Ast<'a>> where 'a: 'b {
         let inner = self.pair().clone().into_inner();
         inner
             .filter(|pair| pair.as_rule() != Rule::EOI)
-            .map(|pair| Ast(pair))
+            .map(move |pair| Ast(pair))
     }
 
     pub fn child(&self, i: usize) -> Ast {
@@ -79,18 +84,29 @@ impl<'a> Ast<'a> {
         self.pair().as_str()
     }
 
-    fn pair(&self) -> &Pair<'_, Rule> {
+    fn pair(&self) -> &Pair<'a, Rule> {
         &self.0
     }
 
     pub fn is_item(&self) -> bool { self.rule() == Rule::item }
     pub fn is_import(&self) -> bool { self.rule() == Rule::import }
+    pub fn is_moddef_statement(&self) -> bool { self.rule() == Rule::moddef_statement }
 
     pub fn package(&self) -> Option<&str> { self.get_as_str("package") }
     pub fn name(&self) -> Option<&str> { self.get_as_str("name") }
     pub fn typ(&self) -> Option<&str> { self.get_as_str("type") }
     pub fn of(&self) -> Option<&str> { self.get_as_str("of") }
     pub fn expr(&self) -> Option<&str> { self.get_as_str("expr") }
+
+    pub fn item_kind(&self) -> Option<ItemKind> {
+        match self.child(0).rule() {
+            Rule::moddef => Some(ItemKind::ModDef),
+            Rule::uniondef => Some(ItemKind::UnionDef),
+            Rule::structdef => Some(ItemKind::StructDef),
+            Rule::portdef => Some(ItemKind::PortDef),
+            _ => None,
+        }
+    }
 }
 
 impl Pos {

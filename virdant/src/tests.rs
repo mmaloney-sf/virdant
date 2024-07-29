@@ -72,4 +72,11 @@ fn test_items() {
         .collect();
 
     assert_eq!(virdant.items(), items);
+
+    let moddefs: Vec<_> = ["top::UartSender", "top::UartReceiver"]
+        .iter()
+        .map(|item| Id::new(item.to_string()))
+        .collect();
+
+    assert_eq!(virdant.moddefs(), moddefs);
 }

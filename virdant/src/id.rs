@@ -51,8 +51,6 @@ impl<T> std::fmt::Debug for Id<T> {
 }
 
 pub mod types {
-    use super::*;
-
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
     pub struct Package;
 

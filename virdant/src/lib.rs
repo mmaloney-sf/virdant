@@ -44,34 +44,41 @@ impl<'a> Virdant<'a> {
             self.errors.extend(errs);
         }
 
-        self.check_all_imported_packages_exist();
-        self.check_no_duplicate_imports();
+        for package in self.packages() {
+            if let Err(errs) = self.all_imported_packages_exist(package) {
+                self.errors.extend(errs)
+            }
+
+            if let Err(errs) = self.no_duplicate_imports(package) {
+                self.errors.extend(errs)
+            }
+        }
 
         self.errors.clone().check()
     }
 
-    fn check_all_imported_packages_exist(&mut self) {
+    fn all_imported_packages_exist(&mut self, package: Id<Package>) -> Result<(), VirErrs> {
+        let mut errors = VirErrs::new();
         let packages = self.packages();
-
-        for package in &packages {
-            for imported_package in self.package_imports(*package) {
-                if !packages.contains(&imported_package) {
-                    self.errors.add(VirErr::Other(format!("Imported package does not exist: {imported_package}")));
-                }
+        for imported_package in self.package_imports(package) {
+            if !packages.contains(&imported_package) {
+                errors.add(VirErr::Other(format!("Imported package does not exist: {imported_package}")));
             }
         }
+        errors.check()
     }
 
-    fn check_no_duplicate_imports(&mut self) {
-        for package in self.packages() {
-            let mut imports: HashSet<Id<Package>> = HashSet::new();
+    fn no_duplicate_imports(&mut self, package: Id<Package>) -> Result<(), VirErrs> {
+        let mut errors = VirErrs::new();
+        let mut imports: HashSet<Id<Package>> = HashSet::new();
 
-            for import in self.package_imports(package) {
-                if !imports.insert(import) {
-                    self.errors.add(VirErr::Other(format!("Duplicate import: {import}")));
-                }
+        for import in self.package_imports(package) {
+            if !imports.insert(import) {
+                errors.add(VirErr::Other(format!("Duplicate import: {import}")));
             }
         }
+
+        errors.check()
     }
 
     fn package_imports(&self, package: Id<Package>) -> Vec<Id<Package>> {

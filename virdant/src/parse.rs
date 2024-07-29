@@ -21,16 +21,16 @@ pub fn parse_package(text: &str) -> Result<ParseTree, ParseError> {
 }
 
 /// A line-col pair (1-indexed)
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Pos(usize, usize);
 
 /// A start-end position pair
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Span(Pos, Pos);
 
 impl<'a> ParseTree<'a> {
     /// What rule produced this node in the parse tree?
-    pub fn rule(&self) -> Rule {
+    fn rule(&self) -> Rule {
         self.pair().as_rule()
     }
 
@@ -77,6 +77,15 @@ impl<'a> ParseTree<'a> {
     fn pair(&self) -> &Pair<'_, Rule> {
         &self.0
     }
+
+    pub fn is_item(&self) -> bool { self.rule() == Rule::item }
+    pub fn is_import(&self) -> bool { self.rule() == Rule::import }
+
+    pub fn package(&self) -> Option<&str> { self.get_as_str("package") }
+    pub fn name(&self) -> Option<&str> { self.get_as_str("name") }
+    pub fn typ(&self) -> Option<&str> { self.get_as_str("type") }
+    pub fn of(&self) -> Option<&str> { self.get_as_str("of") }
+    pub fn expr(&self) -> Option<&str> { self.get_as_str("expr") }
 }
 
 impl Pos {
@@ -104,7 +113,7 @@ impl Span {
 }
 
 /// An error encountered during parsing.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError(Error<Rule>);
 
 impl ParseError {

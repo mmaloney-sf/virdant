@@ -1,10 +1,13 @@
-use crate::parse::*;
+use crate::*;
 
 const CHECK: char = '✅';
 const BATSU: char = '❌';
 
+const EXAMPLES_DIR: &'static str = "../examples";
+
 #[test]
 fn parse_examples() {
+    use parse::*;
     let mut errors = vec![];
 
     for filepath in example_files() {
@@ -33,7 +36,7 @@ fn parse_examples() {
 
 fn example_files() -> impl Iterator<Item = std::path::PathBuf> {
     let mut results = vec![];
-    let examples_dir = std::path::Path::new("..").join("examples");
+    let examples_dir = std::path::Path::new(EXAMPLES_DIR);
     let entries = std::fs::read_dir(examples_dir).unwrap();
     for entry in entries {
         let entry = entry.unwrap();
@@ -43,4 +46,30 @@ fn example_files() -> impl Iterator<Item = std::path::PathBuf> {
         }
     }
     results.into_iter()
+}
+
+#[test]
+fn test_check() {
+    let examples_dir = std::path::Path::new(EXAMPLES_DIR);
+    let mut virdant = Virdant::new();
+
+    virdant.add_package_source("top", examples_dir.join("uart.vir"));
+
+    virdant.check().unwrap();
+}
+
+#[test]
+fn test_items() {
+    let examples_dir = std::path::Path::new(EXAMPLES_DIR);
+    let mut virdant = Virdant::new();
+
+    virdant.add_package_source("top", examples_dir.join("uart.vir"));
+    virdant.check().unwrap();
+
+    let items: Vec<_> = ["top::UartState", "top::UartSender", "top::UartReceiver"]
+        .iter()
+        .map(|item| Intern::new(item.to_string()))
+        .collect();
+
+    assert_eq!(virdant.items(), items);
 }

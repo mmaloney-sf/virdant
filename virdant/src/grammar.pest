@@ -48,14 +48,22 @@ portdef = {
 ////////////////////////////////////////////////////////////////////////////////
 
 moddef_statement = {
-    kw_incoming ~ (#name=ident) ~ ":" ~ (#type=type) |
-    kw_outgoing ~ (#name=ident) ~ ":" ~ (#type=type) |
-    kw_reg ~ (#name=ident) ~ ":" ~ (#type=type) ~ "on" ~ (#clock=expr) |
-    kw_node ~ (#name=ident) ~ ":" ~ (#type=type) |
-    kw_mod ~ (#name=ident) ~ kw_of ~ (#of=qualident) |
-    kw_port ~ (#name=ident) ~ kw_of ~ (#of=qualident) |
-    (#target=path) ~ (#drivertype=drivertype) ~ (#expr=expr)
+    moddef_statement_incoming |
+    moddef_statement_outgoing |
+    moddef_statement_reg |
+    moddef_statement_node |
+    moddef_statement_mod |
+    moddef_statement_port |
+    moddef_statement_driver
 }
+
+moddef_statement_incoming = { kw_incoming ~ (#name=ident) ~ ":" ~ (#type=type) }
+moddef_statement_outgoing = { kw_outgoing ~ (#name=ident) ~ ":" ~ (#type=type) }
+moddef_statement_reg = { kw_reg ~ (#name=ident) ~ ":" ~ (#type=type) ~ "on" ~ (#clock=expr) }
+moddef_statement_node = { kw_node ~ (#name=ident) ~ ":" ~ (#type=type) }
+moddef_statement_mod = { kw_mod ~ (#name=ident) ~ kw_of ~ (#of=qualident) }
+moddef_statement_port = { kw_port ~ (#name=ident) ~ kw_of ~ (#of=qualident) }
+moddef_statement_driver = { (#target=path) ~ (#drivertype=drivertype) ~ (#expr=expr) }
 
 uniondef_statement = {
     (#name=ident) ~ "(" ~ arg_list ~ ")"

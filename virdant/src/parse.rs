@@ -84,6 +84,20 @@ impl<'a> Ast<'a> {
         self.pair().as_str()
     }
 
+    pub fn as_summary_str(&self) -> String {
+        let text = self.pair().as_str();
+        let lines: Vec<&str> = text.lines().collect();
+        let first_line = lines[0];
+        let rule = self.rule();
+        let truncated_line = if lines.len() == 1 {
+            first_line.to_string()
+        } else {
+            format!("{first_line} ...")
+        };
+
+        format!("[{rule:?}] {truncated_line:?}")
+    }
+
     fn pair(&self) -> &Pair<'a, Rule> {
         &self.0
     }

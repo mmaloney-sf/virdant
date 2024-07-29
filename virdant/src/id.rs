@@ -52,22 +52,22 @@ impl<T> std::fmt::Debug for Id<T> {
 
 pub mod types {
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-    pub struct Package;
+    pub struct Package(());
 
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-    pub struct Item;
+    pub struct Item(());
 
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-    pub struct ModDef;
+    pub struct ModDef(());
 
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-    pub struct UnionDef;
+    pub struct UnionDef(());
 
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-    pub struct StructDef;
+    pub struct StructDef(());
 
     #[derive(Clone, Copy, Eq, PartialEq, Hash)]
-    pub struct PortDef;
+    pub struct PortDef(());
 }
 
 pub use types::*;

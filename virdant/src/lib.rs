@@ -17,6 +17,7 @@ use parse::Ast;
 
 /// A [`Virdant`] is a context type for manipulating Virdant designs.
 /// Call [`check()`](Virdant::check) to get a list of errors in a design.
+#[derive(Default)]
 pub struct Virdant<'a> {
     sources: HashMap<Id<Package>, std::path::PathBuf>,
     errors: VirErrs,
@@ -34,15 +35,7 @@ pub struct Virdant<'a> {
 
 impl<'a> Virdant<'a> {
     pub fn new() -> Virdant<'a> {
-        Virdant {
-            sources: HashMap::new(),
-            errors: VirErrs::new(),
-
-            package_asts: Ready::new(),
-            items: Ready::new(),
-            item_asts: Ready::new(),
-            item_kinds: Ready::new(),
-        }
+        Virdant::default()
     }
 
     pub fn add_package_source<S, P>(&mut self, package: S, path: P) 

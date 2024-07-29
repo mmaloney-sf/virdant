@@ -1,3 +1,4 @@
+#[derive(Default)]
 pub struct Ready<T>(Option<T>);
 
 impl<T> Ready<T> {

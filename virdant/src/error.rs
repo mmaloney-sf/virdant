@@ -9,7 +9,7 @@ pub enum VirErr {
     Other(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct VirErrs {
     errors: Vec<VirErr>,
 }

@@ -44,9 +44,22 @@ impl<'a> Virdant<'a> {
             self.errors.extend(errs);
         }
 
+        self.check_all_imported_packages_exist();
         self.check_no_duplicate_imports();
 
         self.errors.clone().check()
+    }
+
+    fn check_all_imported_packages_exist(&mut self) {
+        let packages = self.packages();
+
+        for package in &packages {
+            for imported_package in self.package_imports(*package) {
+                if !packages.contains(&imported_package) {
+                    self.errors.add(VirErr::Other(format!("Imported package does not exist: {imported_package}")));
+                }
+            }
+        }
     }
 
     fn check_no_duplicate_imports(&mut self) {

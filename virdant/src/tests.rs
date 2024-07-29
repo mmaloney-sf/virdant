@@ -68,7 +68,7 @@ fn test_items() {
 
     let items: Vec<_> = ["top::UartState", "top::UartSender", "top::UartReceiver"]
         .iter()
-        .map(|item| Intern::new(item.to_string()))
+        .map(|item| Id::new(item.to_string()))
         .collect();
 
     assert_eq!(virdant.items(), items);

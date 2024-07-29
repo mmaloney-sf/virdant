@@ -4,21 +4,23 @@
 /// This results in a [`ParseTree`](parse::ParseTree) object (or a [`ParseError`](parse::ParseError) on failure).
 pub mod parse;
 pub mod error;
+pub mod id;
 
 mod ready;
 
 #[cfg(test)]
 mod tests;
 
-use internment::Intern;
 use std::collections::HashMap;
 use ready::Ready;
 use error::VirErr;
 use error::VirErrs;
+use id::*;
+
 
 pub struct Virdant<'a> {
-    sources: HashMap<Intern<String>, std::path::PathBuf>,
-    parse_trees: Ready<HashMap<Intern<String>, parse::ParseTree<'a>>>,
+    sources: HashMap<Id<Package>, std::path::PathBuf>,
+    parse_trees: Ready<HashMap<Id<Package>, parse::ParseTree<'a>>>,
     errors: VirErrs,
 }
 
@@ -35,7 +37,8 @@ impl<'a> Virdant<'a> {
         where 
             S: Into<String>, 
             P: Into<std::path::PathBuf> {
-        self.sources.insert(Intern::new(package.into()), path.into());
+        let id: Id<Package> = Id::from(package.into());
+        self.sources.insert(id, path.into());
     }
 
     pub fn check(&mut self) -> Result<(), VirErrs> {
@@ -46,7 +49,7 @@ impl<'a> Virdant<'a> {
         self.errors.clone().check()
     }
 
-    fn package_text(&self, package: Intern<String>) -> String {
+    fn package_text(&self, package: Id<Package>) -> String {
         let path = self.sources.get(&package).unwrap();
         std::fs::read_to_string(path).unwrap()
     }
@@ -70,18 +73,19 @@ impl<'a> Virdant<'a> {
         errors.check()
     }
 
-    pub fn packages(&self) -> Vec<Intern<String>> {
+    pub fn packages(&self) -> Vec<Id<Package>> {
         self.sources.keys().cloned().collect()
     }
 
-    pub fn items(&self) -> Vec<Intern<String>> {
+    pub fn items(&self) -> Vec<Id<Item>> {
         let mut items = vec![];
 
         for (package, parse_tree) in self.parse_trees.iter() {
             for top_level_tree in parse_tree.children() {
                 if top_level_tree.is_item() {
                     let name = top_level_tree.name().unwrap();
-                    items.push(Intern::new(format!("{package}::{name}")));
+                    let item: Id<Item> = format!("{package}::{name}").into();
+                    items.push(item);
                 }
             }
         }

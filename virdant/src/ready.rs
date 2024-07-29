@@ -1,5 +1,11 @@
-#[derive(Default)]
+#[derive(Clone, Copy)]
 pub struct Ready<T>(Option<T>);
+
+impl<T> Default for Ready<T> {
+    fn default() -> Self {
+        Ready(None)
+    }
+}
 
 impl<T> Ready<T> {
     pub fn new() -> Self {

@@ -7,7 +7,7 @@ mod ready;
 #[cfg(test)]
 mod tests;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use ready::Ready;
 use error::VirErr;
 use error::VirErrs;
@@ -44,7 +44,34 @@ impl<'a> Virdant<'a> {
             self.errors.extend(errs);
         }
 
+        self.check_no_duplicate_imports();
+
         self.errors.clone().check()
+    }
+
+    fn check_no_duplicate_imports(&mut self) {
+        for package in self.packages() {
+            let mut imports: HashSet<Id<Package>> = HashSet::new();
+
+            for import in self.package_imports(package) {
+                if !imports.insert(import) {
+                    self.errors.add(VirErr::Other(format!("Duplicate import: {import}")));
+                }
+            }
+        }
+    }
+
+    fn package_imports(&self, package: Id<Package>) -> Vec<Id<Package>> {
+        let mut packages = vec![];
+        let ast = &self.asts[&package];
+        for node in ast.children() {
+            if node.is_import() {
+                let import_package = Id::new(node.package().unwrap());
+                packages.push(import_package);
+            }
+        }
+
+        packages
     }
 
     fn package_text(&self, package: Id<Package>) -> String {

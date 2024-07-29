@@ -1,13 +1,12 @@
 //! Defines the [`VirErr`] and [`VirErrs`] types.
 
-use crate::parse::Span;
 use crate::parse::ParseError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VirErr {
     Io(String),
     Parse(ParseError),
-    Other(Option<Span>, String),
+    Other(String),
 }
 
 #[derive(Debug, Clone)]

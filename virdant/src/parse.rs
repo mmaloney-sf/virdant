@@ -16,7 +16,7 @@ use crate::ItemKind;
 struct Parser;
 
 /// A node of the parse tree
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Ast<'a>(Pair<'a, Rule>);
 
 /// Parse a Virdant package

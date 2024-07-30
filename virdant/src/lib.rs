@@ -2,17 +2,20 @@ pub mod parse;
 pub mod error;
 pub mod id;
 
+mod table;
 mod ready;
 
 #[cfg(test)]
 mod tests;
 
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 use ready::Ready;
 use error::VirErr;
 use error::VirErrs;
 use id::*;
 use parse::Ast;
+use std::hash::Hash;
+use table::Table;
 
 
 /// A [`Virdant`] is a context type for manipulating Virdant designs.
@@ -21,8 +24,8 @@ use parse::Ast;
 pub struct Virdant<'a> {
     errors: VirErrs,
 
-    packages: IndexMap<Id<Package>, PackageInfo<'a>>,
-    items: IndexMap<Id<Item>, ItemInfo<'a>>,
+    packages: Table<Package, PackageInfo<'a>>,
+    items: Table<Item, ItemInfo<'a>>,
 }
 
 #[derive(Default, Clone)]
@@ -51,9 +54,8 @@ impl<'a> Virdant<'a> {
             S: Into<String>,
             P: Into<std::path::PathBuf> {
         let package_id: Id<Package> = Id::from(package.into());
-        let mut package_info = PackageInfo::default();
+        let package_info = self.packages.register(package_id);
         package_info.source = path.into();
-        self.packages.insert(package_id, package_info);
     }
 
     pub fn check(&mut self) -> Result<(), VirErrs> {
@@ -85,33 +87,28 @@ impl<'a> Virdant<'a> {
             let result: Result<Ast<'a>, _> = parse::parse_package(text);
             match result {
                 Ok(package_ast) => {
-                    let package_info = &mut self.packages[&package];
+                    let package_info = self.packages.get_mut(package).unwrap();
                     package_info.ast.set(package_ast.clone());
                     self.init_item_asts(package);
                 },
                 Err(_) => (),
             }
-
         }
     }
 
     fn init_item_asts(&mut self, package: Id<Package>) {
-        let package_ast = &self.packages[&package].ast;
+        let package_ast = &self.packages.get(package).unwrap().ast.get().unwrap();
         for node in package_ast.children() {
             if node.is_item() {
                 let item_name = node.name().unwrap();
                 let item: Id<Item> = Id::from(format!("{package}::{item_name}"));
+
+                let item_info = self.items.register(item);
+
                 let kind = node.item_kind().unwrap();
+                item_info.kind.set(kind);
 
-                if self.items.contains_key(&item) {
-                    self.errors.add(VirErr::Other("Duplicate item".to_string()));
-                } else {
-                    let mut item_info = ItemInfo::default();
-                    item_info.ast.set(node.clone());
-                    item_info.kind.set(kind);
-
-                    self.items.insert(item, item_info);
-                }
+                item_info.ast.set(node);
             }
         }
     }
@@ -125,7 +122,7 @@ impl<'a> Virdant<'a> {
     fn moddefs(&self) -> Vec<Id<ModDef>> {
         let mut results = vec![];
         for item in self.items.keys() {
-            let item_ast = &*self.items[item].ast;
+            let item_ast = &self.items.get(*item).unwrap().ast.get().unwrap();
             if let Some(ItemKind::ModDef) = item_ast.item_kind() {
                 results.push(item.cast());
             }
@@ -170,7 +167,7 @@ impl<'a> Virdant<'a> {
 
     fn package_imports(&self, package: Id<Package>) -> Vec<Id<Package>> {
         let mut packages = vec![];
-        let ast = &*self.packages[&package].ast;
+        let ast = &self.packages.get(package).unwrap().ast.get().unwrap();
         for node in ast.children() {
             if node.is_import() {
                 let import_package = Id::new(node.package().unwrap());
@@ -182,12 +179,12 @@ impl<'a> Virdant<'a> {
     }
 
     fn package_text(&self, package: Id<Package>) -> String {
-        let path = &self.packages[&package].source;
+        let path = &self.packages.get(package).unwrap().source;
         std::fs::read_to_string(path).unwrap()
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub enum ItemKind {
     ModDef,
     UnionDef,

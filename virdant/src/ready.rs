@@ -1,36 +1,37 @@
-#[derive(Clone, Copy)]
-pub struct Ready<T>(Option<T>);
+use indexmap::IndexSet;
+use std::hash::Hash;
 
-impl<T> Default for Ready<T> {
+#[derive(Clone, Debug)]
+pub struct Ready<T>(IndexSet<T>);
+
+#[derive(Clone, Debug)]
+pub enum ReadyErr {
+    NotSet,
+    MultiplySet,
+}
+
+impl<T: Clone + Hash + Eq> Default for Ready<T> {
     fn default() -> Self {
-        Ready(None)
+        Ready(IndexSet::new())
     }
 }
 
-impl<T> Ready<T> {
+impl<T: Clone + Hash + Eq> Ready<T> {
     pub fn new() -> Self {
-        Ready(None)
+        Ready(IndexSet::new())
     }
 
     pub fn set(&mut self, t: T) {
-        if self.0.is_none() {
-            self.0 = Some(t);
+        self.0.insert(t);
+    }
+
+    pub fn get(&self) -> Result<&T, ReadyErr> {
+        if self.0.len() == 1 {
+            Ok(&self.0[0])
+        } else if self.0.len() == 0 {
+            Err(ReadyErr::NotSet)
         } else {
-            panic!("Already set.")
+            Err(ReadyErr::MultiplySet)
         }
-    }
-}
-
-impl<T> std::ops::Deref for Ready<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        self.0.as_ref().unwrap()
-    }
-}
-
-impl<T> std::ops::DerefMut for Ready<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.0.as_mut().unwrap()
     }
 }

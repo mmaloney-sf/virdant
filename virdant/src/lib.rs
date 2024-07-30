@@ -97,7 +97,7 @@ impl<'a> Virdant<'a> {
     }
 
     fn init_item_asts(&mut self, package: Id<Package>) {
-        let package_ast = &self.packages.get(package).unwrap().ast.get().unwrap();
+        let package_ast = &self.packages[package].ast.get().unwrap();
         for node in package_ast.children() {
             if node.is_item() {
                 let item_name = node.name().unwrap();
@@ -126,7 +126,7 @@ impl<'a> Virdant<'a> {
     fn moddefs(&self) -> Vec<Id<ModDef>> {
         let mut results = vec![];
         for item in self.items.keys() {
-            let item_ast = &self.items.get(*item).unwrap().ast.get().unwrap();
+            let item_ast = &self.items[*item].ast.get().unwrap();
             if let Some(ItemKind::ModDef) = item_ast.item_kind() {
                 results.push(item.cast());
             }
@@ -171,7 +171,7 @@ impl<'a> Virdant<'a> {
 
     fn package_imports(&self, package: Id<Package>) -> Vec<Id<Package>> {
         let mut packages = vec![];
-        if let Ok(ast) = &self.packages.get(package).unwrap().ast.get() {
+        if let Ok(ast) = &self.packages[package].ast.get() {
             for node in ast.children() {
                 if node.is_import() {
                     let import_package = Id::new(node.package().unwrap());
@@ -184,7 +184,7 @@ impl<'a> Virdant<'a> {
     }
 
     fn package_text(&self, package: Id<Package>) -> String {
-        let path = &self.packages.get(package).unwrap().source;
+        let path = &self.packages[package].source;
         std::fs::read_to_string(path).unwrap()
     }
 }

@@ -48,3 +48,17 @@ impl<E: Copy + Eq + Hash, D: Default> Table<E, D> {
         self.0.iter_mut()
     }
 }
+
+impl<E: Copy + Eq + Hash, D> std::ops::Index<Id<E>> for Table<E, D> {
+    type Output = D;
+
+    fn index(&self, index: Id<E>) -> &Self::Output {
+        self.0.get(&index).unwrap()
+    }
+}
+
+impl<E: Copy + Eq + Hash, D> std::ops::IndexMut<Id<E>> for Table<E, D> {
+    fn index_mut(&mut self, index: Id<E>) -> &mut Self::Output {
+        self.0.get_mut(&index).unwrap()
+    }
+}

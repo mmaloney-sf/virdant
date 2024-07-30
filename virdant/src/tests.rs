@@ -52,9 +52,9 @@ fn example_files() -> impl Iterator<Item = std::path::PathBuf> {
 #[test]
 fn test_check_syntax_error() {
     let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
-    let mut virdant = Virdant::new();
-
-    virdant.add_package_source("top", error_examples_dir.join("syntax_error.vir"));
+    let mut virdant = Virdant::new(&[
+        ("top", error_examples_dir.join("syntax_error.vir")),
+    ]);
 
     match virdant.check() {
         Err(errors) => {
@@ -72,9 +72,9 @@ fn test_check_syntax_error() {
 #[test]
 fn test_check_no_such_package() {
     let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
-    let mut virdant = Virdant::new();
-
-    virdant.add_package_source("top", error_examples_dir.join("no_such_package.vir"));
+    let mut virdant = Virdant::new(&[
+        ("top", error_examples_dir.join("no_such_package.vir")),
+    ]);
 
     match virdant.check() {
         Err(errors) => {
@@ -92,10 +92,10 @@ fn test_check_no_such_package() {
 #[test]
 fn test_check_dup_import() {
     let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
-    let mut virdant = Virdant::new();
-
-    virdant.add_package_source("top", error_examples_dir.join("dup_import.vir"));
-    virdant.add_package_source("bar", error_examples_dir.join("bar.vir"));
+    let mut virdant = Virdant::new(&[
+        ("top", error_examples_dir.join("dup_import.vir")),
+        ("bar", error_examples_dir.join("bar.vir")),
+    ]);
 
     match virdant.check() {
         Err(errors) => {
@@ -113,9 +113,9 @@ fn test_check_dup_import() {
 #[test]
 fn test_check_duplicate_item() {
     let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
-    let mut virdant = Virdant::new();
-
-    virdant.add_package_source("top", error_examples_dir.join("duplicate_item.vir"));
+    let mut virdant = Virdant::new(&[
+        ("top", error_examples_dir.join("duplicate_item.vir")),
+    ]);
 
     match virdant.check() {
         Err(errors) => {
@@ -133,9 +133,10 @@ fn test_check_duplicate_item() {
 #[test]
 fn test_items() {
     let examples_dir = std::path::Path::new(EXAMPLES_DIR);
-    let mut virdant = Virdant::new();
+    let mut virdant = Virdant::new(&[
+        ("top", examples_dir.join("uart.vir")),
+    ]);
 
-    virdant.add_package_source("top", examples_dir.join("uart.vir"));
     virdant.check().unwrap();
 
     let items: Vec<_> = ["top::UartState", "top::UartSender", "top::UartReceiver"]

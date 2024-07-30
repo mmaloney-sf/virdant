@@ -8,6 +8,7 @@ mod ready;
 #[cfg(test)]
 mod tests;
 
+use indexmap::IndexMap;
 use indexmap::IndexSet;
 use ready::Ready;
 use error::VirErr;
@@ -48,19 +49,23 @@ struct ItemInfo<'a> {
 ////////////////////////////////////////////////////////////////////////////////
 
 impl<'a> Virdant<'a> {
-    pub fn new() -> Virdant<'a> {
-        Virdant::default()
-    }
-
-    pub fn add_package_source<S, P>(&mut self, package: S, path: P)
+    pub fn new<S, P>(sources: &[(S, P)]) -> Virdant<'a>
         where
-            S: Into<String>,
-            P: Into<std::path::PathBuf> {
-        let package_name = package.into();
-        let package_id: Id<Package> = Id::from(package_name.clone());
-        let package_info = self.packages.register(package_id);
-        package_info.name = package_name;
-        package_info.source = path.into();
+            S: AsRef<str>,
+            P: AsRef<std::path::Path> {
+        let mut virdant = Virdant::default();
+
+        let sources: IndexMap<String, std::path::PathBuf> = sources
+            .into_iter()
+            .map(|(s, p)| {
+                let s: String = s.as_ref().to_owned();
+                let p: std::path::PathBuf = p.as_ref().to_owned();
+                (s, p)
+            })
+            .collect();
+
+        virdant.init_packages(sources);
+        virdant
     }
 
     pub fn check(&mut self) -> Result<(), VirErrs> {
@@ -86,6 +91,15 @@ impl<'a> Virdant<'a> {
 ////////////////////////////////////////////////////////////////////////////////
 
 impl<'a> Virdant<'a> {
+    fn init_packages(&mut self, sources: IndexMap<String, std::path::PathBuf>) {
+        for (package_name, package_path) in sources {
+            let package: Id<Package> = Id::from(package_name.clone());
+            let package_info = self.packages.register(package);
+            package_info.name = package_name;
+            package_info.source = package_path;
+        }
+    }
+
     fn init_asts(&mut self) {
         for package in self.packages() {
             let text: &'a str = self.package_text(package).leak();

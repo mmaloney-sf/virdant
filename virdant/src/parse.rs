@@ -15,6 +15,48 @@ use crate::ItemKind;
 #[grammar = "grammar.pest"]
 struct Parser;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct QualIdent(Option<String>, String);
+
+impl QualIdent {
+    pub fn new(qualident: &str) -> QualIdent {
+        if let Some(idx) = qualident.find("::") {
+            let package = qualident[..idx].to_string();
+            let name = qualident[idx+2..].to_string();
+            QualIdent(Some(package), name)
+        } else {
+            QualIdent(None, qualident.to_string())
+        }
+    }
+
+    pub fn package(&self) -> Option<&String> {
+        self.0.as_ref()
+    }
+
+    pub fn name(&self) -> &str {
+        &self.1
+    }
+
+    pub fn in_package(&self, in_package: &str) -> QualIdent {
+        if self.0.is_some() {
+            self.clone()
+        } else {
+            QualIdent(Some(in_package.to_string()), self.name().to_string())
+        }
+    }
+}
+
+impl std::fmt::Display for QualIdent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = self.name();
+        if let Some(package) = self.package() {
+            write!(f, "{package}::{name}")
+        } else {
+            write!(f, "{name}")
+        }
+    }
+}
+
 /// A node of the parse tree
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Ast<'a>(Pair<'a, Rule>);
@@ -106,8 +148,14 @@ impl<'a> Ast<'a> {
         &self.0
     }
 
-    pub fn is_item(&self) -> bool { self.rule() == Rule::item }
     pub fn is_import(&self) -> bool { self.rule() == Rule::import }
+    pub fn is_item(&self) -> bool { self.rule() == Rule::item }
+
+    pub fn is_moddef(&self) -> bool { self.rule() == Rule::moddef }
+    pub fn is_uniondef(&self) -> bool { self.rule() == Rule::uniondef }
+    pub fn is_structdef(&self) -> bool { self.rule() == Rule::structdef }
+    pub fn is_builtindef(&self) -> bool { self.rule() == Rule::builtindef }
+    pub fn is_portdef(&self) -> bool { self.rule() == Rule::portdef }
 
     pub fn is_statement(&self) -> bool {
         self.rule() == Rule::moddef_statement ||
@@ -115,6 +163,8 @@ impl<'a> Ast<'a> {
         self.rule() == Rule::structdef_statement ||
         self.rule() == Rule::portdef_statement
     }
+
+    pub fn is_submodule(&self) -> bool { self.rule() == Rule::moddef_statement_mod }
 
     pub fn is_list(&self) -> bool {
         self.rule() == Rule::arg_list ||
@@ -130,13 +180,14 @@ impl<'a> Ast<'a> {
 
     pub fn typ(&self) -> Option<Ast> { self.get("type") }
     pub fn expr(&self) -> Option<Ast> { self.get("expr") }
-    pub fn args(&self) -> Option<Ast> { self.get("args") }
+    pub fn args(&self) -> Option<impl Iterator<Item = Ast>> { self.get("args").map(|args| args.children()) }
 
     pub fn item_kind(&self) -> Option<ItemKind> {
         match self.child(0).rule() {
             Rule::moddef => Some(ItemKind::ModDef),
             Rule::uniondef => Some(ItemKind::UnionDef),
             Rule::structdef => Some(ItemKind::StructDef),
+            Rule::builtindef => Some(ItemKind::BuiltinDef),
             Rule::portdef => Some(ItemKind::PortDef),
             _ => None,
         }

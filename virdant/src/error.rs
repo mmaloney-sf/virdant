@@ -1,15 +1,15 @@
 //! Defines the [`VirErr`] and [`VirErrs`] types.
 
 use crate::parse::ParseError;
-use crate::id::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VirErr {
     Io(String),
     Parse(ParseError),
-    DupItem(Id<Item>),
+    DupItem(String),
     CantImport(String),
     DupImport(String),
+    UnresolvedIdent(String),
     Other(String),
 }
 

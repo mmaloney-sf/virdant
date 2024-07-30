@@ -10,6 +10,7 @@ mod tests;
 
 use indexmap::IndexMap;
 use indexmap::IndexSet;
+use parse::QualIdent;
 use ready::Ready;
 use error::VirErr;
 use error::VirErrs;
@@ -42,6 +43,7 @@ struct ItemInfo<'a> {
     package: Ready<Id<Package>>,
     ast: Ready<Ast<'a>>,
     kind: Ready<ItemKind>,
+    deps: Ready<Vec<Id<Item>>>,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -83,13 +85,20 @@ impl<'a> Virdant<'a> {
             }
         }
 
+        let items: Vec<_> = self.items.keys().cloned().collect();
+        for item in items {
+            let item_deps = self.item_deps(item).clone();
+            let item_info = self.items.get_mut(item).unwrap();
+            item_info.deps.set(item_deps);
+        }
+
         self.errors.clone().check()
     }
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// Analyses
+// Packages and Items
 ////////////////////////////////////////////////////////////////////////////////
 
 impl<'a> Virdant<'a> {
@@ -123,10 +132,11 @@ impl<'a> Virdant<'a> {
                 for node in package_ast.children() {
                     if node.is_item() {
                         let item_name = node.name().unwrap();
-                        let item: Id<Item> = Id::new(format!("{package}::{item_name}"));
+                        let qualified_item_name = format!("{package}::{item_name}");
+                        let item: Id<Item> = Id::new(qualified_item_name.clone());
 
                         if self.items.is_registered(item) {
-                            self.errors.add(VirErr::DupItem(item));
+                            self.errors.add(VirErr::DupItem(qualified_item_name));
                         }
 
                         let item_info = self.items.register(item);
@@ -145,6 +155,102 @@ impl<'a> Virdant<'a> {
 
 
 ////////////////////////////////////////////////////////////////////////////////
+// Item dependencies
+////////////////////////////////////////////////////////////////////////////////
+
+impl<'a> Virdant<'a> {
+    fn item_deps(&mut self, item: Id<Item>) -> Vec<Id<Item>> {
+        if let Ok(item_ast) = self.items[item].ast.get() {
+            let (deps, errors) =
+                if item_ast.child(0).is_moddef() {
+                    self.item_deps_moddef(item, item_ast.child(0))
+                } else if item_ast.child(0).is_uniondef() {
+                    self.item_deps_uniondef(item, item_ast.child(0))
+                } else if item_ast.child(0).is_structdef() {
+                    self.item_deps_structdef(item, item_ast.child(0))
+                } else if item_ast.child(0).is_builtindef() {
+                    (vec![], VirErrs::new())
+                } else if item_ast.child(0).is_portdef() {
+                    self.item_deps_moddef(item, item_ast.child(0))
+                } else {
+                    unreachable!()
+                };
+
+            self.errors.extend(errors);
+            deps
+        } else {
+            vec![]
+        }
+    }
+
+    fn item_deps_moddef(&self, item: Id<Item>, moddef_ast: Ast) -> (Vec<Id<Item>>, VirErrs) {
+        let mut errors = VirErrs::new();
+        let mut results = IndexSet::new();
+        for node in moddef_ast.children() {
+            if let Some(type_node) = node.typ() {
+                let (deps, errs) = self.item_deps_type(type_node, item);
+                errors.extend(errs);
+                results.extend(deps);
+            }
+
+            if let Some(qualident) = node.of() {
+                match self.resolve_qualident(&qualident, item) {
+                    Ok(dep_item) => {
+                        results.insert(dep_item);
+                    },
+                    Err(err) => {
+                        errors.add(err);
+                    },
+                }
+            }
+        }
+        (results.into_iter().collect(), errors)
+    }
+
+    fn item_deps_uniondef(&self, item: Id<Item>, uniondef_ast: Ast) -> (Vec<Id<Item>>, VirErrs) {
+        let mut errors = VirErrs::new();
+        let mut results = IndexSet::new();
+        for node in uniondef_ast.children() {
+            if node.is_statement() {
+                let args = node.args().unwrap();
+                for arg in args {
+                    let arg_type = arg.typ().unwrap();
+                    let (deps, errs) = self.item_deps_type(arg_type, item);
+                    results.extend(deps);
+                    errors.extend(errs);
+                }
+            }
+        }
+        (results.into_iter().collect(), errors)
+    }
+
+    fn item_deps_structdef(&self, item: Id<Item>, structdef_ast: Ast) -> (Vec<Id<Item>>, VirErrs) {
+        let mut errors = VirErrs::new();
+        let mut results = IndexSet::new();
+        for node in structdef_ast.children() {
+            if node.is_statement() {
+                let typ = node.typ().unwrap();
+                let (deps, errs) = self.item_deps_type(typ, item);
+                results.extend(deps);
+                errors.extend(errs);
+            }
+        }
+        (results.into_iter().collect(), errors)
+    }
+
+    fn item_deps_type(&self, type_ast: Ast, in_item: Id<Item>) -> (Vec<Id<Item>>, VirErrs) {
+        let mut errors = VirErrs::new();
+        match self.resolve_qualident(type_ast.name().unwrap(), in_item) {
+            Ok(item) => (vec![item], errors),
+            Err(err) => {
+                errors.add(err);
+                (vec![], errors)
+            }
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Resolution
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -156,6 +262,17 @@ impl<'a> Virdant<'a> {
             }
         }
         None
+    }
+
+    fn resolve_qualident(&self, qualident: &str, in_item: Id<Item>) -> Result<Id<Item>, VirErr> {
+        let qi = QualIdent::new(qualident);
+        let in_package = self.items[in_item].package.unwrap().clone();
+        let resolved_package_name = qi.in_package(&in_package.to_string()).to_string();
+        let builtin_resolved_package_name = qi.in_package("builtin").to_string();
+        self.items
+            .resolve(&resolved_package_name)
+            .or_else(|| self.items.resolve(&builtin_resolved_package_name))
+            .ok_or_else(|| VirErr::UnresolvedIdent(format!("{qualident}")))
     }
 }
 
@@ -237,5 +354,6 @@ pub enum ItemKind {
     ModDef,
     UnionDef,
     StructDef,
+    BuiltinDef,
     PortDef,
 }

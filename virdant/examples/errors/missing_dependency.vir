@@ -1,0 +1,17 @@
+mod Top {
+    incoming clock : Clock;
+    incoming inp : Word[8];
+    outgoing foo : Foo;
+
+    master port mem of Mem;
+}
+
+union type Foo {
+    Foo();
+    Bar(x : Bar);
+}
+
+struct type Baz {
+    x : Foo;
+    y : Bar;
+}

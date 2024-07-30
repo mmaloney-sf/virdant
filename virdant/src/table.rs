@@ -47,6 +47,15 @@ impl<E: Copy + Eq + Hash, D: Default> Table<E, D> {
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&Id<E>, &mut D)> {
         self.0.iter_mut()
     }
+
+    pub fn resolve(&self, name: &str) -> Option<Id<E>> {
+        let id = Id::new(name);
+        if self.0.contains_key(&id) {
+            Some(id)
+        } else {
+            None
+        }
+    }
 }
 
 impl<E: Copy + Eq + Hash, D> std::ops::Index<Id<E>> for Table<E, D> {

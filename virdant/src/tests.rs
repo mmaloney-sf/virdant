@@ -4,6 +4,7 @@ const CHECK: char = '✅';
 const BATSU: char = '❌';
 
 const EXAMPLES_DIR: &'static str = "../examples";
+const TEST_EXAMPLES_DIR: &'static str = "examples";
 const ERROR_EXAMPLES_DIR: &'static str = "examples/errors";
 
 #[test]
@@ -11,7 +12,7 @@ fn parse_examples() {
     use parse::*;
     let mut errors = vec![];
 
-    for filepath in example_files() {
+    for filepath in example_files().chain(test_example_files()) {
         let text = std::fs::read_to_string(filepath.clone()).unwrap();
 
         let filename = filepath
@@ -38,6 +39,20 @@ fn parse_examples() {
 fn example_files() -> impl Iterator<Item = std::path::PathBuf> {
     let mut results = vec![];
     let examples_dir = std::path::Path::new(EXAMPLES_DIR);
+    let entries = std::fs::read_dir(examples_dir).unwrap();
+    for entry in entries {
+        let entry = entry.unwrap();
+        let filename = entry.file_name().to_string_lossy().into_owned();
+        if filename.ends_with(".vir") {
+            results.push(entry.path())
+        }
+    }
+    results.into_iter()
+}
+
+fn test_example_files() -> impl Iterator<Item = std::path::PathBuf> {
+    let mut results = vec![];
+    let examples_dir = std::path::Path::new(TEST_EXAMPLES_DIR);
     let entries = std::fs::read_dir(examples_dir).unwrap();
     for entry in entries {
         let entry = entry.unwrap();
@@ -134,12 +149,13 @@ fn test_check_duplicate_item() {
 fn test_items() {
     let examples_dir = std::path::Path::new(EXAMPLES_DIR);
     let mut virdant = Virdant::new(&[
+        ("builtin", examples_dir.join("builtin.vir")),
         ("top", examples_dir.join("uart.vir")),
     ]);
 
     virdant.check().unwrap();
 
-    let items: Vec<_> = ["top::UartState", "top::UartSender", "top::UartReceiver"]
+    let items: Vec<_> = ["builtin::Word", "builtin::Clock", "top::UartState", "top::UartSender", "top::UartReceiver"]
         .iter()
         .map(|item| Id::new(item.to_string()))
         .collect();
@@ -152,4 +168,22 @@ fn test_items() {
         .collect();
 
     assert_eq!(virdant.moddefs(), moddefs);
+}
+
+#[test]
+fn test_check_missing_dependency() {
+    let examples_dir = std::path::Path::new(EXAMPLES_DIR);
+    let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
+    let mut virdant = Virdant::new(&[
+        ("builtin", examples_dir.join("builtin.vir")),
+        ("top", error_examples_dir.join("missing_dependency.vir")),
+    ]);
+
+    match virdant.check() {
+        Err(errors) => {
+            eprintln!("{errors:?}");
+            assert_eq!(errors.len(), 3);
+        },
+        _ => panic!(),
+    }
 }

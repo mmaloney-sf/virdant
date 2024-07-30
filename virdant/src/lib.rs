@@ -30,12 +30,15 @@ pub struct Virdant<'a> {
 
 #[derive(Default, Clone)]
 struct PackageInfo<'a> {
+    name: String,
     source: std::path::PathBuf,
     ast: Ready<Ast<'a>>,
 }
 
 #[derive(Default, Clone)]
 struct ItemInfo<'a> {
+    name: String,
+    package: Ready<Id<Package>>,
     ast: Ready<Ast<'a>>,
     kind: Ready<ItemKind>,
 }
@@ -53,8 +56,10 @@ impl<'a> Virdant<'a> {
         where
             S: Into<String>,
             P: Into<std::path::PathBuf> {
-        let package_id: Id<Package> = Id::from(package.into());
+        let package_name = package.into();
+        let package_id: Id<Package> = Id::from(package_name.clone());
         let package_info = self.packages.register(package_id);
+        package_info.name = package_name;
         package_info.source = path.into();
     }
 
@@ -108,10 +113,11 @@ impl<'a> Virdant<'a> {
                 }
 
                 let item_info = self.items.register(item);
-
                 let kind = node.item_kind().unwrap();
-                item_info.kind.set(kind);
 
+                item_info.name = item_name.to_string();
+                item_info.kind.set(kind);
+                item_info.package.set(package);
                 item_info.ast.set(node);
             }
         }

@@ -23,6 +23,10 @@ impl<E: Copy + Eq + Hash, D: Default> Table<E, D> {
        self.0.get_mut(&key)
     }
 
+    pub fn is_registered(&self, key: Id<E>) -> bool {
+        self.0.contains_key(&key)
+    }
+
     pub fn register(&mut self, key: Id<E>) -> &mut D {
         if self.0.contains_key(&key) {
            self.0.get_mut(&key).unwrap()

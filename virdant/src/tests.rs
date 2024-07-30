@@ -4,6 +4,7 @@ const CHECK: char = '✅';
 const BATSU: char = '❌';
 
 const EXAMPLES_DIR: &'static str = "../examples";
+const ERROR_EXAMPLES_DIR: &'static str = "examples/errors";
 
 #[test]
 fn parse_examples() {
@@ -49,13 +50,84 @@ fn example_files() -> impl Iterator<Item = std::path::PathBuf> {
 }
 
 #[test]
-fn test_check() {
-    let examples_dir = std::path::Path::new(EXAMPLES_DIR);
+fn test_check_syntax_error() {
+    let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
     let mut virdant = Virdant::new();
 
-    virdant.add_package_source("top", examples_dir.join("uart.vir"));
+    virdant.add_package_source("top", error_examples_dir.join("syntax_error.vir"));
 
-    virdant.check().unwrap();
+    match virdant.check() {
+        Err(errors) => {
+            assert_eq!(errors.len(), 1);
+            if let VirErr::Parse(_err) = &errors[0] {
+                ()
+            } else {
+                panic!()
+            }
+        },
+        _ => panic!(),
+    }
+}
+
+#[test]
+fn test_check_no_such_package() {
+    let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
+    let mut virdant = Virdant::new();
+
+    virdant.add_package_source("top", error_examples_dir.join("no_such_package.vir"));
+
+    match virdant.check() {
+        Err(errors) => {
+            assert_eq!(errors.len(), 1);
+            if let VirErr::CantImport(_err) = &errors[0] {
+                ()
+            } else {
+                panic!()
+            }
+        },
+        _ => panic!(),
+    }
+}
+
+#[test]
+fn test_check_dup_import() {
+    let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
+    let mut virdant = Virdant::new();
+
+    virdant.add_package_source("top", error_examples_dir.join("dup_import.vir"));
+    virdant.add_package_source("bar", error_examples_dir.join("bar.vir"));
+
+    match virdant.check() {
+        Err(errors) => {
+            assert_eq!(errors.len(), 1);
+            if let VirErr::DupImport(_err) = &errors[0] {
+                ()
+            } else {
+                panic!()
+            }
+        },
+        _ => panic!(),
+    }
+}
+
+#[test]
+fn test_check_duplicate_item() {
+    let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
+    let mut virdant = Virdant::new();
+
+    virdant.add_package_source("top", error_examples_dir.join("duplicate_item.vir"));
+
+    match virdant.check() {
+        Err(errors) => {
+            assert_eq!(errors.len(), 1);
+            if let VirErr::DupItem(_) = &errors[0] {
+                ()
+            } else {
+                panic!()
+            }
+        },
+        _ => panic!(),
+    }
 }
 
 #[test]

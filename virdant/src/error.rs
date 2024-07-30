@@ -1,11 +1,15 @@
 //! Defines the [`VirErr`] and [`VirErrs`] types.
 
 use crate::parse::ParseError;
+use crate::id::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VirErr {
     Io(String),
     Parse(ParseError),
+    DupItem(Id<Item>),
+    CantImport(Id<Package>),
+    DupImport(Id<Package>),
     Other(String),
 }
 
@@ -51,5 +55,17 @@ impl VirErrs {
 
     pub fn extend(&mut self, others: VirErrs) {
         self.errors.extend(others.errors);
+    }
+
+    pub fn len(&self) -> usize {
+        self.errors.len()
+    }
+}
+
+impl std::ops::Index<usize> for VirErrs {
+    type Output = VirErr;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.errors[index]
     }
 }

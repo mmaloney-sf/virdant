@@ -91,7 +91,7 @@ impl<'a> Virdant<'a> {
                     package_info.ast.set(package_ast.clone());
                     self.init_item_asts(package);
                 },
-                Err(_) => (),
+                Err(err) => self.errors.add(VirErr::Parse(err)),
             }
         }
     }
@@ -102,6 +102,10 @@ impl<'a> Virdant<'a> {
             if node.is_item() {
                 let item_name = node.name().unwrap();
                 let item: Id<Item> = Id::from(format!("{package}::{item_name}"));
+
+                if self.items.is_registered(item) {
+                    self.errors.add(VirErr::DupItem(item));
+                }
 
                 let item_info = self.items.register(item);
 
@@ -146,7 +150,7 @@ impl<'a> Virdant<'a> {
         let packages = self.packages();
         for imported_package in self.package_imports(package) {
             if !packages.contains(&imported_package) {
-                errors.add(VirErr::Other(format!("Imported package does not exist: {imported_package}")));
+                errors.add(VirErr::CantImport(imported_package));
             }
         }
         errors.check()
@@ -158,7 +162,7 @@ impl<'a> Virdant<'a> {
 
         for import in self.package_imports(package) {
             if !imports.insert(import) {
-                errors.add(VirErr::Other(format!("Duplicate import: {import}")));
+                errors.add(VirErr::DupImport(import));
             }
         }
 
@@ -167,11 +171,12 @@ impl<'a> Virdant<'a> {
 
     fn package_imports(&self, package: Id<Package>) -> Vec<Id<Package>> {
         let mut packages = vec![];
-        let ast = &self.packages.get(package).unwrap().ast.get().unwrap();
-        for node in ast.children() {
-            if node.is_import() {
-                let import_package = Id::new(node.package().unwrap());
-                packages.push(import_package);
+        if let Ok(ast) = &self.packages.get(package).unwrap().ast.get() {
+            for node in ast.children() {
+                if node.is_import() {
+                    let import_package = Id::new(node.package().unwrap());
+                    packages.push(import_package);
+                }
             }
         }
 

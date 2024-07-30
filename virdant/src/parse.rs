@@ -125,6 +125,7 @@ impl<'a> Ast<'a> {
 
     pub fn package(&self) -> Option<&str> { self.get_as_str("package") }
     pub fn name(&self) -> Option<&str> { self.get_as_str("name") }
+
     pub fn of(&self) -> Option<&str> { self.get_as_str("of") }
 
     pub fn typ(&self) -> Option<Ast> { self.get("type") }

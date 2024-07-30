@@ -34,4 +34,8 @@ impl<T: Clone + Hash + Eq> Ready<T> {
             Err(ReadyErr::MultiplySet)
         }
     }
+
+    pub fn unwrap(&self) -> &T {
+        self.get().unwrap()
+    }
 }

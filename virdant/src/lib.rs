@@ -61,7 +61,7 @@ impl<'a> Virdant<'a> {
     pub fn check(&mut self) -> Result<(), VirErrs> {
         self.init_asts();
 
-        for package in  self.packages() {
+        for package in self.packages() {
             if let Err(errs) = self.all_imported_packages_exist(package) {
                 self.errors.extend(errs)
             }
@@ -97,7 +97,7 @@ impl<'a> Virdant<'a> {
     }
 
     fn init_item_asts(&mut self, package: Id<Package>) {
-        let package_ast = &self.packages[package].ast.get().unwrap();
+        let package_ast = &self.packages[package].ast.unwrap();
         for node in package_ast.children() {
             if node.is_item() {
                 let item_name = node.name().unwrap();
@@ -126,7 +126,7 @@ impl<'a> Virdant<'a> {
     fn moddefs(&self) -> Vec<Id<ModDef>> {
         let mut results = vec![];
         for item in self.items.keys() {
-            let item_ast = &self.items[*item].ast.get().unwrap();
+            let item_ast = &self.items[*item].ast.unwrap();
             if let Some(ItemKind::ModDef) = item_ast.item_kind() {
                 results.push(item.cast());
             }

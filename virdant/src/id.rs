@@ -11,30 +11,12 @@ pub struct Id<T>(Intern<String>, PhantomData<T>);
 
 
 impl<T> Id<T> {
-    pub fn new<S: Into<String>>(s: S) -> Id<T> {
+    pub(crate) fn new<S: Into<String>>(s: S) -> Id<T> {
         Id(Intern::new(s.into()), PhantomData)
     }
 
-    pub fn cast<S>(&self) -> Id<S> {
+    pub(crate) fn cast<S>(&self) -> Id<S> {
         Id(self.0, PhantomData)
-    }
-}
-
-impl<'a, T> From<&'a str> for Id<T> {
-    fn from(id: &'a str) -> Self {
-        Id(Intern::new(id.to_string()), PhantomData::default())
-    }
-}
-
-impl<T> From<String> for Id<T> {
-    fn from(id: String) -> Self {
-        Id(Intern::new(id), PhantomData::default())
-    }
-}
-
-impl<T> From<Id<T>> for Intern<String> {
-    fn from(value: Id<T>) -> Self {
-        value.0
     }
 }
 

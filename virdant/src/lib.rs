@@ -64,19 +64,21 @@ impl<'a> Virdant<'a> {
             })
             .collect();
 
-        virdant.init_packages(sources);
+        virdant.register_packages(sources);
         virdant
     }
 
     pub fn check(&mut self) -> Result<(), VirErrs> {
-        self.init_asts();
+        self.init_package_asts();
+        self.register_items();
 
-        for package in self.packages() {
-            if let Err(errs) = self.all_imported_packages_exist(package) {
+        let packages: Vec<_> = self.packages.keys().cloned().collect();
+        for package in packages {
+            if let Err(errs) = self.check_all_imported_packages_exist(package) {
                 self.errors.extend(errs)
             }
 
-            if let Err(errs) = self.no_duplicate_imports(package) {
+            if let Err(errs) = self.check_no_duplicate_imports(package) {
                 self.errors.extend(errs)
             }
         }
@@ -91,52 +93,127 @@ impl<'a> Virdant<'a> {
 ////////////////////////////////////////////////////////////////////////////////
 
 impl<'a> Virdant<'a> {
-    fn init_packages(&mut self, sources: IndexMap<String, std::path::PathBuf>) {
+    fn register_packages(&mut self, sources: IndexMap<String, std::path::PathBuf>) {
         for (package_name, package_path) in sources {
-            let package: Id<Package> = Id::from(package_name.clone());
+            let package: Id<Package> = Id::new(package_name.clone());
             let package_info = self.packages.register(package);
             package_info.name = package_name;
             package_info.source = package_path;
         }
     }
 
-    fn init_asts(&mut self) {
-        for package in self.packages() {
+    fn init_package_asts(&mut self) {
+        let packages: Vec<_> = self.packages.keys().cloned().collect();
+        for package in packages {
             let text: &'a str = self.package_text(package).leak();
             let result: Result<Ast<'a>, _> = parse::parse_package(text);
             match result {
                 Ok(package_ast) => {
-                    let package_info = self.packages.get_mut(package).unwrap();
+                    let package_info = &mut self.packages[package];
                     package_info.ast.set(package_ast.clone());
-                    self.init_item_asts(package);
                 },
                 Err(err) => self.errors.add(VirErr::Parse(err)),
             }
         }
     }
 
-    fn init_item_asts(&mut self, package: Id<Package>) {
-        let package_ast = &self.packages[package].ast.unwrap();
-        for node in package_ast.children() {
-            if node.is_item() {
-                let item_name = node.name().unwrap();
-                let item: Id<Item> = Id::from(format!("{package}::{item_name}"));
+    fn register_items(&mut self) {
+        for package in self.packages.keys().cloned() {
+            if let Ok(package_ast) = &self.packages[package].ast.get() {
+                for node in package_ast.children() {
+                    if node.is_item() {
+                        let item_name = node.name().unwrap();
+                        let item: Id<Item> = Id::new(format!("{package}::{item_name}"));
 
-                if self.items.is_registered(item) {
-                    self.errors.add(VirErr::DupItem(item));
+                        if self.items.is_registered(item) {
+                            self.errors.add(VirErr::DupItem(item));
+                        }
+
+                        let item_info = self.items.register(item);
+                        let kind = node.item_kind().unwrap();
+
+                        item_info.name = item_name.to_string();
+                        item_info.kind.set(kind);
+                        item_info.package.set(package);
+                        item_info.ast.set(node);
+                    }
                 }
-
-                let item_info = self.items.register(item);
-                let kind = node.item_kind().unwrap();
-
-                item_info.name = item_name.to_string();
-                item_info.kind.set(kind);
-                item_info.package.set(package);
-                item_info.ast.set(node);
             }
         }
     }
+}
 
+
+////////////////////////////////////////////////////////////////////////////////
+// Resolution
+////////////////////////////////////////////////////////////////////////////////
+
+impl<'a> Virdant<'a> {
+    fn resolve_package(&self, package_name: &str) -> Option<Id<Package>> {
+        for (package, package_info) in self.packages.iter() {
+            if package_name == package_info.name {
+                return Some(*package);
+            }
+        }
+        None
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Internal checks
+////////////////////////////////////////////////////////////////////////////////
+
+impl<'a> Virdant<'a> {
+    fn check_all_imported_packages_exist(&mut self, package: Id<Package>) -> Result<(), VirErrs> {
+        let mut errors = VirErrs::new();
+        for imported_package_name in self.package_imports(package) {
+            let imported_package = self.resolve_package(&imported_package_name);
+            if imported_package.is_none() {
+                errors.add(VirErr::CantImport(imported_package_name));
+            }
+        }
+        errors.check()
+    }
+
+    fn check_no_duplicate_imports(&mut self, package: Id<Package>) -> Result<(), VirErrs> {
+        let mut errors = VirErrs::new();
+        let mut imports: IndexSet<String> = IndexSet::new();
+
+        for import in self.package_imports(package) {
+            if !imports.insert(import.clone()) {
+                errors.add(VirErr::DupImport(import));
+            }
+        }
+
+        errors.check()
+    }
+
+    fn package_imports(&self, package: Id<Package>) -> Vec<String> {
+        let mut packages = vec![];
+        if let Ok(ast) = &self.packages[package].ast.get() {
+            for node in ast.children() {
+                if node.is_import() {
+                    packages.push(node.package().unwrap().to_string());
+                }
+            }
+        }
+
+        packages
+    }
+
+    fn package_text(&self, package: Id<Package>) -> String {
+        let path = &self.packages[package].source;
+        std::fs::read_to_string(path).unwrap()
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// For testing
+////////////////////////////////////////////////////////////////////////////////
+
+impl<'a> Virdant<'a> {
     #[cfg(test)]
     fn items(&self) -> Vec<Id<Item>> {
         self.items.keys().cloned().collect()
@@ -152,60 +229,6 @@ impl<'a> Virdant<'a> {
             }
         }
         results
-    }
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Internal checks
-////////////////////////////////////////////////////////////////////////////////
-
-impl<'a> Virdant<'a> {
-    fn packages(&self) -> Vec<Id<Package>> {
-        self.packages.keys().cloned().collect()
-    }
-
-    fn all_imported_packages_exist(&mut self, package: Id<Package>) -> Result<(), VirErrs> {
-        let mut errors = VirErrs::new();
-        let packages = self.packages();
-        for imported_package in self.package_imports(package) {
-            if !packages.contains(&imported_package) {
-                errors.add(VirErr::CantImport(imported_package));
-            }
-        }
-        errors.check()
-    }
-
-    fn no_duplicate_imports(&mut self, package: Id<Package>) -> Result<(), VirErrs> {
-        let mut errors = VirErrs::new();
-        let mut imports: IndexSet<Id<Package>> = IndexSet::new();
-
-        for import in self.package_imports(package) {
-            if !imports.insert(import) {
-                errors.add(VirErr::DupImport(import));
-            }
-        }
-
-        errors.check()
-    }
-
-    fn package_imports(&self, package: Id<Package>) -> Vec<Id<Package>> {
-        let mut packages = vec![];
-        if let Ok(ast) = &self.packages[package].ast.get() {
-            for node in ast.children() {
-                if node.is_import() {
-                    let import_package = Id::new(node.package().unwrap());
-                    packages.push(import_package);
-                }
-            }
-        }
-
-        packages
-    }
-
-    fn package_text(&self, package: Id<Package>) -> String {
-        let path = &self.packages[package].source;
-        std::fs::read_to_string(path).unwrap()
     }
 }
 

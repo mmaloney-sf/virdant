@@ -8,8 +8,8 @@ pub enum VirErr {
     Io(String),
     Parse(ParseError),
     DupItem(Id<Item>),
-    CantImport(Id<Package>),
-    DupImport(Id<Package>),
+    CantImport(String),
+    DupImport(String),
     Other(String),
 }
 

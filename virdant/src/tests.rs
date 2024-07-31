@@ -195,7 +195,7 @@ fn test_check_missing_dependency() {
     match virdant.check() {
         Err(errors) => {
             eprintln!("{errors:?}");
-            assert_eq!(errors.len(), 3);
+            assert_eq!(errors.len(), 2);
         },
         _ => panic!(),
     }
@@ -218,6 +218,31 @@ fn test_check_item_dep_cycle() {
                 ()
             } else {
                 panic!()
+            }
+        },
+        _ => panic!(),
+    }
+}
+
+#[test]
+fn test_check_kind_error() {
+    let examples_dir = std::path::Path::new(EXAMPLES_DIR);
+    let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
+    let mut virdant = Virdant::new(&[
+        ("builtin", examples_dir.join("builtin.vir")),
+        ("top", error_examples_dir.join("kind_error.vir")),
+    ]);
+
+    match virdant.check() {
+        Err(errors) => {
+            eprintln!("{errors:?}");
+            assert_eq!(errors.len(), 3);
+            for error in errors.into_iter() {
+                if let VirErr::KindError(_) = &error {
+                    ()
+                } else {
+                    panic!()
+                }
             }
         },
         _ => panic!(),

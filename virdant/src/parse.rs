@@ -173,6 +173,9 @@ impl<'a> Ast<'a> {
         self.rule() == Rule::pat_list
     }
 
+    pub fn is_type(&self) -> bool { self.rule() == Rule::r#type }
+    pub fn is_nat(&self) -> bool { self.rule() == Rule::nat  }
+
     pub fn package(&self) -> Option<&str> { self.get_as_str("package") }
     pub fn name(&self) -> Option<&str> { self.get_as_str("name") }
 
@@ -180,7 +183,7 @@ impl<'a> Ast<'a> {
 
     pub fn typ(&self) -> Option<Ast> { self.get("type") }
     pub fn expr(&self) -> Option<Ast> { self.get("expr") }
-    pub fn args(&self) -> Option<impl Iterator<Item = Ast>> { self.get("args").map(|args| args.children()) }
+    pub fn args(&self) -> Option<Vec<Ast>> { self.get("args").map(|args| args.children().collect()) }
 
     pub fn item_kind(&self) -> Option<ItemKind> {
         match self.child(0).rule() {
@@ -219,7 +222,7 @@ impl Span {
 }
 
 /// An error encountered during parsing.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ParseError(Error<Rule>);
 
 impl ParseError {

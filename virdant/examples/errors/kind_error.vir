@@ -1,0 +1,8 @@
+struct type T {
+    x : Clock[1];
+    y : Word[F];
+    z : Word;
+}
+
+union type F {
+}

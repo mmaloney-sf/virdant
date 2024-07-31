@@ -46,6 +46,7 @@ pub mod types {
 
     id_type!(ModDef);
     id_type!(UnionDef);
+    id_type!(BuiltinDef);
     id_type!(StructDef);
     id_type!(PortDef);
 
@@ -68,6 +69,12 @@ impl Id<UnionDef> {
 }
 
 impl Id<StructDef> {
+    pub fn as_item(&self) -> Id<Item> {
+        self.cast()
+    }
+}
+
+impl Id<BuiltinDef> {
     pub fn as_item(&self) -> Id<Item> {
         self.cast()
     }

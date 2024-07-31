@@ -89,7 +89,7 @@ portdef_statement = {
 ////////////////////////////////////////////////////////////////////////////////
 
 type = {
-    (#name=qualident) ~ ("[" ~ nat ~ "]")?
+    (#name=qualident) ~ ("[" ~ (#args=typeargs_list) ~ "]")?
 }
 
 
@@ -117,6 +117,10 @@ expr_list = {
 
 arg_list = {
     (arg ~ ("," ~ arg)* ~ ","?)?
+}
+
+typeargs_list = {
+    (typearg ~ ("," ~ typearg)* ~ ","?)?
 }
 
 pat_list = {
@@ -201,6 +205,11 @@ pat = {
 
 arg = {
     (#name=ident) ~ ":" ~ (#type=type)
+}
+
+typearg = {
+    type |
+    nat
 }
 
 path = @{ ident ~ ("." ~ ident)* }

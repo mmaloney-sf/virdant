@@ -1,6 +1,7 @@
 pub mod parse;
 pub mod error;
 pub mod id;
+pub mod types;
 
 mod table;
 mod ready;
@@ -20,6 +21,7 @@ use id::*;
 use parse::Ast;
 use std::hash::Hash;
 use table::Table;
+use types::Type;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -34,6 +36,8 @@ pub struct Virdant {
 
     packages: Table<Package, PackageInfo>,
     items: Table<Item, ItemInfo>,
+    structdefs: Table<StructDef, StructDefInfo>,
+    fields: Table<Field, FieldInfo>,
 }
 
 #[derive(Default, Clone, Debug)]
@@ -52,6 +56,18 @@ struct ItemInfo {
     deps: Ready<Vec<Id<Item>>>,
 }
 
+#[derive(Default, Clone, Debug)]
+struct StructDefInfo {
+    item: Ready<Id<Item>>,
+    fields: Ready<Vec<Id<Field>>>,
+}
+
+#[derive(Default, Clone, Debug)]
+struct FieldInfo {
+    structdef: Ready<Id<StructDef>>,
+    name: String,
+    typ: Ready<Type>,
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Public Virdant API
@@ -100,6 +116,8 @@ impl Virdant {
         }
 
         self.check_no_item_dep_cycles();
+
+        self.register_structdefs();
 
         self.errors.clone().check()
     }
@@ -364,6 +382,107 @@ impl Virdant {
     }
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////
+///
+impl Virdant {
+    fn register_structdefs(&mut self) {
+        let structdefs = self.items_by_kind(ItemKind::StructDef);
+        for item in structdefs {
+            let structdef: Id<StructDef> = item.cast();
+            let structdef_info = self.structdefs.register(structdef);
+            structdef_info.item.set(item);
+
+            let mut fields = vec![];
+
+            let item_info = &self.items[item];
+            let structdef_ast = item_info.ast.unwrap().child(0);
+            for node in structdef_ast.children() {
+                if node.is_statement() {
+                    let field_name = node.name().unwrap();
+                    let field_type_ast = node.typ().unwrap();
+
+                    let field_type = match self.resolve_type(field_type_ast, item) {
+                        Ok(field_type) => field_type,
+                        Err(err) => {
+                            self.errors.add(err);
+                            continue;
+                        },
+                    };
+
+                    let field: Id<Field> = Id::new(format!("{item}::{field_name}"));
+                    let field_info = self.fields.register(field);
+                    field_info.structdef.set(structdef);
+                    field_info.name = field_name.to_string();
+                    field_info.typ.set(field_type);
+
+                    fields.push(field);
+                }
+            }
+
+            let structdef_info = &mut self.structdefs[structdef];
+            structdef_info.fields.set(fields);
+        }
+    }
+
+    fn items_by_kind(&self, kind: ItemKind) -> Vec<Id<Item>> {
+        let mut items = vec![];
+        for (item, item_info) in self.items.iter() {
+            if *item_info.kind.unwrap() == kind {
+                items.push(item.clone());
+            }
+        }
+        items
+    }
+
+    fn resolve_type(&self, type_ast: Ast, in_item: Id<Item>) -> Result<Type, VirErr> {
+        let item = self.resolve_qualident(type_ast.name().unwrap(), in_item)?;
+
+
+        let mut width: Option<types::Nat> = None;
+
+        if let Some(args) = type_ast.args() {
+            assert_eq!(args.len(), 1);
+
+            let arg_ast = args[0].child(0);
+            if arg_ast.is_nat() {
+                width = Some(str::parse::<u64>(arg_ast.as_str()).unwrap());
+            } else {
+                return Err(VirErr::KindError("Only widths are allowed here".to_string()));
+            }
+        }
+
+        let item_kind = self.items[item].kind.unwrap();
+        match item_kind {
+            ItemKind::UnionDef => {
+                if width.is_some() {
+                    return Err(VirErr::KindError(format!("Union definition {item} does not take a generic")));
+                }
+                Ok(Type::uniondef(item.cast()))
+            },
+            ItemKind::StructDef => {
+                if width.is_some() {
+                    return Err(VirErr::KindError(format!("Struct definition {item} does not take a generic")));
+                }
+                Ok(Type::structdef(item.cast()))
+            },
+            ItemKind::BuiltinDef => {
+                let word_builitindef = self.resolve_qualident("builtin::Word", in_item).unwrap();
+
+                if item == word_builitindef && width.is_none() {
+                    return Err(VirErr::KindError("Word requires a length".to_string()));
+                } else if item != word_builitindef && width.is_some() {
+                    return Err(VirErr::KindError(format!("Type definition {item} does not take a generic")));
+                }
+
+                Ok(Type::builtindef(item.cast(), width))
+            },
+            _ => unreachable!(),
+        }
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // For testing

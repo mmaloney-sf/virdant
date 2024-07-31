@@ -1,7 +1,7 @@
 use indexmap::IndexSet;
 use std::hash::Hash;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Ready<T>(IndexSet<T>);
 
 #[derive(Clone, Debug)]
@@ -37,5 +37,15 @@ impl<T: Clone + Hash + Eq> Ready<T> {
 
     pub fn unwrap(&self) -> &T {
         self.get().unwrap()
+    }
+}
+
+impl<T: Clone + Hash + Eq + std::fmt::Debug> std::fmt::Debug for Ready<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.get() {
+            Ok(t) => write!(f, "{t:?}"),
+            Err(ReadyErr::NotSet) => write!(f, "{{not set}}"),
+            Err(ReadyErr::MultiplySet) => write!(f, "{{multiplly set}}"),
+        }
     }
 }

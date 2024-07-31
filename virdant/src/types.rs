@@ -2,7 +2,7 @@ use crate::id::*;
 
 pub type Nat = u64;
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Type(TypeScheme, Option<Nat>);
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
@@ -46,5 +46,11 @@ impl std::fmt::Display for Type {
             Some(n) => format!("[{n}]"),
         };
         write!(f, "{item_def}{arg_str}")
+    }
+}
+
+impl std::fmt::Debug for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self}")
     }
 }

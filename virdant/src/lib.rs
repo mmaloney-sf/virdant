@@ -581,6 +581,56 @@ impl Virdant {
     }
 }
 
+impl std::fmt::Debug for Virdant {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "PACKAGES:")?;
+        for (package, package_info) in self.packages.iter() {
+            writeln!(f, "    {package}")?;
+            writeln!(f, "        name: {:?}", package_info.name)?;
+            writeln!(f, "        source: {:?}", package_info.source)?;
+        }
+
+        writeln!(f, "ITEMS:")?;
+        for (item, item_info) in self.items.iter() {
+            writeln!(f, "    {item}")?;
+            writeln!(f, "        name: {:?}", item_info.name)?;
+            writeln!(f, "        package: {:?}", item_info.package)?;
+            writeln!(f, "        kind: {:?}", item_info.kind)?;
+            writeln!(f, "        deps: {:?}", item_info.deps)?;
+        }
+
+        writeln!(f, "STRUCTDEFS:")?;
+        for (structdef, structdef_info) in self.structdefs.iter() {
+            writeln!(f, "    {structdef}")?;
+            writeln!(f, "    fields: {:?}", structdef_info.fields)?;
+        }
+
+        writeln!(f, "FIELDS:")?;
+        for (field, field_info) in self.fields.iter() {
+            writeln!(f, "    {field}")?;
+            writeln!(f, "        structdef: {:?}", field_info.structdef)?;
+            writeln!(f, "        name: {:?}", field_info.name)?;
+            writeln!(f, "        typ: {:?}", field_info.typ)?;
+        }
+
+        writeln!(f, "UNIONDEFS:")?;
+        for (uniondef, uniondef_info) in self.uniondefs.iter() {
+            writeln!(f, "    {uniondef}")?;
+            writeln!(f, "    ctors: {:?}", uniondef_info.ctors)?;
+        }
+
+        writeln!(f, "CTORS:")?;
+        for (ctor, ctor_info) in self.ctors.iter() {
+            writeln!(f, "    {ctor}")?;
+            writeln!(f, "        uniondef: {:?}", ctor_info.uniondef)?;
+            writeln!(f, "        name: {:?}", ctor_info.name)?;
+            writeln!(f, "        sig: {:?}", ctor_info.sig)?;
+        }
+
+        Ok(())
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
 pub enum ItemKind {
     ModDef,

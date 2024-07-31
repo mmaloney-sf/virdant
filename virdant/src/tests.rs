@@ -1,11 +1,15 @@
+use std::sync::LazyLock;
+
 use crate::*;
 
 const CHECK: char = '✅';
 const BATSU: char = '❌';
 
-const EXAMPLES_DIR: &'static str = "../examples";
-const TEST_EXAMPLES_DIR: &'static str = "examples";
-const ERROR_EXAMPLES_DIR: &'static str = "examples/errors";
+const LIB_DIR: LazyLock<std::path::PathBuf> = LazyLock::new(|| std::path::PathBuf::from("../lib"));
+const EXAMPLES_DIR: LazyLock<std::path::PathBuf> = LazyLock::new(|| std::path::PathBuf::from("../examples"));
+const TEST_EXAMPLES_DIR: LazyLock<std::path::PathBuf> = LazyLock::new(|| std::path::PathBuf::from("examples"));
+const ERROR_EXAMPLES_DIR: LazyLock<std::path::PathBuf> = LazyLock::new(|| std::path::PathBuf::from("examples/errors"));
+
 
 #[test]
 fn parse_examples() {
@@ -38,8 +42,7 @@ fn parse_examples() {
 
 fn example_files() -> impl Iterator<Item = std::path::PathBuf> {
     let mut results = vec![];
-    let examples_dir = std::path::Path::new(EXAMPLES_DIR);
-    let entries = std::fs::read_dir(examples_dir).unwrap();
+    let entries = std::fs::read_dir(&*EXAMPLES_DIR).unwrap();
     for entry in entries {
         let entry = entry.unwrap();
         let filename = entry.file_name().to_string_lossy().into_owned();
@@ -52,8 +55,7 @@ fn example_files() -> impl Iterator<Item = std::path::PathBuf> {
 
 fn test_example_files() -> impl Iterator<Item = std::path::PathBuf> {
     let mut results = vec![];
-    let examples_dir = std::path::Path::new(TEST_EXAMPLES_DIR);
-    let entries = std::fs::read_dir(examples_dir).unwrap();
+    let entries = std::fs::read_dir(&*EXAMPLES_DIR).unwrap();
     for entry in entries {
         let entry = entry.unwrap();
         let filename = entry.file_name().to_string_lossy().into_owned();
@@ -66,12 +68,9 @@ fn test_example_files() -> impl Iterator<Item = std::path::PathBuf> {
 
 #[test]
 fn test_top() {
-    let examples_dir = std::path::Path::new(EXAMPLES_DIR);
-    let test_examples_dir = std::path::Path::new(TEST_EXAMPLES_DIR);
-
     let mut virdant = Virdant::new(&[
-        ("builtin", examples_dir.join("builtin.vir")),
-        ("top", test_examples_dir.join("top.vir")),
+        ("builtin", LIB_DIR.join("builtin.vir")),
+        ("top", TEST_EXAMPLES_DIR.join("top.vir")),
     ]);
 
     virdant.check().unwrap();
@@ -79,9 +78,8 @@ fn test_top() {
 
 #[test]
 fn test_check_syntax_error() {
-    let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
     let mut virdant = Virdant::new(&[
-        ("top", error_examples_dir.join("syntax_error.vir")),
+        ("top", ERROR_EXAMPLES_DIR.join("syntax_error.vir")),
     ]);
 
     match virdant.check() {
@@ -99,9 +97,8 @@ fn test_check_syntax_error() {
 
 #[test]
 fn test_check_no_such_package() {
-    let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
     let mut virdant = Virdant::new(&[
-        ("top", error_examples_dir.join("no_such_package.vir")),
+        ("top", ERROR_EXAMPLES_DIR.join("no_such_package.vir")),
     ]);
 
     match virdant.check() {
@@ -119,10 +116,9 @@ fn test_check_no_such_package() {
 
 #[test]
 fn test_check_dup_import() {
-    let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
     let mut virdant = Virdant::new(&[
-        ("top", error_examples_dir.join("dup_import.vir")),
-        ("bar", error_examples_dir.join("bar.vir")),
+        ("top", ERROR_EXAMPLES_DIR.join("dup_import.vir")),
+        ("bar", ERROR_EXAMPLES_DIR.join("bar.vir")),
     ]);
 
     match virdant.check() {
@@ -140,9 +136,8 @@ fn test_check_dup_import() {
 
 #[test]
 fn test_check_duplicate_item() {
-    let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
     let mut virdant = Virdant::new(&[
-        ("top", error_examples_dir.join("duplicate_item.vir")),
+        ("top", ERROR_EXAMPLES_DIR.join("duplicate_item.vir")),
     ]);
 
     match virdant.check() {
@@ -160,10 +155,9 @@ fn test_check_duplicate_item() {
 
 #[test]
 fn test_items() {
-    let examples_dir = std::path::Path::new(EXAMPLES_DIR);
     let mut virdant = Virdant::new(&[
-        ("builtin", examples_dir.join("builtin.vir")),
-        ("top", examples_dir.join("uart.vir")),
+        ("builtin", LIB_DIR.join("builtin.vir")),
+        ("top", EXAMPLES_DIR.join("uart.vir")),
     ]);
 
     virdant.check().unwrap();
@@ -185,11 +179,9 @@ fn test_items() {
 
 #[test]
 fn test_check_missing_dependency() {
-    let examples_dir = std::path::Path::new(EXAMPLES_DIR);
-    let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
     let mut virdant = Virdant::new(&[
-        ("builtin", examples_dir.join("builtin.vir")),
-        ("top", error_examples_dir.join("missing_dependency.vir")),
+        ("builtin", LIB_DIR.join("builtin.vir")),
+        ("top", ERROR_EXAMPLES_DIR.join("missing_dependency.vir")),
     ]);
 
     match virdant.check() {
@@ -203,11 +195,9 @@ fn test_check_missing_dependency() {
 
 #[test]
 fn test_check_item_dep_cycle() {
-    let examples_dir = std::path::Path::new(EXAMPLES_DIR);
-    let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
     let mut virdant = Virdant::new(&[
-        ("builtin", examples_dir.join("builtin.vir")),
-        ("top", error_examples_dir.join("item_dep_cycle.vir")),
+        ("builtin", LIB_DIR.join("builtin.vir")),
+        ("top", ERROR_EXAMPLES_DIR.join("item_dep_cycle.vir")),
     ]);
 
     match virdant.check() {
@@ -226,11 +216,9 @@ fn test_check_item_dep_cycle() {
 
 #[test]
 fn test_check_kind_error() {
-    let examples_dir = std::path::Path::new(EXAMPLES_DIR);
-    let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
     let mut virdant = Virdant::new(&[
-        ("builtin", examples_dir.join("builtin.vir")),
-        ("top", error_examples_dir.join("kind_error.vir")),
+        ("builtin", LIB_DIR.join("builtin.vir")),
+        ("top", ERROR_EXAMPLES_DIR.join("kind_error.vir")),
     ]);
 
     match virdant.check() {

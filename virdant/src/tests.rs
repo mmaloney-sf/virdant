@@ -65,6 +65,19 @@ fn test_example_files() -> impl Iterator<Item = std::path::PathBuf> {
 }
 
 #[test]
+fn test_top() {
+    let examples_dir = std::path::Path::new(EXAMPLES_DIR);
+    let test_examples_dir = std::path::Path::new(TEST_EXAMPLES_DIR);
+
+    let mut virdant = Virdant::new(&[
+        ("builtin", examples_dir.join("builtin.vir")),
+        ("top", test_examples_dir.join("top.vir")),
+    ]);
+
+    virdant.check().unwrap();
+}
+
+#[test]
 fn test_check_syntax_error() {
     let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
     let mut virdant = Virdant::new(&[
@@ -183,6 +196,29 @@ fn test_check_missing_dependency() {
         Err(errors) => {
             eprintln!("{errors:?}");
             assert_eq!(errors.len(), 3);
+        },
+        _ => panic!(),
+    }
+}
+
+#[test]
+fn test_check_item_dep_cycle() {
+    let examples_dir = std::path::Path::new(EXAMPLES_DIR);
+    let error_examples_dir = std::path::Path::new(ERROR_EXAMPLES_DIR);
+    let mut virdant = Virdant::new(&[
+        ("builtin", examples_dir.join("builtin.vir")),
+        ("top", error_examples_dir.join("item_dep_cycle.vir")),
+    ]);
+
+    match virdant.check() {
+        Err(errors) => {
+            eprintln!("{errors:?}");
+            assert_eq!(errors.len(), 1);
+            if let VirErr::ItemDepCycle(_) = &errors[0] {
+                ()
+            } else {
+                panic!()
+            }
         },
         _ => panic!(),
     }

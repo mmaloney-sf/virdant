@@ -10,6 +10,7 @@ pub enum VirErr {
     CantImport(String),
     DupImport(String),
     UnresolvedIdent(String),
+    ItemDepCycle(Vec<String>),
     Other(String),
 }
 

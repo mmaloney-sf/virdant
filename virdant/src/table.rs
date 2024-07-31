@@ -2,6 +2,7 @@ use indexmap::IndexMap;
 use std::hash::Hash;
 use crate::id::Id;
 
+#[derive(Debug)]
 pub struct Table<E, D>(IndexMap<Id<E>, D>);
 
 impl<E: Copy + Eq + Hash, D: Default> Default for Table<E, D> {

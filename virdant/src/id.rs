@@ -35,7 +35,7 @@ impl<T> std::fmt::Debug for Id<T> {
 pub mod types {
     macro_rules! id_type {
         ($name:ident) => {
-            #[derive(Clone, Copy, Eq, PartialEq, Hash)]
+            #[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
             pub struct $name(());
         };
     }

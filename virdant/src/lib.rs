@@ -4,10 +4,12 @@ pub mod id;
 
 mod table;
 mod ready;
+mod cycle;
 
 #[cfg(test)]
 mod tests;
 
+use cycle::detect_cycle;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 use parse::QualIdent;
@@ -30,14 +32,14 @@ pub struct Virdant<'a> {
     items: Table<Item, ItemInfo<'a>>,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 struct PackageInfo<'a> {
     name: String,
     source: std::path::PathBuf,
     ast: Ready<Ast<'a>>,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 struct ItemInfo<'a> {
     name: String,
     package: Ready<Id<Package>>,
@@ -45,6 +47,7 @@ struct ItemInfo<'a> {
     kind: Ready<ItemKind>,
     deps: Ready<Vec<Id<Item>>>,
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Public Virdant<'a> API
@@ -91,6 +94,8 @@ impl<'a> Virdant<'a> {
             let item_info = self.items.get_mut(item).unwrap();
             item_info.deps.set(item_deps);
         }
+
+        self.check_no_item_dep_cycles();
 
         self.errors.clone().check()
     }
@@ -248,6 +253,23 @@ impl<'a> Virdant<'a> {
             }
         }
     }
+
+    fn check_no_item_dep_cycles(&mut self) {
+        let mut dep_graph = IndexMap::new();
+
+        for (item, item_info) in self.items.iter() {
+            let deps = item_info.deps.unwrap();
+            dep_graph.insert(item.clone(), deps.to_owned());
+        }
+
+        if let Err(cycle) = detect_cycle(&dep_graph) {
+            let cycle_names: Vec<String> = cycle
+                .into_iter()
+                .map(|item| item.to_string())
+                .collect();
+            self.errors.add(VirErr::ItemDepCycle(cycle_names));
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -356,4 +378,16 @@ pub enum ItemKind {
     StructDef,
     BuiltinDef,
     PortDef,
+}
+
+impl ItemKind {
+    pub fn is_typedef(&self) -> bool {
+        match self {
+            ItemKind::ModDef => false,
+            ItemKind::UnionDef => true,
+            ItemKind::StructDef => true,
+            ItemKind::BuiltinDef => true,
+            ItemKind::PortDef => false,
+        }
+    }
 }

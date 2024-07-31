@@ -22,6 +22,10 @@ use std::hash::Hash;
 use table::Table;
 
 
+////////////////////////////////////////////////////////////////////////////////
+// Types
+////////////////////////////////////////////////////////////////////////////////
+
 /// A [`Virdant`] is a context type for manipulating Virdant designs.
 /// Call [`check()`](Virdant::check) to get a list of errors in a design.
 #[derive(Default)]
@@ -50,7 +54,7 @@ struct ItemInfo<'a> {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// Public Virdant<'a> API
+// Public Virdant API
 ////////////////////////////////////////////////////////////////////////////////
 
 impl<'a> Virdant<'a> {
@@ -119,42 +123,60 @@ impl<'a> Virdant<'a> {
     fn init_package_asts(&mut self) {
         let packages: Vec<_> = self.packages.keys().cloned().collect();
         for package in packages {
-            let text: &'a str = self.package_text(package).leak();
-            let result: Result<Ast<'a>, _> = parse::parse_package(text);
-            match result {
-                Ok(package_ast) => {
-                    let package_info = &mut self.packages[package];
-                    package_info.ast.set(package_ast.clone());
-                },
-                Err(err) => self.errors.add(VirErr::Parse(err)),
-            }
-        }
-    }
-
-    fn register_items(&mut self) {
-        for package in self.packages.keys().cloned() {
-            if let Ok(package_ast) = &self.packages[package].ast.get() {
-                for node in package_ast.children() {
-                    if node.is_item() {
-                        let item_name = node.name().unwrap();
-                        let qualified_item_name = format!("{package}::{item_name}");
-                        let item: Id<Item> = Id::new(qualified_item_name.clone());
-
-                        if self.items.is_registered(item) {
-                            self.errors.add(VirErr::DupItem(qualified_item_name));
-                        }
-
-                        let item_info = self.items.register(item);
-                        let kind = node.item_kind().unwrap();
-
-                        item_info.name = item_name.to_string();
-                        item_info.kind.set(kind);
-                        item_info.package.set(package);
-                        item_info.ast.set(node);
+            match self.package_text(package) {
+                Err(err) => self.errors.add(err),
+                Ok(text) => {
+                    let text: &'a str = text.leak(); // TODO
+                    let result: Result<Ast<'a>, _> = parse::parse_package(text);
+                    match result {
+                        Ok(package_ast) => {
+                            let package_info = &mut self.packages[package];
+                            package_info.ast.set(package_ast.clone());
+                        },
+                        Err(err) => self.errors.add(VirErr::Parse(err)),
                     }
                 }
             }
         }
+    }
+
+    fn package_text(&self, package: Id<Package>) -> Result<String, VirErr> {
+        let path = &self.packages[package].source;
+        match std::fs::read_to_string(path) {
+            Ok(source) => Ok(source),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    fn register_items(&mut self) {
+        let packages: Vec<_> = self.packages.keys().cloned().collect();
+        for package in packages {
+            if let Ok(package_ast) = &self.packages[package].ast.get() {
+                for node in package_ast.children() {
+                    if node.is_item() {
+                        self.register_item(node, package);
+                    }
+                }
+            }
+        }
+    }
+
+    fn register_item(&mut self, item_ast: Ast<'a>, package: Id<Package>) {
+        let item_name = item_ast.name().unwrap();
+        let qualified_item_name = format!("{package}::{item_name}");
+        let item: Id<Item> = Id::new(qualified_item_name.clone());
+
+        if self.items.is_registered(item) {
+            self.errors.add(VirErr::DupItem(qualified_item_name));
+        }
+
+        let item_info = self.items.register(item);
+        let kind = item_ast.item_kind().unwrap();
+
+        item_info.name = item_name.to_string();
+        item_info.kind.set(kind);
+        item_info.package.set(package);
+        item_info.ast.set(item_ast);
     }
 }
 
@@ -300,7 +322,7 @@ impl<'a> Virdant<'a> {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// Internal checks
+// Import Checks
 ////////////////////////////////////////////////////////////////////////////////
 
 impl<'a> Virdant<'a> {
@@ -339,11 +361,6 @@ impl<'a> Virdant<'a> {
         }
 
         packages
-    }
-
-    fn package_text(&self, package: Id<Package>) -> String {
-        let path = &self.packages[package].source;
-        std::fs::read_to_string(path).unwrap()
     }
 }
 

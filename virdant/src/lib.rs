@@ -19,6 +19,7 @@ use error::VirErr;
 use error::VirErrs;
 use id::*;
 use parse::Ast;
+use types::CtorSig;
 use std::hash::Hash;
 use table::Table;
 use types::Type;
@@ -38,6 +39,8 @@ pub struct Virdant {
     items: Table<Item, ItemInfo>,
     structdefs: Table<StructDef, StructDefInfo>,
     fields: Table<Field, FieldInfo>,
+    uniondefs: Table<UnionDef, UnionDefInfo>,
+    ctors: Table<Ctor, CtorInfo>,
 }
 
 #[derive(Default, Clone, Debug)]
@@ -67,6 +70,19 @@ struct FieldInfo {
     structdef: Ready<Id<StructDef>>,
     name: String,
     typ: Ready<Type>,
+}
+
+#[derive(Default, Clone, Debug)]
+struct UnionDefInfo {
+    item: Ready<Id<Item>>,
+    ctors: Ready<Vec<Id<Ctor>>>,
+}
+
+#[derive(Default, Clone, Debug)]
+struct CtorInfo {
+    uniondef: Ready<Id<UnionDef>>,
+    name: String,
+    sig: Ready<CtorSig>,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -116,8 +132,8 @@ impl Virdant {
         }
 
         self.check_no_item_dep_cycles();
-
         self.register_structdefs();
+        self.register_uniondefs();
 
         self.errors.clone().check()
     }
@@ -312,6 +328,7 @@ impl Virdant {
     }
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////
 // Resolution
 ////////////////////////////////////////////////////////////////////////////////
@@ -384,9 +401,9 @@ impl Virdant {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//
+// Register types
 ////////////////////////////////////////////////////////////////////////////////
-///
+
 impl Virdant {
     fn register_structdefs(&mut self) {
         let structdefs = self.items_by_kind(ItemKind::StructDef);
@@ -398,7 +415,14 @@ impl Virdant {
             let mut fields = vec![];
 
             let item_info = &self.items[item];
-            let structdef_ast = item_info.ast.unwrap().child(0);
+
+            let item_ast = if let Ok(item_ast) = item_info.ast.get() {
+                item_ast
+            } else {
+                continue;
+            };
+
+            let structdef_ast = item_ast.child(0);
             for node in structdef_ast.children() {
                 if node.is_statement() {
                     let field_name = node.name().unwrap();
@@ -424,6 +448,55 @@ impl Virdant {
 
             let structdef_info = &mut self.structdefs[structdef];
             structdef_info.fields.set(fields);
+        }
+    }
+
+    fn register_uniondefs(&mut self) {
+        let uniondefs = self.items_by_kind(ItemKind::UnionDef);
+        for item in uniondefs {
+            let uniondef: Id<UnionDef> = item.cast();
+            let uniondef_info = self.uniondefs.register(uniondef);
+            uniondef_info.item.set(item);
+
+            let mut ctors = vec![];
+
+            let item_info = &self.items[item];
+            let uniondef_ast = item_info.ast.unwrap().child(0);
+            for node in uniondef_ast.children() {
+                if node.is_statement() {
+                    let ctor_name = node.name().unwrap();
+                    let ctor_param_asts = node.args().unwrap();
+
+                    let ctor: Id<Ctor> = Id::new(format!("{item}::{ctor_name}"));
+                    let mut params: Vec<(String, Type)> = vec![];
+
+                    for ctor_param_ast in ctor_param_asts {
+                        let ctor_param_name = ctor_param_ast.name().unwrap().to_string();
+                        let type_ast = ctor_param_ast.typ().unwrap();
+                        let ctor_param_type = match self.resolve_type(type_ast, item) {
+                            Ok(ctor_type) => ctor_type,
+                            Err(err) => {
+                                self.errors.add(err);
+                                continue;
+                            },
+                        };
+                        params.push((ctor_param_name, ctor_param_type));
+                    }
+
+                    let ret_typ = Type::uniondef(uniondef);
+                    let ctor_sig = CtorSig::new(ctor, params, ret_typ);
+
+                    let ctor_info = self.ctors.register(ctor);
+                    ctor_info.uniondef.set(uniondef);
+                    ctor_info.name = ctor_name.to_string();
+                    ctor_info.sig.set(ctor_sig);
+
+                    ctors.push(ctor);
+                }
+            }
+
+            let uniondef_info = &mut self.uniondefs[uniondef];
+            uniondef_info.ctors.set(ctors);
         }
     }
 
@@ -483,6 +556,7 @@ impl Virdant {
         }
     }
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // For testing

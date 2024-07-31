@@ -29,25 +29,25 @@ use table::Table;
 /// A [`Virdant`] is a context type for manipulating Virdant designs.
 /// Call [`check()`](Virdant::check) to get a list of errors in a design.
 #[derive(Default)]
-pub struct Virdant<'a> {
+pub struct Virdant {
     errors: VirErrs,
 
-    packages: Table<Package, PackageInfo<'a>>,
-    items: Table<Item, ItemInfo<'a>>,
+    packages: Table<Package, PackageInfo>,
+    items: Table<Item, ItemInfo>,
 }
 
 #[derive(Default, Clone, Debug)]
-struct PackageInfo<'a> {
+struct PackageInfo {
     name: String,
     source: std::path::PathBuf,
-    ast: Ready<Ast<'a>>,
+    ast: Ready<Ast<'static>>,
 }
 
 #[derive(Default, Clone, Debug)]
-struct ItemInfo<'a> {
+struct ItemInfo {
     name: String,
     package: Ready<Id<Package>>,
-    ast: Ready<Ast<'a>>,
+    ast: Ready<Ast<'static>>,
     kind: Ready<ItemKind>,
     deps: Ready<Vec<Id<Item>>>,
 }
@@ -57,8 +57,8 @@ struct ItemInfo<'a> {
 // Public Virdant API
 ////////////////////////////////////////////////////////////////////////////////
 
-impl<'a> Virdant<'a> {
-    pub fn new<S, P>(sources: &[(S, P)]) -> Virdant<'a>
+impl Virdant {
+    pub fn new<S, P>(sources: &[(S, P)]) -> Virdant
         where
             S: AsRef<str>,
             P: AsRef<std::path::Path> {
@@ -110,7 +110,7 @@ impl<'a> Virdant<'a> {
 // Packages and Items
 ////////////////////////////////////////////////////////////////////////////////
 
-impl<'a> Virdant<'a> {
+impl Virdant {
     fn register_packages(&mut self, sources: IndexMap<String, std::path::PathBuf>) {
         for (package_name, package_path) in sources {
             let package: Id<Package> = Id::new(package_name.clone());
@@ -126,8 +126,8 @@ impl<'a> Virdant<'a> {
             match self.package_text(package) {
                 Err(err) => self.errors.add(err),
                 Ok(text) => {
-                    let text: &'a str = text.leak(); // TODO
-                    let result: Result<Ast<'a>, _> = parse::parse_package(text);
+                    let text: &'static str = text.leak(); // TODO
+                    let result: Result<Ast, _> = parse::parse_package(text);
                     match result {
                         Ok(package_ast) => {
                             let package_info = &mut self.packages[package];
@@ -161,7 +161,7 @@ impl<'a> Virdant<'a> {
         }
     }
 
-    fn register_item(&mut self, item_ast: Ast<'a>, package: Id<Package>) {
+    fn register_item(&mut self, item_ast: Ast<'static>, package: Id<Package>) {
         let item_name = item_ast.name().unwrap();
         let qualified_item_name = format!("{package}::{item_name}");
         let item: Id<Item> = Id::new(qualified_item_name.clone());
@@ -185,7 +185,7 @@ impl<'a> Virdant<'a> {
 // Item dependencies
 ////////////////////////////////////////////////////////////////////////////////
 
-impl<'a> Virdant<'a> {
+impl Virdant {
     fn item_deps(&mut self, item: Id<Item>) -> Vec<Id<Item>> {
         if let Ok(item_ast) = self.items[item].ast.get() {
             let (deps, errors) =
@@ -298,7 +298,7 @@ impl<'a> Virdant<'a> {
 // Resolution
 ////////////////////////////////////////////////////////////////////////////////
 
-impl<'a> Virdant<'a> {
+impl Virdant {
     fn resolve_package(&self, package_name: &str) -> Option<Id<Package>> {
         for (package, package_info) in self.packages.iter() {
             if package_name == package_info.name {
@@ -325,7 +325,7 @@ impl<'a> Virdant<'a> {
 // Import Checks
 ////////////////////////////////////////////////////////////////////////////////
 
-impl<'a> Virdant<'a> {
+impl Virdant {
     fn check_all_imported_packages_exist(&mut self, package: Id<Package>) -> Result<(), VirErrs> {
         let mut errors = VirErrs::new();
         for imported_package_name in self.package_imports(package) {
@@ -369,7 +369,7 @@ impl<'a> Virdant<'a> {
 // For testing
 ////////////////////////////////////////////////////////////////////////////////
 
-impl<'a> Virdant<'a> {
+impl Virdant {
     #[cfg(test)]
     fn items(&self) -> Vec<Id<Item>> {
         self.items.keys().cloned().collect()

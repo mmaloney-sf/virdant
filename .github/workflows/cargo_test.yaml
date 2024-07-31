@@ -13,6 +13,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
+    - name: Set Rustc version
+      run: |
+        rustup update
+        rustup toolchain install 1.80.0
+        rustup default 1.80.0
+
     - name: Run cargo test
       run: |
         cd virdant

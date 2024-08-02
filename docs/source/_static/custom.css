@@ -6,3 +6,25 @@
 .wy-side-nav-search {
     background-color: #167d60;
 }
+
+/*********************************************************************************/
+/*
+    Style the :caption: on a .. code-block:: directive.
+*/
+/*********************************************************************************/
+
+.caption-text {
+    font-style: normal;
+}
+
+.rst-content .code-block-caption {
+    padding: 0.5em 0.7em;
+    border: 1px solid #e1e4e5;
+    border-bottom: none;
+    background: #d9d9d9;
+    text-align: left;
+}
+
+.rst-content div {
+    margin-top: 0 !important;
+}

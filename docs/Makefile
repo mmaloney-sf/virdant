@@ -7,18 +7,15 @@ SPHINXOPTS    ?=
 SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = source
 BUILDDIR      = build
-EXAMPLES      = $(wildcard ../examples/*.vir)
+EXAMPLES      = $(wildcard sources/examples/*.vir)
 
 
 auto: Makefile examples $(EXAMPLES) # rustdocs
-	mkdir -p ./source/examples/
-	cp ../examples/*.vir ./source/examples/
 	$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 .PHONY: auto clean examples push rustdocs
 
 clean:
-	rm -rf ./source/examples
 	rm -rf $(BUILDDIR)
 	rm -rf ./latexbuild/
 

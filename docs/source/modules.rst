@@ -6,16 +6,23 @@ Module Definitions
 ------------------
 Modules are declared using the `mod` keyword.
 
-A module has a list of pins, a list of components, and a list of wires.
+Modules consist of a list of statements.
+These do things like:
+
+* declare ports to allow the module to communicate with the outside world
+* declare registers for tracking the state of the module
+* instantiate submodules
+* perform logic
 
 The following example is a `Buffer` module, which demonstrates all three parts:
 
 .. literalinclude:: examples/buffer.vir
+   :caption: buffer.vir
    :language: virdant
    :linenos:
 
 This module has two ports, an incoming port `in` and and outgoing port `out`.
-Both carry a value of type `Word[1]` (that is, a bit) to and from the module.
+Both carry a value of type `Word[8]` -- a byte -- to and from the module.
 
 This module contains one subcomponent: a `reg` (register) named `queue`.
 It stores a value of type `Word[1]`.

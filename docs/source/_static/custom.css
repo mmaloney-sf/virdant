@@ -1,0 +1,8 @@
+.rst-content code.literal, .rst-content tt.literal {
+    color: inherit;
+    white-space: nowrap;
+}
+
+.wy-side-nav-search {
+    background-color: #167d60;
+}

@@ -1,2 +1,3 @@
+builtin type Bit {}
 builtin type Word {}
 builtin type Clock {}

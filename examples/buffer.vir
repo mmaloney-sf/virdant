@@ -1,23 +1,22 @@
 mod Top {
-    incoming clk : Clock;
+    implicit clk : Clock;
     incoming reset : Word[1];
     outgoing out : Word[8];
 
-    reg r : Word[8] on clk;
+    reg r : Word[8];
     r <= if reset { 10w8 } else { r->add(1) };
 
     mod buffer of Buffer;
-    buffer.clk := clk;
     buffer.inp := r;
     out := buffer.out;
 }
 
 mod Buffer {
-    incoming clk : Clock;
+    implicit clk : Clock;
     incoming inp : Word[8];
     outgoing out : Word[8];
 
-    reg r : Word[8] on clk;
+    reg r : Word[8];
     r <= inp;
     out <= r;
 }

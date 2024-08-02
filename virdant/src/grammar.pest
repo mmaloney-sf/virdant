@@ -54,6 +54,7 @@ portdef = {
 ////////////////////////////////////////////////////////////////////////////////
 
 moddef_statement = {
+    moddef_statement_implicit |
     moddef_statement_incoming |
     moddef_statement_outgoing |
     moddef_statement_reg |
@@ -63,9 +64,10 @@ moddef_statement = {
     moddef_statement_driver
 }
 
+moddef_statement_implicit = { kw_implicit ~ (#name=ident) ~ ":" ~ (#type=type) }
 moddef_statement_incoming = { kw_incoming ~ (#name=ident) ~ ":" ~ (#type=type) }
 moddef_statement_outgoing = { kw_outgoing ~ (#name=ident) ~ ":" ~ (#type=type) }
-moddef_statement_reg = { kw_reg ~ (#name=ident) ~ ":" ~ (#type=type) ~ "on" ~ (#clock=expr) }
+moddef_statement_reg = { kw_reg ~ (#name=ident) ~ ":" ~ (#type=type) ~ ("on" ~ (#clock=expr))? }
 moddef_statement_node = { kw_node ~ (#name=ident) ~ ":" ~ (#type=type) }
 moddef_statement_mod = { kw_mod ~ (#name=ident) ~ kw_of ~ (#of=qualident) }
 moddef_statement_port = { port_role ~ kw_port ~ (#name=ident) ~ kw_of ~ (#of=qualident) }
@@ -184,6 +186,7 @@ expr_base = {
     struct ~ "{" ~ assign_list ~ "}" |
     path |
     wordlit |
+    boollit |
     "(" ~ expr ~ ")"
 }
 
@@ -223,6 +226,11 @@ wordlit = @{
     nat ~ ("w" ~ ASCII_DIGIT+)?
 }
 
+boollit = {
+    kw_true |
+    kw_false
+}
+
 qualident = @{ (ident ~ "::")? ~ ident }
 ident = @{ !keyword ~ ("_" | ASCII_ALPHA) ~ ("_" | ASCII_ALPHANUMERIC)* }
 ctor = @{ "@" ~ qualident }
@@ -246,6 +254,7 @@ kw_struct       = @{ "struct"     ~ !(ASCII_ALPHANUMERIC | "_") }
 kw_union        = @{ "union"      ~ !(ASCII_ALPHANUMERIC | "_") }
 kw_builtin      = @{ "builtin"    ~ !(ASCII_ALPHANUMERIC | "_") }
 kw_type         = @{ "type"       ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_implicit     = @{ "implicit"   ~ !(ASCII_ALPHANUMERIC | "_") }
 kw_incoming     = @{ "incoming"   ~ !(ASCII_ALPHANUMERIC | "_") }
 kw_outgoing     = @{ "outgoing"   ~ !(ASCII_ALPHANUMERIC | "_") }
 kw_reg          = @{ "reg"        ~ !(ASCII_ALPHANUMERIC | "_") }
@@ -260,6 +269,8 @@ kw_mosi         = @{ "mosi"       ~ !(ASCII_ALPHANUMERIC | "_") }
 kw_miso         = @{ "miso"       ~ !(ASCII_ALPHANUMERIC | "_") }
 kw_master       = @{ "master"     ~ !(ASCII_ALPHANUMERIC | "_") }
 kw_slave        = @{ "slave"      ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_true         = @{ "true"       ~ !(ASCII_ALPHANUMERIC | "_") }
+kw_false        = @{ "false"      ~ !(ASCII_ALPHANUMERIC | "_") }
 
 keyword = {
     kw_ext |
@@ -269,6 +280,7 @@ keyword = {
     kw_union |
     kw_type |
     kw_incoming |
+    kw_implicit |
     kw_outgoing |
     kw_reg |
     kw_node |
@@ -279,7 +291,9 @@ keyword = {
     kw_match |
     kw_cat |
     kw_mosi |
-    kw_miso
+    kw_miso |
+    kw_true |
+    kw_false
 }
 
 

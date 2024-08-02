@@ -162,19 +162,31 @@ fn test_items() {
 
     virdant.check().unwrap();
 
-    let items: Vec<_> = ["builtin::Word", "builtin::Clock", "top::UartState", "top::UartSender", "top::UartReceiver"]
+    let items: Vec<_> = ["top::UartState", "top::UartSender", "top::UartReceiver"]
         .iter()
-        .map(|item| Id::new(item.to_string()))
+        .map(|item| item.to_string())
         .collect();
 
-    assert_eq!(virdant.items(), items);
+    assert_eq!(
+        virdant.items().iter()
+            .map(|item| item.to_string())
+            .filter(|item| !item.starts_with("builtin"))
+            .collect::<Vec<_>>(),
+        items,
+    );
 
     let moddefs: Vec<_> = ["top::UartSender", "top::UartReceiver"]
         .iter()
-        .map(|item| Id::new(item.to_string()))
-        .collect();
+        .map(|item| item.to_string())
+        .collect::<Vec<_>>();
 
-    assert_eq!(virdant.moddefs(), moddefs);
+    assert_eq!(
+        virdant.moddefs().iter()
+            .map(|item| item.to_string())
+            .filter(|item| !item.starts_with("builtin"))
+            .collect::<Vec<_>>(),
+        moddefs,
+    );
 }
 
 #[test]
